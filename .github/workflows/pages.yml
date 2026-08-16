@@ -12,8 +12,6 @@ concurrency:
   cancel-in-progress: true
 jobs:
   deploy:
-    env:
-      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -27,12 +25,3 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
-      - name: Notify Slack
-        if: ${{ success() && env.SLACK_WEBHOOK_URL != '' }}
-        env:
-          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
-        run: |
-          payload=$(printf '{"text":"Sleepbox Compassを更新しました: %s"}' "$PAGE_URL")
-          curl --fail --silent --show-error \
-            -H 'Content-Type: application/json' \
-            --data "$payload" "$SLACK_WEBHOOK_URL"

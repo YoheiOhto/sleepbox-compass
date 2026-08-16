@@ -66,9 +66,7 @@ pokesleep-box render
 
 本ツールは非公式であり、Pokémon、Pokémon Sleepおよび関連名称は各権利者に帰属します。
 
-## Slack通知
+## 使い方
 
-GitHub Pagesのデプロイ成功後、Actions Secret `SLACK_WEBHOOK_URL` が設定されていれば
-公開ページのリンクをSlackへ自動送信します。SlackのIncoming Webhook URLをリポジトリの
-`Settings → Secrets and variables → Actions` に登録してください。URLをコードや設定ファイルへ
-直接書かないでください。
+公開ページの「使い方」タブに、データ準備、最強パーティ選出、育成評価、一覧の見方を
+まとめています。外部サービスへの通知は行いません。
