@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS capture (
 CREATE TABLE IF NOT EXISTS individual (
   uid TEXT PRIMARY KEY, species TEXT NOT NULL, display_name TEXT,
   level INTEGER, nature TEXT NOT NULL, pokemon_type TEXT,
+  berry TEXT,
+  production_scores_json TEXT NOT NULL DEFAULT '{}',
   island_scores_json TEXT NOT NULL DEFAULT '{}',
   ingredients_json TEXT NOT NULL, subskills_json TEXT NOT NULL,
   main_skill TEXT NOT NULL, skill_level INTEGER NOT NULL, sp INTEGER,

@@ -44,6 +44,10 @@ def connect(path: Path) -> sqlite3.Connection:
         db.execute("ALTER TABLE individual ADD COLUMN pokemon_type TEXT")
     if "island_scores_json" not in columns:
         db.execute("ALTER TABLE individual ADD COLUMN island_scores_json TEXT NOT NULL DEFAULT '{}'")
+    if "berry" not in columns:
+        db.execute("ALTER TABLE individual ADD COLUMN berry TEXT")
+    if "production_scores_json" not in columns:
+        db.execute("ALTER TABLE individual ADD COLUMN production_scores_json TEXT NOT NULL DEFAULT '{}'")
     db.commit()
     return db
 
@@ -55,14 +59,15 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
         uid = item.get("uid") or canonical_uid(item)
         db.execute(
             """INSERT INTO individual
-            (uid,species,display_name,level,nature,pokemon_type,island_scores_json,ingredients_json,subskills_json,
+            (uid,species,display_name,level,nature,pokemon_type,berry,production_scores_json,island_scores_json,ingredients_json,subskills_json,
              main_skill,skill_level,sp,box_index,first_seen,last_seen,confidence,verified)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(uid) DO UPDATE SET level=excluded.level,sp=excluded.sp,
               box_index=excluded.box_index,last_seen=excluded.last_seen,
               confidence=excluded.confidence,verified=excluded.verified""",
             (uid, item["species"], item.get("display_name"), item.get("level"),
              item["nature"], item.get("pokemon_type"),
+             item.get("berry"), json.dumps(item.get("production_scores", {}), ensure_ascii=False),
              json.dumps(item.get("island_scores", {}), ensure_ascii=False),
              json.dumps(item["ingredients"], ensure_ascii=False),
              json.dumps(item["subskills"], ensure_ascii=False), item["main_skill"],
@@ -137,6 +142,7 @@ def load_dashboard(db: sqlite3.Connection) -> List[Dict[str, Any]]:
         role_scores = absolute_role_scores(item_scores)
         result.append({**dict(row), "evaluations": item_scores,
                        "island_scores": json.loads(row["island_scores_json"] or "{}"),
+                       "production_scores": json.loads(row["production_scores_json"] or "{}"),
                        "absolute_by_role": role_scores,
                        "absolute_score": max(role_scores.values(), default=0.0)})
     return result
