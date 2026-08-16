@@ -39,6 +39,12 @@ def connect(path: Path) -> sqlite3.Connection:
     db = sqlite3.connect(str(path))
     db.row_factory = sqlite3.Row
     db.executescript(Path(__file__).with_name("schema.sql").read_text())
+    columns = {row["name"] for row in db.execute("PRAGMA table_info(individual)")}
+    if "pokemon_type" not in columns:
+        db.execute("ALTER TABLE individual ADD COLUMN pokemon_type TEXT")
+    if "island_scores_json" not in columns:
+        db.execute("ALTER TABLE individual ADD COLUMN island_scores_json TEXT NOT NULL DEFAULT '{}'")
+    db.commit()
     return db
 
 
@@ -49,14 +55,16 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
         uid = item.get("uid") or canonical_uid(item)
         db.execute(
             """INSERT INTO individual
-            (uid,species,display_name,level,nature,ingredients_json,subskills_json,
+            (uid,species,display_name,level,nature,pokemon_type,island_scores_json,ingredients_json,subskills_json,
              main_skill,skill_level,sp,box_index,first_seen,last_seen,confidence,verified)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(uid) DO UPDATE SET level=excluded.level,sp=excluded.sp,
               box_index=excluded.box_index,last_seen=excluded.last_seen,
               confidence=excluded.confidence,verified=excluded.verified""",
             (uid, item["species"], item.get("display_name"), item.get("level"),
-             item["nature"], json.dumps(item["ingredients"], ensure_ascii=False),
+             item["nature"], item.get("pokemon_type"),
+             json.dumps(item.get("island_scores", {}), ensure_ascii=False),
+             json.dumps(item["ingredients"], ensure_ascii=False),
              json.dumps(item["subskills"], ensure_ascii=False), item["main_skill"],
              item["skill_level"], item.get("sp"), item.get("box_index"),
              timestamp, timestamp, item.get("confidence", 0.0), bool(item.get("verified"))),
@@ -128,9 +136,40 @@ def load_dashboard(db: sqlite3.Connection) -> List[Dict[str, Any]]:
         item_scores = evaluations.get(row["uid"], {})
         role_scores = absolute_role_scores(item_scores)
         result.append({**dict(row), "evaluations": item_scores,
+                       "island_scores": json.loads(row["island_scores_json"] or "{}"),
                        "absolute_by_role": role_scores,
                        "absolute_score": max(role_scores.values(), default=0.0)})
     return result
+
+
+def build_team_plans(items: Sequence[Mapping[str, Any]], team_size: int = 5) -> List[Dict[str, Any]]:
+    """Select the exact best additive team for each island and training anchor.
+
+    Island scores must come from the external game engine/input. Missing values
+    are excluded instead of estimated in Python.
+    """
+    islands = sorted({island for item in items for island in item.get("island_scores", {})})
+    plans: List[Dict[str, Any]] = []
+    for island in islands:
+        for mode in ("current", "50", "60", "70", "80"):
+            candidates = []
+            for item in items:
+                if not item.get("verified"):
+                    continue
+                value = item.get("island_scores", {}).get(island, {}).get(mode)
+                if value is not None:
+                    candidates.append((float(value), item))
+            selected = sorted(candidates, key=lambda pair: (-pair[0], pair[1]["uid"]))[:team_size]
+            if selected:
+                plans.append({
+                    "island": island,
+                    "mode": mode,
+                    "total_score": round(sum(score for score, _ in selected), 2),
+                    "members": [{"uid": item["uid"], "name": item.get("display_name") or item["species"],
+                                 "species": item["species"], "type": item.get("pokemon_type"),
+                                 "score": score} for score, item in selected],
+                })
+    return plans
 
 
 def absolute_role_scores(evaluations: Mapping[int, Mapping[str, float]],

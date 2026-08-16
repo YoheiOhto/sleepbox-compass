@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from pokesleep_box.core import absolute_role_scores, canonical_uid, connect, decide, import_individuals
+from pokesleep_box.core import absolute_role_scores, build_team_plans, canonical_uid, connect, decide, import_individuals, load_dashboard
 from pokesleep_box.render import render_site
 from pokesleep_box.core import load_dashboard
 
@@ -57,6 +57,16 @@ class CoreTests(unittest.TestCase):
     def test_missing_anchor_has_no_absolute_score(self):
         evaluations = {level: {"berry": 250} for level in (50, 60, 80)}
         self.assertEqual(absolute_role_scores(evaluations)["berry"], 0.0)
+
+    def test_team_optimizer_selects_highest_unique_members(self):
+        items = [
+            {"uid": str(n), "species": "P", "display_name": str(n), "verified": 1,
+             "pokemon_type": "grass", "island_scores": {"lapis": {"current": n}}}
+            for n in range(1, 8)
+        ]
+        plan = build_team_plans(items)[0]
+        self.assertEqual(plan["total_score"], 25)
+        self.assertEqual([m["name"] for m in plan["members"]], ["7", "6", "5", "4", "3"])
 
 
 if __name__ == "__main__":

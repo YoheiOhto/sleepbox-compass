@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
-from .core import connect, decide, import_individuals, load_dashboard
+from .core import build_team_plans, connect, decide, import_individuals, load_dashboard
 from .render import render_site
 
 
@@ -32,13 +32,15 @@ def main() -> None:
     elif args.command == "decide":
         print(json.dumps(decide(db, args.keep_top_n), ensure_ascii=False))
     elif args.command == "render":
-        render_site(load_dashboard(db), args.out)
+        dashboard = load_dashboard(db)
+        render_site(dashboard, args.out, build_team_plans(dashboard))
         print(args.out / "index.html")
     elif args.command == "demo":
         payload = json.loads(args.input.read_text(encoding="utf-8"))
         import_individuals(db, payload["individuals"])
         decide(db)
-        render_site(load_dashboard(db), args.out)
+        dashboard = load_dashboard(db)
+        render_site(dashboard, args.out, build_team_plans(dashboard))
         print(args.out / "index.html")
 
 
