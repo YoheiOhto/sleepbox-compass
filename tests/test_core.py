@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from pokesleep_box.core import canonical_uid, connect, decide, import_individuals
+from pokesleep_box.core import absolute_role_scores, canonical_uid, connect, decide, import_individuals
 from pokesleep_box.render import render_site
 from pokesleep_box.core import load_dashboard
 
@@ -47,6 +47,16 @@ class CoreTests(unittest.TestCase):
         render_site(load_dashboard(self.db), out)
         page = (out / "index.html").read_text()
         self.assertNotIn("</script>\"", page)
+
+    def test_absolute_score_uses_fixed_reference(self):
+        evaluations = {level: {role: 125 for role in ("berry", "ingredient", "skill")}
+                       for level in (50, 60, 70, 80)}
+        self.assertEqual(absolute_role_scores(evaluations),
+                         {"berry": 50.0, "ingredient": 50.0, "skill": 50.0})
+
+    def test_missing_anchor_has_no_absolute_score(self):
+        evaluations = {level: {"berry": 250} for level in (50, 60, 80)}
+        self.assertEqual(absolute_role_scores(evaluations)["berry"], 0.0)
 
 
 if __name__ == "__main__":

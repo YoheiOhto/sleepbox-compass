@@ -3,14 +3,15 @@
 Pokémon Sleepの手持ちを、Lv60とLv80の両方で評価し、育成候補と博士へ送る候補を
 スマホ向けページにまとめる、プライバシー優先のローカルツールです。
 
-> 現在は公開可能なMVPです。JSON取込、SQLite保存、全ロール×2アンカーの支配判定、
+> 現在は公開可能なMVPです。JSON取込、SQLite保存、全ロール×4アンカーの支配判定、
 > フェイルセーフ、静的サイト生成を実装しています。動画OCRとNeroli's Labブリッジは
 > 次の実装段階で、スコア未入力の個体は誤って送らないよう自動的に保護されます。
 
 ## 特徴
 
 - 個体IDは、変化しない種・性格・食材・サブスキル・メインスキルから生成
-- きのみ・食材・スキルの全ロールについてLv60/Lv80両方で支配された場合だけ送る候補
+- きのみ・食材・スキルの全ロールについてLv50/60/70/80すべてで支配された場合だけ送る候補
+- 固定基準値との比較による0〜100の総合絶対評価（手持ち母集団に依存しない）
 - 未検証・スコア不足の個体は必ず `protected`
 - 個人データ、スクリーンショット、動画、SQLite、ローカル設定はGit管理外
 - GitHub Pages向けのレスポンシブな静的HTML
@@ -58,3 +59,10 @@ pokesleep-box render
 [engine/README.md](engine/README.md) および [NOTICE](NOTICE) に記載しています。
 
 本ツールは非公式であり、Pokémon、Pokémon Sleepおよび関連名称は各権利者に帰属します。
+
+## Slack通知
+
+GitHub Pagesのデプロイ成功後、Actions Secret `SLACK_WEBHOOK_URL` が設定されていれば
+公開ページのリンクをSlackへ自動送信します。SlackのIncoming Webhook URLをリポジトリの
+`Settings → Secrets and variables → Actions` に登録してください。URLをコードや設定ファイルへ
+直接書かないでください。

@@ -8,7 +8,9 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
 
 ROLES = ("berry", "ingredient", "skill")
-ANCHORS = (60, 80)
+ANCHORS = (50, 60, 70, 80)
+ANCHOR_WEIGHTS = {50: 0.15, 60: 0.30, 70: 0.20, 80: 0.35}
+ABSOLUTE_REFERENCES = {"berry": 250.0, "ingredient": 250.0, "skill": 250.0}
 ZERO_VALUE_SUBSKILLS = {
     "Research EXP Bonus", "Sleep EXP Bonus", "Dream Shard Bonus"
 }
@@ -103,11 +105,11 @@ def decide(db: sqlite3.Connection, keep_top_n: int = 2,
                 dominated = all(n >= keep_top_n for n in better)
                 if dominated:
                     verdict = "send"
-                    reason = (f"同種の上位個体が全3ロール・Lv60/80で"
+                    reason = (f"同種の上位個体が全3ロール・Lv50/60/70/80で"
                               f"それぞれ{keep_top_n}匹以上います")
                 else:
                     verdict = "keep"
-                    reason = "Lv60またはLv80のいずれかの役割で同種上位候補です"
+                    reason = "Lv50/60/70/80のいずれかの役割で同種上位候補です"
             db.execute("INSERT OR REPLACE INTO decision VALUES (?,?,?,?)",
                        (uid, verdict, reason, timestamp))
             counts[verdict] += 1
@@ -121,4 +123,26 @@ def load_dashboard(db: sqlite3.Connection) -> List[Dict[str, Any]]:
     evaluations: Dict[str, Dict[int, Dict[str, float]]] = {}
     for row in db.execute("SELECT uid,anchor_level,role,score FROM evaluation"):
         evaluations.setdefault(row["uid"], {}).setdefault(row["anchor_level"], {})[row["role"]] = row["score"]
-    return [{**dict(row), "evaluations": evaluations.get(row["uid"], {})} for row in rows]
+    result = []
+    for row in rows:
+        item_scores = evaluations.get(row["uid"], {})
+        role_scores = absolute_role_scores(item_scores)
+        result.append({**dict(row), "evaluations": item_scores,
+                       "absolute_by_role": role_scores,
+                       "absolute_score": max(role_scores.values(), default=0.0)})
+    return result
+
+
+def absolute_role_scores(evaluations: Mapping[int, Mapping[str, float]],
+                         references: Mapping[str, float] = ABSOLUTE_REFERENCES,
+                         weights: Mapping[int, float] = ANCHOR_WEIGHTS) -> Dict[str, float]:
+    """Return stable 0-100 scores based on fixed references, never box rank."""
+    result: Dict[str, float] = {}
+    for role in ROLES:
+        if any(role not in evaluations.get(anchor, {}) for anchor in ANCHORS):
+            result[role] = 0.0
+            continue
+        ratio = sum(weights[a] * max(0.0, evaluations[a][role]) / references[role]
+                    for a in ANCHORS)
+        result[role] = round(min(100.0, ratio * 100.0), 1)
+    return result

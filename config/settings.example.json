@@ -7,5 +7,7 @@
   "potSize": 15,
   "includeCooking": true,
   "keepTopNPerSpecies": 2,
-  "deltaSThreshold": 0.15
+  "deltaSThreshold": 0.15,
+  "anchorWeights": {"50": 0.15, "60": 0.30, "70": 0.20, "80": 0.35},
+  "absoluteScoreReference": {"berry": 250, "ingredient": 250, "skill": 250}
 }

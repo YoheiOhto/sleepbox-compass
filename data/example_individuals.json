@@ -13,7 +13,7 @@
       "box_index": 1,
       "confidence": 1.0,
       "verified": true,
-      "scores": {"60": {"berry": 120, "ingredient": 180, "skill": 90}, "80": {"berry": 132, "ingredient": 195, "skill": 92}}
+      "scores": {"50": {"berry": 110, "ingredient": 165, "skill": 85}, "60": {"berry": 120, "ingredient": 180, "skill": 90}, "70": {"berry": 126, "ingredient": 188, "skill": 91}, "80": {"berry": 132, "ingredient": 195, "skill": 92}}
     },
     {
       "species": "BULBASAUR",
@@ -28,7 +28,7 @@
       "box_index": 2,
       "confidence": 1.0,
       "verified": true,
-      "scores": {"60": {"berry": 80, "ingredient": 100, "skill": 60}, "80": {"berry": 82, "ingredient": 102, "skill": 61}}
+      "scores": {"50": {"berry": 75, "ingredient": 95, "skill": 58}, "60": {"berry": 80, "ingredient": 100, "skill": 60}, "70": {"berry": 81, "ingredient": 101, "skill": 60}, "80": {"berry": 82, "ingredient": 102, "skill": 61}}
     },
     {
       "species": "BULBASAUR",
@@ -43,7 +43,7 @@
       "box_index": 3,
       "confidence": 1.0,
       "verified": true,
-      "scores": {"60": {"berry": 150, "ingredient": 210, "skill": 110}, "80": {"berry": 190, "ingredient": 240, "skill": 145}}
+      "scores": {"50": {"berry": 135, "ingredient": 195, "skill": 100}, "60": {"berry": 150, "ingredient": 210, "skill": 110}, "70": {"berry": 170, "ingredient": 225, "skill": 125}, "80": {"berry": 190, "ingredient": 240, "skill": 145}}
     }
   ]
 }
