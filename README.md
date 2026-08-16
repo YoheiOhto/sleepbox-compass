@@ -1,0 +1,60 @@
+# Sleepbox Compass
+
+Pokémon Sleepの手持ちを、Lv60とLv80の両方で評価し、育成候補と博士へ送る候補を
+スマホ向けページにまとめる、プライバシー優先のローカルツールです。
+
+> 現在は公開可能なMVPです。JSON取込、SQLite保存、全ロール×2アンカーの支配判定、
+> フェイルセーフ、静的サイト生成を実装しています。動画OCRとNeroli's Labブリッジは
+> 次の実装段階で、スコア未入力の個体は誤って送らないよう自動的に保護されます。
+
+## 特徴
+
+- 個体IDは、変化しない種・性格・食材・サブスキル・メインスキルから生成
+- きのみ・食材・スキルの全ロールについてLv60/Lv80両方で支配された場合だけ送る候補
+- 未検証・スコア不足の個体は必ず `protected`
+- 個人データ、スクリーンショット、動画、SQLite、ローカル設定はGit管理外
+- GitHub Pages向けのレスポンシブな静的HTML
+
+## クイックスタート
+
+Python 3.9以上が必要です。
+
+```sh
+python3 -m pip install -e .
+pokesleep-box --db /tmp/pokesleep-demo.sqlite demo
+python3 -m http.server 8000 --directory site
+```
+
+ブラウザで `http://localhost:8000` を開きます。実データは次のように処理します。
+
+```sh
+cp config/settings.example.json config/settings.local.json
+pokesleep-box init-db
+pokesleep-box import-json data/private/my-box.json
+pokesleep-box decide --keep-top-n 2
+pokesleep-box render
+```
+
+入力形式は [data/example_individuals.json](data/example_individuals.json) を参照してください。
+この例は架空のサンプルであり、実ユーザーのデータではありません。
+
+## プライバシー
+
+次は `.gitignore` により公開されません。
+
+- `inbox/` の動画・画像
+- `frames/` の抽出フレーム
+- `data/private/` と `data/*.sqlite`
+- `config/*.local.json`
+- 個人データから生成した監査レポート
+
+公開前には `git status` と追跡対象の秘密情報検査も行ってください。公開Pagesに実データを
+載せる場合は、コード用公開リポジトリとは別の非公開データ運用を推奨します。
+
+## 設計と安全性
+
+詳細仕様は [sekkei.md](sekkei.md) を参照してください。ゲーム仕様の計算式をPythonへ
+再実装せず、Neroli's Labと連携する方針です。連携方法とライセンスは
+[engine/README.md](engine/README.md) および [NOTICE](NOTICE) に記載しています。
+
+本ツールは非公式であり、Pokémon、Pokémon Sleepおよび関連名称は各権利者に帰属します。

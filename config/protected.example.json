@@ -1,0 +1,8 @@
+{
+  "by_uid": [],
+  "by_species": [],
+  "rules": {
+    "keep_if_shiny": true,
+    "keep_if_event_exclusive": true
+  }
+}

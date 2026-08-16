@@ -1,0 +1,124 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import sqlite3
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
+
+ROLES = ("berry", "ingredient", "skill")
+ANCHORS = (60, 80)
+ZERO_VALUE_SUBSKILLS = {
+    "Research EXP Bonus", "Sleep EXP Bonus", "Dream Shard Bonus"
+}
+
+
+def now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def canonical_uid(item: Mapping[str, Any]) -> str:
+    core = {
+        "species": item["species"],
+        "nature": item["nature"],
+        "ingredients": item["ingredients"],
+        "subskills": item["subskills"],
+        "main_skill": item["main_skill"],
+        "skill_level": item["skill_level"],
+        "display_name": item.get("display_name") or "",
+    }
+    raw = json.dumps(core, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(raw.encode()).hexdigest()[:20]
+
+
+def connect(path: Path) -> sqlite3.Connection:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    db = sqlite3.connect(str(path))
+    db.row_factory = sqlite3.Row
+    db.executescript(Path(__file__).with_name("schema.sql").read_text())
+    return db
+
+
+def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]]) -> int:
+    timestamp = now()
+    count = 0
+    for item in items:
+        uid = item.get("uid") or canonical_uid(item)
+        db.execute(
+            """INSERT INTO individual
+            (uid,species,display_name,level,nature,ingredients_json,subskills_json,
+             main_skill,skill_level,sp,box_index,first_seen,last_seen,confidence,verified)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(uid) DO UPDATE SET level=excluded.level,sp=excluded.sp,
+              box_index=excluded.box_index,last_seen=excluded.last_seen,
+              confidence=excluded.confidence,verified=excluded.verified""",
+            (uid, item["species"], item.get("display_name"), item.get("level"),
+             item["nature"], json.dumps(item["ingredients"], ensure_ascii=False),
+             json.dumps(item["subskills"], ensure_ascii=False), item["main_skill"],
+             item["skill_level"], item.get("sp"), item.get("box_index"),
+             timestamp, timestamp, item.get("confidence", 0.0), bool(item.get("verified"))),
+        )
+        for anchor_text, scores in item.get("scores", {}).items():
+            for role, score in scores.items():
+                if int(anchor_text) in ANCHORS and role in ROLES:
+                    db.execute(
+                        """INSERT OR REPLACE INTO evaluation VALUES
+                        (?,?,?,?,?,?,?,?,?)""",
+                        (uid, int(anchor_text), role, float(score), None, None,
+                         "imported", "imported", timestamp),
+                    )
+        count += 1
+    db.commit()
+    return count
+
+
+def decide(db: sqlite3.Connection, keep_top_n: int = 2,
+           protected_uids: Sequence[str] = ()) -> Dict[str, int]:
+    people = db.execute("SELECT * FROM individual ORDER BY species, box_index").fetchall()
+    scores = {(r["uid"], r["anchor_level"], r["role"]): r["score"] for r in
+              db.execute("SELECT uid,anchor_level,role,score FROM evaluation")}
+    by_species: Dict[str, List[sqlite3.Row]] = {}
+    for person in people:
+        by_species.setdefault(person["species"], []).append(person)
+    counts = {"keep": 0, "send": 0, "protected": 0}
+    timestamp = now()
+    for species, group in by_species.items():
+        for person in group:
+            uid = person["uid"]
+            if uid in protected_uids:
+                verdict, reason = "protected", "保護リストで指定されています"
+            elif not person["verified"]:
+                verdict, reason = "protected", "検証が完了していないため判定対象外です"
+            elif any((uid, a, r) not in scores for a in ANCHORS for r in ROLES):
+                verdict, reason = "protected", "Lv60/Lv80の全ロール評価が未完了です"
+            else:
+                better = []
+                for anchor in ANCHORS:
+                    for role in ROLES:
+                        own = scores[(uid, anchor, role)]
+                        n = sum(scores.get((other["uid"], anchor, role), float("-inf")) > own
+                                for other in group if other["uid"] != uid)
+                        better.append(n)
+                dominated = all(n >= keep_top_n for n in better)
+                if dominated:
+                    verdict = "send"
+                    reason = (f"同種の上位個体が全3ロール・Lv60/80で"
+                              f"それぞれ{keep_top_n}匹以上います")
+                else:
+                    verdict = "keep"
+                    reason = "Lv60またはLv80のいずれかの役割で同種上位候補です"
+            db.execute("INSERT OR REPLACE INTO decision VALUES (?,?,?,?)",
+                       (uid, verdict, reason, timestamp))
+            counts[verdict] += 1
+    db.commit()
+    return counts
+
+
+def load_dashboard(db: sqlite3.Connection) -> List[Dict[str, Any]]:
+    rows = db.execute("""SELECT i.*,d.verdict,d.reason FROM individual i
+                         LEFT JOIN decision d ON d.uid=i.uid ORDER BY i.box_index""").fetchall()
+    evaluations: Dict[str, Dict[int, Dict[str, float]]] = {}
+    for row in db.execute("SELECT uid,anchor_level,role,score FROM evaluation"):
+        evaluations.setdefault(row["uid"], {}).setdefault(row["anchor_level"], {})[row["role"]] = row["score"]
+    return [{**dict(row), "evaluations": evaluations.get(row["uid"], {})} for row in rows]

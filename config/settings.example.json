@@ -1,0 +1,11 @@
+{
+  "island": "greengrass",
+  "areaBonus": 0,
+  "camp": false,
+  "bedtime": "22:00",
+  "wakeup": "06:00",
+  "potSize": 15,
+  "includeCooking": true,
+  "keepTopNPerSpecies": 2,
+  "deltaSThreshold": 0.15
+}

@@ -1,0 +1,49 @@
+{
+  "individuals": [
+    {
+      "species": "BULBASAUR",
+      "display_name": "サンプルA",
+      "level": 15,
+      "nature": "Mild",
+      "ingredients": [["Honey", 2], ["Honey", 5], ["Soft Potato", 6]],
+      "subskills": [["Energy Recovery Bonus", 10], ["Berry Finding S", 25], ["Ingredient Finder M", 50], ["Helping Speed S", 75], ["Research EXP Bonus", 100]],
+      "main_skill": "Ingredient Magnet S",
+      "skill_level": 1,
+      "sp": 513,
+      "box_index": 1,
+      "confidence": 1.0,
+      "verified": true,
+      "scores": {"60": {"berry": 120, "ingredient": 180, "skill": 90}, "80": {"berry": 132, "ingredient": 195, "skill": 92}}
+    },
+    {
+      "species": "BULBASAUR",
+      "display_name": "サンプルB",
+      "level": 12,
+      "nature": "Hardy",
+      "ingredients": [["Honey", 2], ["Honey", 5], ["Soft Potato", 6]],
+      "subskills": [["Inventory Up S", 10], ["Helping Speed S", 25], ["Sleep EXP Bonus", 50], ["Inventory Up M", 75], ["Research EXP Bonus", 100]],
+      "main_skill": "Ingredient Magnet S",
+      "skill_level": 1,
+      "sp": 400,
+      "box_index": 2,
+      "confidence": 1.0,
+      "verified": true,
+      "scores": {"60": {"berry": 80, "ingredient": 100, "skill": 60}, "80": {"berry": 82, "ingredient": 102, "skill": 61}}
+    },
+    {
+      "species": "BULBASAUR",
+      "display_name": "サンプルC",
+      "level": 10,
+      "nature": "Quiet",
+      "ingredients": [["Honey", 2], ["Honey", 5], ["Soft Potato", 6]],
+      "subskills": [["Ingredient Finder M", 10], ["Helping Speed M", 25], ["Inventory Up L", 50], ["Skill Trigger S", 75], ["Berry Finding S", 100]],
+      "main_skill": "Ingredient Magnet S",
+      "skill_level": 2,
+      "sp": 520,
+      "box_index": 3,
+      "confidence": 1.0,
+      "verified": true,
+      "scores": {"60": {"berry": 150, "ingredient": 210, "skill": 110}, "80": {"berry": 190, "ingredient": 240, "skill": 145}}
+    }
+  ]
+}

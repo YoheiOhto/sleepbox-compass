@@ -1,0 +1,27 @@
+# Private captures and derived user data
+inbox/*
+frames/*
+data/private/*
+data/*.sqlite
+data/*.sqlite-*
+config/settings.local.json
+config/protected.local.json
+site/private/*
+audit_report.md
+
+# Keep empty private directories documented
+!inbox/.gitkeep
+!data/private/.gitkeep
+
+# Python / tooling
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+dist/
+.DS_Store
+
+# Engine vendor/build artifacts
+engine/node_modules/
+engine/vendor/
+engine/dist/
