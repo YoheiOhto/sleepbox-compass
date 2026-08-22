@@ -17,7 +17,7 @@ Pokémon Sleepの手持ちを、Lv60とLv80の両方で評価し、育成候補�
 - GitHub Pages向けのレスポンシブな静的HTML
 - ポケモンタイプ表示と、島ごとの現在最強・Lv50/60/70/80育成後パーティ提案
 - 現行246個体キー、性格25種、サブスキル17種、食材19種、きのみ18種の日本語双方向解決
-- ffmpeg動画抽出、差し替え可能なローカルOCR、監査レポート、オフラインレビュー画面
+- macOS Visionによる日本語OCR（画像・動画）、差し替え可能なOCR、監査レポート、オフラインレビュー画面
 - 固定6島（ワカクサ除外）の料理なし日次・週次エナジー予測と安定〜上振れ幅
 - 現在→Lv60の育成効果、全島汎用性、戦力不足、目標到達日数
 - 一般的な理想個体と、手持ちの不足を分けた捕獲候補
@@ -45,18 +45,29 @@ pokesleep-box decide --keep-top-n 2
 pokesleep-box render
 ```
 
-日本語JSONもそのまま取り込めます。画像・動画から取り込む場合は、各画像と同名の
-`画像名.jpg.json`をローカルVLM等で生成するか、画像パスを受け取って抽出JSONを
-標準出力するローカルコマンドを指定します。
+日本語JSONもそのまま取り込めます。macOSでは、ポケモンの詳細画面を撮った画像または
+画面収録を`inbox/`へ置くだけで、Apple Visionの日本語OCRを使ってローカル認識できます。
+画像は外部へ送信されません。初回だけSwift製OCRヘルパーを`.cache/`へ自動ビルドします。
 
 ```sh
-pokesleep-box ingest inbox --ocr-command /path/to/local-vlm-extractor
-# frames/review.htmlで確認後、保存したJSONを再取り込み
+# 架空画像で、実データを使わず先に一連の流れを試す
+pokesleep-box make-ocr-demo
+pokesleep-box --db data/demo-ocr.sqlite scan inbox/ocr-demo.png
+
+# 自分の画像・動画を読み込む（inbox/の中身はGit管理外）
+pokesleep-box scan inbox
+
+# frames/review.htmlで画像と照合し、「照合済み」にチェックして保存
 pokesleep-box import-json reviewed_individuals.json
+pokesleep-box decide --keep-top-n 2
+pokesleep-box render
 ```
 
-OCRコマンドを省略するとJSONサイドカーだけを読みます。動画には`ffmpeg`が必要です。
-取り込み後の`audit_report.md`と`frames/review.html`はGit管理外です。
+認識結果は安全のため最初は必ず未検証になり、確認前の個体を博士へ送る候補にはしません。
+読み取りにくい項目は監査レポートに出ます。`--interval 0.5`で動画の認識間隔も調整できます。
+macOS Visionを使えない環境では`--ocr sidecar --ocr-command /path/to/extractor`で従来の
+ローカル抽出器を利用できます（sidecar方式の動画抽出にはffmpegが必要です）。取り込み後の
+`audit_report.md`、`frames/review.html`、OCR画像、DBはすべてGit管理外です。
 
 ## 計算と検証
 

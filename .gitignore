@@ -18,6 +18,7 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .venv/
+.cache/
 dist/
 .DS_Store
 

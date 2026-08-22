@@ -29,12 +29,15 @@ def main() -> None:
     demo.add_argument("--input", type=Path, default=Path("data/example_individuals.json"))
     demo.add_argument("--out", type=Path, default=Path("site"))
     demo.add_argument("--benchmarks", type=Path, default=Path("data/example_species_benchmarks.json"))
-    scan = commands.add_parser("ingest")
-    scan.add_argument("path", type=Path, nargs="?", default=Path("inbox"))
-    scan.add_argument("--frames", type=Path, default=Path("frames"))
-    scan.add_argument("--audit", type=Path, default=Path("audit_report.md"))
-    scan.add_argument("--review", type=Path, default=Path("frames/review.html"))
-    scan.add_argument("--ocr-command", help="画像パスを受け取り抽出JSONを標準出力するローカルコマンド")
+    for command_name in ("ingest", "scan"):
+        scan = commands.add_parser(command_name)
+        scan.add_argument("path", type=Path, nargs="?", default=Path("inbox"))
+        scan.add_argument("--frames", type=Path, default=Path("frames"))
+        scan.add_argument("--audit", type=Path, default=Path("audit_report.md"))
+        scan.add_argument("--review", type=Path, default=Path("frames/review.html"))
+        scan.add_argument("--ocr", choices=("vision", "sidecar"), default="vision")
+        scan.add_argument("--interval", type=float, default=.8, help="動画OCRのフレーム間隔（秒）")
+        scan.add_argument("--ocr-command", help="画像パスを受け取り抽出JSONを標準出力するローカルコマンド")
     ver = commands.add_parser("verify")
     ver.add_argument("--engine", default="engine/bin/pokesleep-engine")
     ver.add_argument("--tolerance", type=int, default=0)
@@ -45,6 +48,8 @@ def main() -> None:
     bench.add_argument("--out", type=Path, default=Path("data/private/species_benchmarks.json"))
     bench.add_argument("--iterations", type=int, default=500)
     commands.add_parser("validate-names")
+    ocr_demo = commands.add_parser("make-ocr-demo")
+    ocr_demo.add_argument("--out", type=Path, default=Path("inbox/ocr-demo.png"))
     args = parser.parse_args()
     db = connect(args.db)
     if args.command == "init-db":
@@ -68,8 +73,9 @@ def main() -> None:
         benchmarks = json.loads(args.benchmarks.read_text()).get("benchmarks", []) if args.benchmarks.exists() else []
         render_site(dashboard, args.out, build_team_plans(dashboard), analyze(dashboard, {}, benchmarks))
         print(args.out / "index.html")
-    elif args.command == "ingest":
-        items = ingest_path(args.path, args.frames, args.ocr_command)
+    elif args.command in ("ingest", "scan"):
+        items = ingest_path(args.path, args.frames, args.ocr_command,
+                            vision=args.ocr == "vision", interval=args.interval)
         imported = import_individuals(db, items)
         report = audit(items, args.audit)
         render_review(items, args.review)
@@ -105,6 +111,9 @@ def main() -> None:
             parser.error(f"日本語名の逆引き衝突があります: {problems}")
         print(json.dumps({key: len(table) for key, table in tables.items()
                           if isinstance(table, dict)}, ensure_ascii=False))
+    elif args.command == "make-ocr-demo":
+        from .ocr import make_demo
+        print(make_demo(args.out))
 
 
 if __name__ == "__main__":

@@ -55,9 +55,14 @@ def sidecar_extract(frame: Path, ocr_command: Optional[str] = None) -> Optional[
     return None
 
 
-def ingest_path(path: Path, frames_dir: Path, ocr_command: Optional[str] = None) -> List[Dict[str, Any]]:
+def ingest_path(path: Path, frames_dir: Path, ocr_command: Optional[str] = None,
+                vision: bool = False, interval: float = .8) -> List[Dict[str, Any]]:
     result = []
     for source in ([path] if path.is_file() else discover_inputs(path)):
+        if vision:
+            from .ocr import scan
+            result.extend(scan(source, interval))
+            continue
         for frame in extract_frames(source, frames_dir / source.stem):
             item = sidecar_extract(frame, ocr_command) or sidecar_extract(source, ocr_command)
             if item:
@@ -83,7 +88,9 @@ def audit(items: Iterable[Dict[str, Any]], path: Path) -> Dict[str, int]:
              f"- 低信頼: {len(low)}", f"- 未検証: {len(unverified)}", "",
              "未検証個体は博士へ送る候補になりません。", ""]
     for item in low or unverified:
-        lines.append(f"- BOX {item.get('box_index', '-')} / {item.get('species_ja', item.get('species'))}: 要確認")
+        missing = "、".join(item.get("ocr_missing", []))
+        suffix = f"（不足: {missing}）" if missing else ""
+        lines.append(f"- BOX {item.get('box_index', '-')} / {item.get('species_ja', item.get('species'))}: 要確認{suffix}")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return {"total": len(rows), "low_confidence": len(low), "unverified": len(unverified)}
 
@@ -95,7 +102,7 @@ def render_review(items: Iterable[Dict[str, Any]], path: Path) -> None:
 <title>取り込みレビュー</title><style>body{{font-family:sans-serif;max-width:760px;margin:auto;padding:20px;background:#f4f7f3;color:#183026}}article{{background:white;padding:16px;margin:12px 0;border-radius:14px}}label{{display:grid;gap:4px;margin:8px 0}}input,textarea,button{{font:inherit;padding:10px}}textarea{{min-height:130px}}button{{background:#267553;color:white;border:0;border-radius:10px}}</style>
 <h1>取り込みレビュー</h1><p>低信頼・未検証の個体を確認してください。画像や内容は外部送信されません。</p><main></main><button id="save">修正JSONを保存</button>
 <script>const rows={data},main=document.querySelector('main');const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}}[c]));
-main.innerHTML=rows.map((x,i)=>`<article><strong>BOX ${{x.box_index??'-'}} · ${{esc(x.species_ja||x.species)}}</strong><label>ニックネーム<input data-i="${{i}}" data-k="display_name" value="${{esc(x.display_name||'')}}"></label><label>抽出JSON<textarea data-i="${{i}}">${{esc(JSON.stringify(x,null,2))}}</textarea></label></article>`).join('');
-document.querySelector('#save').onclick=()=>{{document.querySelectorAll('textarea').forEach(t=>rows[+t.dataset.i]=JSON.parse(t.value));const b=new Blob([JSON.stringify({{individuals:rows}},null,2)],{{type:'application/json'}}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='reviewed_individuals.json';a.click();URL.revokeObjectURL(a.href)}};</script></html>'''
+main.innerHTML=rows.map((x,i)=>`<article><strong>BOX ${{x.box_index??'-'}} · ${{esc(x.species_ja||x.species)}}</strong><label>ニックネーム<input data-i="${{i}}" data-k="display_name" value="${{esc(x.display_name||'')}}"></label><label><span><input type="checkbox" data-i="${{i}}" data-k="verified"> 内容を画像と照合済みにする</span></label><label>抽出JSON<textarea data-i="${{i}}">${{esc(JSON.stringify(x,null,2))}}</textarea></label></article>`).join('');
+document.querySelector('#save').onclick=()=>{{document.querySelectorAll('textarea').forEach(t=>rows[+t.dataset.i]=JSON.parse(t.value));document.querySelectorAll('[data-k="verified"]').forEach(c=>rows[+c.dataset.i].verified=c.checked);document.querySelectorAll('[data-k="display_name"]').forEach(n=>rows[+n.dataset.i].display_name=n.value);const b=new Blob([JSON.stringify({{individuals:rows}},null,2)],{{type:'application/json'}}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='reviewed_individuals.json';a.click();URL.revokeObjectURL(a.href)}};</script></html>'''
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(page, encoding="utf-8")

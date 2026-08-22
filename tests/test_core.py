@@ -9,6 +9,7 @@ from pokesleep_box.render import render_site
 from pokesleep_box.localization import names, normalize_individual, to_english, to_japanese
 from pokesleep_box.ingest import audit, ingest_path, render_review
 from pokesleep_box.analytics import analyze
+from pokesleep_box.ocr import merge_frames
 
 
 ROOT = Path(__file__).parents[1]
@@ -106,6 +107,22 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(audit(rows, report)["total"], 1)
         render_review(rows, review)
         self.assertIn("取り込みレビュー", review.read_text())
+
+    def test_japanese_vision_observations_are_parsed(self):
+        lines = ["フシギダネ", "Lv.15 SP 513", "きのみ ドリ", "あまいミツ x2",
+                 "あまいミツ x5 Lv.30", "ほっこりポテト x6 Lv.60",
+                 "食材ゲットS Lv.1", "Lv.10 げんき回復ボーナス",
+                 "Lv.25 きのみの数S", "Lv.50 食材確率アップM",
+                 "Lv.75 おてつだいスピードS", "Lv.100 リサーチEXPボーナス", "おっとり"]
+        frame = {"frame": 0, "seconds": 0,
+                 "observations": [{"text": text, "confidence": .9} for text in lines]}
+        row = merge_frames([frame])[0]
+        self.assertEqual((row["species"], row["nature"], row["berry"]),
+                         ("BULBASAUR", "Mild", "DURIN"))
+        self.assertEqual(row["ingredients"], [["Honey", 2], ["Honey", 5], ["Potato", 6]])
+        self.assertEqual([x[1] for x in row["subskills"]], [10, 25, 50, 75, 100])
+        self.assertEqual((row["level"], row["sp"], row["main_skill"]),
+                         (15, 513, "Ingredient Magnet S"))
 
     def test_cooking_free_energy_forecast_and_growth(self):
         item = dict(self.items[0], uid="energy", verified=True, energy_scores={
