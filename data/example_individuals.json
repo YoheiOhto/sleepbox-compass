@@ -7,17 +7,332 @@
       "nature": "Mild",
       "pokemon_type": "くさ",
       "berry": "DURIN",
-      "production_scores": {"current": {"total": 90, "berry": 25}, "50": {"total": 125, "berry": 38}, "60": {"total": 145, "berry": 45}, "70": {"total": 155, "berry": 49}, "80": {"total": 165, "berry": 52}},
-      "island_scores": {"ラピスラズリ湖畔": {"current": 90, "50": 125, "60": 145, "70": 155, "80": 165}, "ワカクサ本島": {"current": 82, "50": 110, "60": 125, "70": 134, "80": 142}},
-      "ingredients": [["Honey", 2], ["Honey", 5], ["Soft Potato", 6]],
-      "subskills": [["Energy Recovery Bonus", 10], ["Berry Finding S", 25], ["Ingredient Finder M", 50], ["Helping Speed S", 75], ["Research EXP Bonus", 100]],
+      "production_scores": {
+        "current": {
+          "total": 90,
+          "berry": 25
+        },
+        "50": {
+          "total": 125,
+          "berry": 38
+        },
+        "60": {
+          "total": 145,
+          "berry": 45
+        },
+        "70": {
+          "total": 155,
+          "berry": 49
+        },
+        "80": {
+          "total": 165,
+          "berry": 52
+        }
+      },
+      "island_scores": {
+        "ラピスラズリ湖畔": {
+          "current": 90,
+          "50": 125,
+          "60": 145,
+          "70": 155,
+          "80": 165
+        },
+        "ワカクサ本島": {
+          "current": 82,
+          "50": 110,
+          "60": 125,
+          "70": 134,
+          "80": 142
+        }
+      },
+      "ingredients": [
+        [
+          "Honey",
+          2
+        ],
+        [
+          "Honey",
+          5
+        ],
+        [
+          "Soft Potato",
+          6
+        ]
+      ],
+      "subskills": [
+        [
+          "Energy Recovery Bonus",
+          10
+        ],
+        [
+          "Berry Finding S",
+          25
+        ],
+        [
+          "Ingredient Finder M",
+          50
+        ],
+        [
+          "Helping Speed S",
+          75
+        ],
+        [
+          "Research EXP Bonus",
+          100
+        ]
+      ],
       "main_skill": "Ingredient Magnet S",
       "skill_level": 1,
       "sp": 513,
       "box_index": 1,
       "confidence": 1.0,
       "verified": true,
-      "scores": {"50": {"berry": 110, "ingredient": 165, "skill": 85}, "60": {"berry": 120, "ingredient": 180, "skill": 90}, "70": {"berry": 126, "ingredient": 188, "skill": 91}, "80": {"berry": 132, "ingredient": 195, "skill": 92}}
+      "scores": {
+        "50": {
+          "berry": 110,
+          "ingredient": 165,
+          "skill": 85
+        },
+        "60": {
+          "berry": 120,
+          "ingredient": 180,
+          "skill": 90
+        },
+        "70": {
+          "berry": 126,
+          "ingredient": 188,
+          "skill": 91
+        },
+        "80": {
+          "berry": 132,
+          "ingredient": 195,
+          "skill": 92
+        }
+      },
+      "energy_scores": {
+        "シアンの砂浜": {
+          "current": {
+            "berry": 10500,
+            "direct_skill": 900,
+            "expected": 11400,
+            "low": 11085,
+            "high": 11715
+          },
+          "50": {
+            "berry": 15960,
+            "direct_skill": 900,
+            "expected": 16860,
+            "low": 16545,
+            "high": 17175
+          },
+          "60": {
+            "berry": 18900,
+            "direct_skill": 900,
+            "expected": 19800,
+            "low": 19485,
+            "high": 20115
+          },
+          "70": {
+            "berry": 20580,
+            "direct_skill": 900,
+            "expected": 21480,
+            "low": 21165,
+            "high": 21795
+          },
+          "80": {
+            "berry": 21840,
+            "direct_skill": 900,
+            "expected": 22740,
+            "low": 22425,
+            "high": 23055
+          }
+        },
+        "トープ洞窟": {
+          "current": {
+            "berry": 10500,
+            "direct_skill": 900,
+            "expected": 11400,
+            "low": 11085,
+            "high": 11715
+          },
+          "50": {
+            "berry": 15960,
+            "direct_skill": 900,
+            "expected": 16860,
+            "low": 16545,
+            "high": 17175
+          },
+          "60": {
+            "berry": 18900,
+            "direct_skill": 900,
+            "expected": 19800,
+            "low": 19485,
+            "high": 20115
+          },
+          "70": {
+            "berry": 20580,
+            "direct_skill": 900,
+            "expected": 21480,
+            "low": 21165,
+            "high": 21795
+          },
+          "80": {
+            "berry": 21840,
+            "direct_skill": 900,
+            "expected": 22740,
+            "low": 22425,
+            "high": 23055
+          }
+        },
+        "ウノハナ雪原": {
+          "current": {
+            "berry": 10500,
+            "direct_skill": 900,
+            "expected": 11400,
+            "low": 11085,
+            "high": 11715
+          },
+          "50": {
+            "berry": 15960,
+            "direct_skill": 900,
+            "expected": 16860,
+            "low": 16545,
+            "high": 17175
+          },
+          "60": {
+            "berry": 18900,
+            "direct_skill": 900,
+            "expected": 19800,
+            "low": 19485,
+            "high": 20115
+          },
+          "70": {
+            "berry": 20580,
+            "direct_skill": 900,
+            "expected": 21480,
+            "low": 21165,
+            "high": 21795
+          },
+          "80": {
+            "berry": 21840,
+            "direct_skill": 900,
+            "expected": 22740,
+            "low": 22425,
+            "high": 23055
+          }
+        },
+        "ラピスラズリ湖畔": {
+          "current": {
+            "berry": 21000,
+            "direct_skill": 900,
+            "expected": 21900,
+            "low": 21585,
+            "high": 22215
+          },
+          "50": {
+            "berry": 31920,
+            "direct_skill": 900,
+            "expected": 32820,
+            "low": 32505,
+            "high": 33135
+          },
+          "60": {
+            "berry": 37800,
+            "direct_skill": 900,
+            "expected": 38700,
+            "low": 38385,
+            "high": 39015
+          },
+          "70": {
+            "berry": 41160,
+            "direct_skill": 900,
+            "expected": 42060,
+            "low": 41745,
+            "high": 42375
+          },
+          "80": {
+            "berry": 43680,
+            "direct_skill": 900,
+            "expected": 44580,
+            "low": 44265,
+            "high": 44895
+          }
+        },
+        "ゴールド旧発電所": {
+          "current": {
+            "berry": 10500,
+            "direct_skill": 900,
+            "expected": 11400,
+            "low": 11085,
+            "high": 11715
+          },
+          "50": {
+            "berry": 15960,
+            "direct_skill": 900,
+            "expected": 16860,
+            "low": 16545,
+            "high": 17175
+          },
+          "60": {
+            "berry": 18900,
+            "direct_skill": 900,
+            "expected": 19800,
+            "low": 19485,
+            "high": 20115
+          },
+          "70": {
+            "berry": 20580,
+            "direct_skill": 900,
+            "expected": 21480,
+            "low": 21165,
+            "high": 21795
+          },
+          "80": {
+            "berry": 21840,
+            "direct_skill": 900,
+            "expected": 22740,
+            "low": 22425,
+            "high": 23055
+          }
+        },
+        "アンバー渓谷": {
+          "current": {
+            "berry": 10500,
+            "direct_skill": 900,
+            "expected": 11400,
+            "low": 11085,
+            "high": 11715
+          },
+          "50": {
+            "berry": 15960,
+            "direct_skill": 900,
+            "expected": 16860,
+            "low": 16545,
+            "high": 17175
+          },
+          "60": {
+            "berry": 18900,
+            "direct_skill": 900,
+            "expected": 19800,
+            "low": 19485,
+            "high": 20115
+          },
+          "70": {
+            "berry": 20580,
+            "direct_skill": 900,
+            "expected": 21480,
+            "low": 21165,
+            "high": 21795
+          },
+          "80": {
+            "berry": 21840,
+            "direct_skill": 900,
+            "expected": 22740,
+            "low": 22425,
+            "high": 23055
+          }
+        }
+      }
     },
     {
       "species": "BULBASAUR",
@@ -26,17 +341,332 @@
       "nature": "Hardy",
       "pokemon_type": "くさ",
       "berry": "DURIN",
-      "production_scores": {"current": {"total": 62, "berry": 18}, "50": {"total": 85, "berry": 25}, "60": {"total": 92, "berry": 28}, "70": {"total": 96, "berry": 30}, "80": {"total": 100, "berry": 32}},
-      "island_scores": {"ラピスラズリ湖畔": {"current": 62, "50": 85, "60": 92, "70": 96, "80": 100}, "ワカクサ本島": {"current": 58, "50": 78, "60": 84, "70": 88, "80": 91}},
-      "ingredients": [["Honey", 2], ["Honey", 5], ["Soft Potato", 6]],
-      "subskills": [["Inventory Up S", 10], ["Helping Speed S", 25], ["Sleep EXP Bonus", 50], ["Inventory Up M", 75], ["Research EXP Bonus", 100]],
+      "production_scores": {
+        "current": {
+          "total": 62,
+          "berry": 18
+        },
+        "50": {
+          "total": 85,
+          "berry": 25
+        },
+        "60": {
+          "total": 92,
+          "berry": 28
+        },
+        "70": {
+          "total": 96,
+          "berry": 30
+        },
+        "80": {
+          "total": 100,
+          "berry": 32
+        }
+      },
+      "island_scores": {
+        "ラピスラズリ湖畔": {
+          "current": 62,
+          "50": 85,
+          "60": 92,
+          "70": 96,
+          "80": 100
+        },
+        "ワカクサ本島": {
+          "current": 58,
+          "50": 78,
+          "60": 84,
+          "70": 88,
+          "80": 91
+        }
+      },
+      "ingredients": [
+        [
+          "Honey",
+          2
+        ],
+        [
+          "Honey",
+          5
+        ],
+        [
+          "Soft Potato",
+          6
+        ]
+      ],
+      "subskills": [
+        [
+          "Inventory Up S",
+          10
+        ],
+        [
+          "Helping Speed S",
+          25
+        ],
+        [
+          "Sleep EXP Bonus",
+          50
+        ],
+        [
+          "Inventory Up M",
+          75
+        ],
+        [
+          "Research EXP Bonus",
+          100
+        ]
+      ],
       "main_skill": "Ingredient Magnet S",
       "skill_level": 1,
       "sp": 400,
       "box_index": 2,
       "confidence": 1.0,
       "verified": true,
-      "scores": {"50": {"berry": 75, "ingredient": 95, "skill": 58}, "60": {"berry": 80, "ingredient": 100, "skill": 60}, "70": {"berry": 81, "ingredient": 101, "skill": 60}, "80": {"berry": 82, "ingredient": 102, "skill": 61}}
+      "scores": {
+        "50": {
+          "berry": 75,
+          "ingredient": 95,
+          "skill": 58
+        },
+        "60": {
+          "berry": 80,
+          "ingredient": 100,
+          "skill": 60
+        },
+        "70": {
+          "berry": 81,
+          "ingredient": 101,
+          "skill": 60
+        },
+        "80": {
+          "berry": 82,
+          "ingredient": 102,
+          "skill": 61
+        }
+      },
+      "energy_scores": {
+        "シアンの砂浜": {
+          "current": {
+            "berry": 7560,
+            "direct_skill": 900,
+            "expected": 8460,
+            "low": 8145,
+            "high": 8775
+          },
+          "50": {
+            "berry": 10500,
+            "direct_skill": 900,
+            "expected": 11400,
+            "low": 11085,
+            "high": 11715
+          },
+          "60": {
+            "berry": 11760,
+            "direct_skill": 900,
+            "expected": 12660,
+            "low": 12345,
+            "high": 12975
+          },
+          "70": {
+            "berry": 12600,
+            "direct_skill": 900,
+            "expected": 13500,
+            "low": 13185,
+            "high": 13815
+          },
+          "80": {
+            "berry": 13440,
+            "direct_skill": 900,
+            "expected": 14340,
+            "low": 14025,
+            "high": 14655
+          }
+        },
+        "トープ洞窟": {
+          "current": {
+            "berry": 7560,
+            "direct_skill": 900,
+            "expected": 8460,
+            "low": 8145,
+            "high": 8775
+          },
+          "50": {
+            "berry": 10500,
+            "direct_skill": 900,
+            "expected": 11400,
+            "low": 11085,
+            "high": 11715
+          },
+          "60": {
+            "berry": 11760,
+            "direct_skill": 900,
+            "expected": 12660,
+            "low": 12345,
+            "high": 12975
+          },
+          "70": {
+            "berry": 12600,
+            "direct_skill": 900,
+            "expected": 13500,
+            "low": 13185,
+            "high": 13815
+          },
+          "80": {
+            "berry": 13440,
+            "direct_skill": 900,
+            "expected": 14340,
+            "low": 14025,
+            "high": 14655
+          }
+        },
+        "ウノハナ雪原": {
+          "current": {
+            "berry": 7560,
+            "direct_skill": 900,
+            "expected": 8460,
+            "low": 8145,
+            "high": 8775
+          },
+          "50": {
+            "berry": 10500,
+            "direct_skill": 900,
+            "expected": 11400,
+            "low": 11085,
+            "high": 11715
+          },
+          "60": {
+            "berry": 11760,
+            "direct_skill": 900,
+            "expected": 12660,
+            "low": 12345,
+            "high": 12975
+          },
+          "70": {
+            "berry": 12600,
+            "direct_skill": 900,
+            "expected": 13500,
+            "low": 13185,
+            "high": 13815
+          },
+          "80": {
+            "berry": 13440,
+            "direct_skill": 900,
+            "expected": 14340,
+            "low": 14025,
+            "high": 14655
+          }
+        },
+        "ラピスラズリ湖畔": {
+          "current": {
+            "berry": 15120,
+            "direct_skill": 900,
+            "expected": 16020,
+            "low": 15705,
+            "high": 16335
+          },
+          "50": {
+            "berry": 21000,
+            "direct_skill": 900,
+            "expected": 21900,
+            "low": 21585,
+            "high": 22215
+          },
+          "60": {
+            "berry": 23520,
+            "direct_skill": 900,
+            "expected": 24420,
+            "low": 24105,
+            "high": 24735
+          },
+          "70": {
+            "berry": 25200,
+            "direct_skill": 900,
+            "expected": 26100,
+            "low": 25785,
+            "high": 26415
+          },
+          "80": {
+            "berry": 26880,
+            "direct_skill": 900,
+            "expected": 27780,
+            "low": 27465,
+            "high": 28095
+          }
+        },
+        "ゴールド旧発電所": {
+          "current": {
+            "berry": 7560,
+            "direct_skill": 900,
+            "expected": 8460,
+            "low": 8145,
+            "high": 8775
+          },
+          "50": {
+            "berry": 10500,
+            "direct_skill": 900,
+            "expected": 11400,
+            "low": 11085,
+            "high": 11715
+          },
+          "60": {
+            "berry": 11760,
+            "direct_skill": 900,
+            "expected": 12660,
+            "low": 12345,
+            "high": 12975
+          },
+          "70": {
+            "berry": 12600,
+            "direct_skill": 900,
+            "expected": 13500,
+            "low": 13185,
+            "high": 13815
+          },
+          "80": {
+            "berry": 13440,
+            "direct_skill": 900,
+            "expected": 14340,
+            "low": 14025,
+            "high": 14655
+          }
+        },
+        "アンバー渓谷": {
+          "current": {
+            "berry": 7560,
+            "direct_skill": 900,
+            "expected": 8460,
+            "low": 8145,
+            "high": 8775
+          },
+          "50": {
+            "berry": 10500,
+            "direct_skill": 900,
+            "expected": 11400,
+            "low": 11085,
+            "high": 11715
+          },
+          "60": {
+            "berry": 11760,
+            "direct_skill": 900,
+            "expected": 12660,
+            "low": 12345,
+            "high": 12975
+          },
+          "70": {
+            "berry": 12600,
+            "direct_skill": 900,
+            "expected": 13500,
+            "low": 13185,
+            "high": 13815
+          },
+          "80": {
+            "berry": 13440,
+            "direct_skill": 900,
+            "expected": 14340,
+            "low": 14025,
+            "high": 14655
+          }
+        }
+      }
     },
     {
       "species": "BULBASAUR",
@@ -45,17 +675,332 @@
       "nature": "Quiet",
       "pokemon_type": "くさ",
       "berry": "DURIN",
-      "production_scores": {"current": {"total": 105, "berry": 30}, "50": {"total": 150, "berry": 45}, "60": {"total": 175, "berry": 54}, "70": {"total": 198, "berry": 62}, "80": {"total": 220, "berry": 70}},
-      "island_scores": {"ラピスラズリ湖畔": {"current": 105, "50": 150, "60": 175, "70": 198, "80": 220}, "ワカクサ本島": {"current": 96, "50": 135, "60": 156, "70": 176, "80": 195}},
-      "ingredients": [["Honey", 2], ["Honey", 5], ["Soft Potato", 6]],
-      "subskills": [["Ingredient Finder M", 10], ["Helping Speed M", 25], ["Inventory Up L", 50], ["Skill Trigger S", 75], ["Berry Finding S", 100]],
+      "production_scores": {
+        "current": {
+          "total": 105,
+          "berry": 30
+        },
+        "50": {
+          "total": 150,
+          "berry": 45
+        },
+        "60": {
+          "total": 175,
+          "berry": 54
+        },
+        "70": {
+          "total": 198,
+          "berry": 62
+        },
+        "80": {
+          "total": 220,
+          "berry": 70
+        }
+      },
+      "island_scores": {
+        "ラピスラズリ湖畔": {
+          "current": 105,
+          "50": 150,
+          "60": 175,
+          "70": 198,
+          "80": 220
+        },
+        "ワカクサ本島": {
+          "current": 96,
+          "50": 135,
+          "60": 156,
+          "70": 176,
+          "80": 195
+        }
+      },
+      "ingredients": [
+        [
+          "Honey",
+          2
+        ],
+        [
+          "Honey",
+          5
+        ],
+        [
+          "Soft Potato",
+          6
+        ]
+      ],
+      "subskills": [
+        [
+          "Ingredient Finder M",
+          10
+        ],
+        [
+          "Helping Speed M",
+          25
+        ],
+        [
+          "Inventory Up L",
+          50
+        ],
+        [
+          "Skill Trigger S",
+          75
+        ],
+        [
+          "Berry Finding S",
+          100
+        ]
+      ],
       "main_skill": "Ingredient Magnet S",
       "skill_level": 2,
       "sp": 520,
       "box_index": 3,
       "confidence": 1.0,
       "verified": true,
-      "scores": {"50": {"berry": 135, "ingredient": 195, "skill": 100}, "60": {"berry": 150, "ingredient": 210, "skill": 110}, "70": {"berry": 170, "ingredient": 225, "skill": 125}, "80": {"berry": 190, "ingredient": 240, "skill": 145}}
+      "scores": {
+        "50": {
+          "berry": 135,
+          "ingredient": 195,
+          "skill": 100
+        },
+        "60": {
+          "berry": 150,
+          "ingredient": 210,
+          "skill": 110
+        },
+        "70": {
+          "berry": 170,
+          "ingredient": 225,
+          "skill": 125
+        },
+        "80": {
+          "berry": 190,
+          "ingredient": 240,
+          "skill": 145
+        }
+      },
+      "energy_scores": {
+        "シアンの砂浜": {
+          "current": {
+            "berry": 12600,
+            "direct_skill": 1800,
+            "expected": 14400,
+            "low": 13770,
+            "high": 15030
+          },
+          "50": {
+            "berry": 18900,
+            "direct_skill": 1800,
+            "expected": 20700,
+            "low": 20070,
+            "high": 21330
+          },
+          "60": {
+            "berry": 22680,
+            "direct_skill": 1800,
+            "expected": 24480,
+            "low": 23850,
+            "high": 25110
+          },
+          "70": {
+            "berry": 26040,
+            "direct_skill": 1800,
+            "expected": 27840,
+            "low": 27210,
+            "high": 28470
+          },
+          "80": {
+            "berry": 29400,
+            "direct_skill": 1800,
+            "expected": 31200,
+            "low": 30570,
+            "high": 31830
+          }
+        },
+        "トープ洞窟": {
+          "current": {
+            "berry": 12600,
+            "direct_skill": 1800,
+            "expected": 14400,
+            "low": 13770,
+            "high": 15030
+          },
+          "50": {
+            "berry": 18900,
+            "direct_skill": 1800,
+            "expected": 20700,
+            "low": 20070,
+            "high": 21330
+          },
+          "60": {
+            "berry": 22680,
+            "direct_skill": 1800,
+            "expected": 24480,
+            "low": 23850,
+            "high": 25110
+          },
+          "70": {
+            "berry": 26040,
+            "direct_skill": 1800,
+            "expected": 27840,
+            "low": 27210,
+            "high": 28470
+          },
+          "80": {
+            "berry": 29400,
+            "direct_skill": 1800,
+            "expected": 31200,
+            "low": 30570,
+            "high": 31830
+          }
+        },
+        "ウノハナ雪原": {
+          "current": {
+            "berry": 12600,
+            "direct_skill": 1800,
+            "expected": 14400,
+            "low": 13770,
+            "high": 15030
+          },
+          "50": {
+            "berry": 18900,
+            "direct_skill": 1800,
+            "expected": 20700,
+            "low": 20070,
+            "high": 21330
+          },
+          "60": {
+            "berry": 22680,
+            "direct_skill": 1800,
+            "expected": 24480,
+            "low": 23850,
+            "high": 25110
+          },
+          "70": {
+            "berry": 26040,
+            "direct_skill": 1800,
+            "expected": 27840,
+            "low": 27210,
+            "high": 28470
+          },
+          "80": {
+            "berry": 29400,
+            "direct_skill": 1800,
+            "expected": 31200,
+            "low": 30570,
+            "high": 31830
+          }
+        },
+        "ラピスラズリ湖畔": {
+          "current": {
+            "berry": 25200,
+            "direct_skill": 1800,
+            "expected": 27000,
+            "low": 26370,
+            "high": 27630
+          },
+          "50": {
+            "berry": 37800,
+            "direct_skill": 1800,
+            "expected": 39600,
+            "low": 38970,
+            "high": 40230
+          },
+          "60": {
+            "berry": 45360,
+            "direct_skill": 1800,
+            "expected": 47160,
+            "low": 46530,
+            "high": 47790
+          },
+          "70": {
+            "berry": 52080,
+            "direct_skill": 1800,
+            "expected": 53880,
+            "low": 53250,
+            "high": 54510
+          },
+          "80": {
+            "berry": 58800,
+            "direct_skill": 1800,
+            "expected": 60600,
+            "low": 59970,
+            "high": 61230
+          }
+        },
+        "ゴールド旧発電所": {
+          "current": {
+            "berry": 12600,
+            "direct_skill": 1800,
+            "expected": 14400,
+            "low": 13770,
+            "high": 15030
+          },
+          "50": {
+            "berry": 18900,
+            "direct_skill": 1800,
+            "expected": 20700,
+            "low": 20070,
+            "high": 21330
+          },
+          "60": {
+            "berry": 22680,
+            "direct_skill": 1800,
+            "expected": 24480,
+            "low": 23850,
+            "high": 25110
+          },
+          "70": {
+            "berry": 26040,
+            "direct_skill": 1800,
+            "expected": 27840,
+            "low": 27210,
+            "high": 28470
+          },
+          "80": {
+            "berry": 29400,
+            "direct_skill": 1800,
+            "expected": 31200,
+            "low": 30570,
+            "high": 31830
+          }
+        },
+        "アンバー渓谷": {
+          "current": {
+            "berry": 12600,
+            "direct_skill": 1800,
+            "expected": 14400,
+            "low": 13770,
+            "high": 15030
+          },
+          "50": {
+            "berry": 18900,
+            "direct_skill": 1800,
+            "expected": 20700,
+            "low": 20070,
+            "high": 21330
+          },
+          "60": {
+            "berry": 22680,
+            "direct_skill": 1800,
+            "expected": 24480,
+            "low": 23850,
+            "high": 25110
+          },
+          "70": {
+            "berry": 26040,
+            "direct_skill": 1800,
+            "expected": 27840,
+            "low": 27210,
+            "high": 28470
+          },
+          "80": {
+            "berry": 29400,
+            "direct_skill": 1800,
+            "expected": 31200,
+            "low": 30570,
+            "high": 31830
+          }
+        }
+      }
     }
   ]
 }

@@ -8,6 +8,7 @@ from pokesleep_box.core import absolute_role_scores, build_team_plans, canonical
 from pokesleep_box.render import render_site
 from pokesleep_box.localization import names, normalize_individual, to_english, to_japanese
 from pokesleep_box.ingest import audit, ingest_path, render_review
+from pokesleep_box.analytics import analyze
 
 
 ROOT = Path(__file__).parents[1]
@@ -105,6 +106,28 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(audit(rows, report)["total"], 1)
         render_review(rows, review)
         self.assertIn("取り込みレビュー", review.read_text())
+
+    def test_cooking_free_energy_forecast_and_growth(self):
+        item = dict(self.items[0], uid="energy", verified=True, energy_scores={
+            "ラピスラズリ湖畔": {
+                "current": {"berry": 1000, "direct_skill": 200, "cooking": 999999,
+                            "expected": 1200, "low": 1100, "high": 1300},
+                "60": {"berry": 2000, "direct_skill": 400, "expected": 2400},
+            }
+        })
+        result = analyze([item], {"areaBonus": 50})
+        lapis = next(x for x in result["forecasts"] if x["island"] == "ラピスラズリ湖畔")
+        self.assertEqual(lapis["modes"]["current"]["daily"]["expected"], 1800)
+        self.assertEqual(lapis["modes"]["current"]["daily"]["berry"], 1500)
+        self.assertEqual(lapis["growth_to_60"], 12600)
+
+    def test_capture_recommendation_prefers_unowned_species_for_weak_island(self):
+        benchmark = {"species": "RAICHU", "island_scores": {
+            "ゴールド旧発電所": {"60": {"expected": 80000}}
+        }}
+        result = analyze([], {}, [benchmark])
+        self.assertEqual(result["capture"]["general"][0]["species"], "ライチュウ")
+        self.assertTrue(any(x["species_key"] == "RAICHU" for x in result["capture"]["tailored"]))
 
 
 if __name__ == "__main__":

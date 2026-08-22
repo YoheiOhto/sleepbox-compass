@@ -1,6 +1,14 @@
 {
   "island": "greengrass",
   "areaBonus": 0,
+  "areaBonusByIsland": {
+    "シアンの砂浜": 0,
+    "トープ洞窟": 0,
+    "ウノハナ雪原": 0,
+    "ラピスラズリ湖畔": 0,
+    "ゴールド旧発電所": 0,
+    "アンバー渓谷": 0
+  },
   "camp": false,
   "bedtime": "22:00",
   "wakeup": "06:00",

@@ -50,14 +50,21 @@ def verify(db, command: str = "engine/bin/pokesleep-engine", tolerance: int = 0,
 
 
 def evaluate(db, command: str = "engine/bin/pokesleep-engine") -> int:
+    from .analytics import ISLANDS
+
     rows = db.execute("SELECT * FROM individual ORDER BY box_index").fetchall()
     response = run_engine({"mode": "evaluate", "anchors": list(ANCHORS),
+                           "islands": {name: list(berries) for name, berries in ISLANDS.items()},
+                           "iterations": 500,
                            "instances": [{"uid": r["uid"], "instance": individual_to_engine(dict(r))}
                                          for r in rows]}, command)
     version = response.get("engineVersion", "nerolis-lab")
     valuation = response.get("valuationHash", "default")
     count = 0
     for result in response.get("results", []):
+        if result.get("energyScores"):
+            db.execute("UPDATE individual SET energy_scores_json=? WHERE uid=?",
+                       (json.dumps(result["energyScores"], ensure_ascii=False), result["uid"]))
         for anchor, values in result.get("scores", {}).items():
             for role in ROLES:
                 if role in values:

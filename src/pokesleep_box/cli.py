@@ -5,7 +5,8 @@ import json
 from pathlib import Path
 
 from .core import build_team_plans, connect, decide, import_individuals, load_dashboard
-from .engine import EngineUnavailable, evaluate, verify
+from .analytics import analyze
+from .engine import EngineUnavailable, evaluate, run_engine, verify
 from .ingest import audit, ingest_path, render_review
 from .localization import names
 from .render import render_site
@@ -22,9 +23,12 @@ def main() -> None:
     dec.add_argument("--keep-top-n", type=int, default=2)
     render = commands.add_parser("render")
     render.add_argument("--out", type=Path, default=Path("site"))
+    render.add_argument("--settings", type=Path, default=Path("config/settings.local.json"))
+    render.add_argument("--benchmarks", type=Path, default=Path("data/private/species_benchmarks.json"))
     demo = commands.add_parser("demo")
     demo.add_argument("--input", type=Path, default=Path("data/example_individuals.json"))
     demo.add_argument("--out", type=Path, default=Path("site"))
+    demo.add_argument("--benchmarks", type=Path, default=Path("data/example_species_benchmarks.json"))
     scan = commands.add_parser("ingest")
     scan.add_argument("path", type=Path, nargs="?", default=Path("inbox"))
     scan.add_argument("--frames", type=Path, default=Path("frames"))
@@ -36,6 +40,10 @@ def main() -> None:
     ver.add_argument("--tolerance", type=int, default=0)
     ev = commands.add_parser("evaluate")
     ev.add_argument("--engine", default="engine/bin/pokesleep-engine")
+    bench = commands.add_parser("benchmark")
+    bench.add_argument("--engine", default="engine/bin/pokesleep-engine")
+    bench.add_argument("--out", type=Path, default=Path("data/private/species_benchmarks.json"))
+    bench.add_argument("--iterations", type=int, default=500)
     commands.add_parser("validate-names")
     args = parser.parse_args()
     db = connect(args.db)
@@ -48,14 +56,17 @@ def main() -> None:
         print(json.dumps(decide(db, args.keep_top_n), ensure_ascii=False))
     elif args.command == "render":
         dashboard = load_dashboard(db)
-        render_site(dashboard, args.out, build_team_plans(dashboard))
+        settings = json.loads(args.settings.read_text()) if args.settings.exists() else {}
+        benchmarks = json.loads(args.benchmarks.read_text()).get("benchmarks", []) if args.benchmarks.exists() else []
+        render_site(dashboard, args.out, build_team_plans(dashboard), analyze(dashboard, settings, benchmarks))
         print(args.out / "index.html")
     elif args.command == "demo":
         payload = json.loads(args.input.read_text(encoding="utf-8"))
         import_individuals(db, payload["individuals"])
         decide(db)
         dashboard = load_dashboard(db)
-        render_site(dashboard, args.out, build_team_plans(dashboard))
+        benchmarks = json.loads(args.benchmarks.read_text()).get("benchmarks", []) if args.benchmarks.exists() else []
+        render_site(dashboard, args.out, build_team_plans(dashboard), analyze(dashboard, {}, benchmarks))
         print(args.out / "index.html")
     elif args.command == "ingest":
         items = ingest_path(args.path, args.frames, args.ocr_command)
@@ -72,6 +83,18 @@ def main() -> None:
     elif args.command == "evaluate":
         try:
             print(json.dumps({"evaluations": evaluate(db, args.engine)}, ensure_ascii=False))
+        except EngineUnavailable as exc:
+            parser.error(str(exc))
+    elif args.command == "benchmark":
+        from .analytics import ISLANDS
+        try:
+            result = run_engine(
+                {"mode": "benchmark", "iterations": args.iterations,
+                 "islands": {name: list(berries) for name, berries in ISLANDS.items()},
+                 "names": names()["species"]}, args.engine)
+            args.out.parent.mkdir(parents=True, exist_ok=True)
+            args.out.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
+            print(args.out)
         except EngineUnavailable as exc:
             parser.error(str(exc))
     elif args.command == "validate-names":

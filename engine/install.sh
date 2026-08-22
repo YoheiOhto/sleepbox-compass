@@ -10,4 +10,7 @@ git -C "$VENDOR" fetch origin "$COMMIT"
 git -C "$VENDOR" checkout --detach "$COMMIT"
 cd "$VENDOR/common"
 npm run build
+cd "$VENDOR/backend"
+npm install
+npm run build
 echo "Neroli’s Lab engine is ready: $COMMIT"

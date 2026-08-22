@@ -1,0 +1,294 @@
+{
+  "sample": true,
+  "note": "架空の公開デモ用ベンチマーク。実データではNeroli’s Lab生成値に置き換える。",
+  "benchmarks": [
+    {
+      "species": "FERALIGATR",
+      "species_ja": "オーダイル",
+      "island_scores": {
+        "シアンの砂浜": {
+          "60": {
+            "expected": 72000,
+            "low": 66960,
+            "high": 77040,
+            "berry": 64800,
+            "direct_skill": 7200
+          }
+        }
+      },
+      "sample": true
+    },
+    {
+      "species": "DODRIO",
+      "species_ja": "ドードリオ",
+      "island_scores": {
+        "シアンの砂浜": {
+          "60": {
+            "expected": 68000,
+            "low": 63240,
+            "high": 72760,
+            "berry": 61200,
+            "direct_skill": 6800
+          }
+        }
+      },
+      "sample": true
+    },
+    {
+      "species": "CLEFABLE",
+      "species_ja": "ピクシー",
+      "island_scores": {
+        "シアンの砂浜": {
+          "60": {
+            "expected": 62000,
+            "low": 57660,
+            "high": 66340,
+            "berry": 55800,
+            "direct_skill": 6200
+          }
+        }
+      },
+      "sample": true
+    },
+    {
+      "species": "TYPHLOSION",
+      "species_ja": "バクフーン",
+      "island_scores": {
+        "トープ洞窟": {
+          "60": {
+            "expected": 75000,
+            "low": 69750,
+            "high": 80250,
+            "berry": 67500,
+            "direct_skill": 7500
+          }
+        }
+      },
+      "sample": true
+    },
+    {
+      "species": "MAROWAK",
+      "species_ja": "ガラガラ",
+      "island_scores": {
+        "トープ洞窟": {
+          "60": {
+            "expected": 66000,
+            "low": 61380,
+            "high": 70620,
+            "berry": 59400,
+            "direct_skill": 6600
+          }
+        }
+      },
+      "sample": true
+    },
+    {
+      "species": "ONIX",
+      "species_ja": "イワーク",
+      "island_scores": {
+        "トープ洞窟": {
+          "60": {
+            "expected": 64000,
+            "low": 59520,
+            "high": 68480,
+            "berry": 57600,
+            "direct_skill": 6400
+          }
+        }
+      },
+      "sample": true
+    },
+    {
+      "species": "WALREIN",
+      "species_ja": "トドゼルガ",
+      "island_scores": {
+        "ウノハナ雪原": {
+          "60": {
+            "expected": 71000,
+            "low": 66030,
+            "high": 75970,
+            "berry": 63900,
+            "direct_skill": 7100
+          }
+        }
+      },
+      "sample": true
+    },
+    {
+      "species": "RATICATE",
+      "species_ja": "ラッタ",
+      "island_scores": {
+        "ウノハナ雪原": {
+          "60": {
+            "expected": 65000,
+            "low": 60450,
+            "high": 69550,
+            "berry": 58500,
+            "direct_skill": 6500
+          }
+        }
+      },
+      "sample": true
+    },
+    {
+      "species": "HOUNDOOM",
+      "species_ja": "ヘルガー",
+      "island_scores": {
+        "ウノハナ雪原": {
+          "60": {
+            "expected": 63000,
+            "low": 58590,
+            "high": 67410,
+            "berry": 56700,
+            "direct_skill": 6300
+          }
+        }
+      },
+      "sample": true
+    },
+    {
+      "species": "MEGANIUM",
+      "species_ja": "メガニウム",
+      "island_scores": {
+        "ラピスラズリ湖畔": {
+          "60": {
+            "expected": 76000,
+            "low": 70680,
+            "high": 81320,
+            "berry": 68400,
+            "direct_skill": 7600
+          }
+        }
+      },
+      "sample": true
+    },
+    {
+      "species": "PRIMEAPE",
+      "species_ja": "オコリザル",
+      "island_scores": {
+        "ラピスラズリ湖畔": {
+          "60": {
+            "expected": 67000,
+            "low": 62310,
+            "high": 71690,
+            "berry": 60300,
+            "direct_skill": 6700
+          }
+        }
+      },
+      "sample": true
+    },
+    {
+      "species": "ESPEON",
+      "species_ja": "エーフィ",
+      "island_scores": {
+        "ラピスラズリ湖畔": {
+          "60": {
+            "expected": 65000,
+            "low": 60450,
+            "high": 69550,
+            "berry": 58500,
+            "direct_skill": 6500
+          }
+        }
+      },
+      "sample": true
+    },
+    {
+      "species": "RAICHU",
+      "species_ja": "ライチュウ",
+      "island_scores": {
+        "ゴールド旧発電所": {
+          "60": {
+            "expected": 78000,
+            "low": 72540,
+            "high": 83460,
+            "berry": 70200,
+            "direct_skill": 7800
+          }
+        }
+      },
+      "sample": true
+    },
+    {
+      "species": "BANETTE",
+      "species_ja": "ジュペッタ",
+      "island_scores": {
+        "ゴールド旧発電所": {
+          "60": {
+            "expected": 66000,
+            "low": 61380,
+            "high": 70620,
+            "berry": 59400,
+            "direct_skill": 6600
+          }
+        }
+      },
+      "sample": true
+    },
+    {
+      "species": "STEELIX",
+      "species_ja": "ハガネール",
+      "island_scores": {
+        "ゴールド旧発電所": {
+          "60": {
+            "expected": 65000,
+            "low": 60450,
+            "high": 69550,
+            "berry": 58500,
+            "direct_skill": 6500
+          }
+        }
+      },
+      "sample": true
+    },
+    {
+      "species": "ARBOK",
+      "species_ja": "アーボック",
+      "island_scores": {
+        "アンバー渓谷": {
+          "60": {
+            "expected": 70000,
+            "low": 65100,
+            "high": 74900,
+            "berry": 63000,
+            "direct_skill": 7000
+          }
+        }
+      },
+      "sample": true
+    },
+    {
+      "species": "BUTTERFREE",
+      "species_ja": "バタフリー",
+      "island_scores": {
+        "アンバー渓谷": {
+          "60": {
+            "expected": 67000,
+            "low": 62310,
+            "high": 71690,
+            "berry": 60300,
+            "direct_skill": 6700
+          }
+        }
+      },
+      "sample": true
+    },
+    {
+      "species": "ALTARIA",
+      "species_ja": "チルタリス",
+      "island_scores": {
+        "アンバー渓谷": {
+          "60": {
+            "expected": 66000,
+            "low": 61380,
+            "high": 70620,
+            "berry": 59400,
+            "direct_skill": 6600
+          }
+        }
+      },
+      "sample": true
+    }
+  ]
+}
