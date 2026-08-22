@@ -3,9 +3,9 @@
 Pokémon Sleepの手持ちを、Lv60とLv80の両方で評価し、育成候補と博士へ送る候補を
 スマホ向けページにまとめる、プライバシー優先のローカルツールです。
 
-> 現在は公開可能なMVPです。JSON取込、SQLite保存、全ロール×4アンカーの支配判定、
-> フェイルセーフ、静的サイト生成を実装しています。動画OCRとNeroli's Labブリッジは
-> 次の実装段階で、スコア未入力の個体は誤って送らないよう自動的に保護されます。
+> 日本語入力、JSON・静止画・動画取り込み、SQLite保存、Neroli's Labブリッジ、
+> SP検算、全ロール×4アンカーの支配判定、監査・レビュー、静的サイト生成を実装しています。
+> 計算エンジン未接続または未検証の個体は、自動的に保護されます。
 
 ## 特徴
 
@@ -16,6 +16,8 @@ Pokémon Sleepの手持ちを、Lv60とLv80の両方で評価し、育成候補�
 - 個人データ、スクリーンショット、動画、SQLite、ローカル設定はGit管理外
 - GitHub Pages向けのレスポンシブな静的HTML
 - ポケモンタイプ表示と、島ごとの現在最強・Lv50/60/70/80育成後パーティ提案
+- 現行246個体キー、性格25種、サブスキル17種、食材19種、きのみ18種の日本語双方向解決
+- ffmpeg動画抽出、差し替え可能なローカルOCR、監査レポート、オフラインレビュー画面
 
 ## クイックスタート
 
@@ -27,6 +29,8 @@ pokesleep-box --db /tmp/pokesleep-demo.sqlite demo
 python3 -m http.server 8000 --directory site
 ```
 
+計算ブリッジを使う場合はNode.js 20以上、動画を使う場合はffmpegも必要です。
+
 ブラウザで `http://localhost:8000` を開きます。実データは次のように処理します。
 
 ```sh
@@ -36,6 +40,34 @@ pokesleep-box import-json data/private/my-box.json
 pokesleep-box decide --keep-top-n 2
 pokesleep-box render
 ```
+
+日本語JSONもそのまま取り込めます。画像・動画から取り込む場合は、各画像と同名の
+`画像名.jpg.json`をローカルVLM等で生成するか、画像パスを受け取って抽出JSONを
+標準出力するローカルコマンドを指定します。
+
+```sh
+pokesleep-box ingest inbox --ocr-command /path/to/local-vlm-extractor
+# frames/review.htmlで確認後、保存したJSONを再取り込み
+pokesleep-box import-json reviewed_individuals.json
+```
+
+OCRコマンドを省略するとJSONサイドカーだけを読みます。動画には`ffmpeg`が必要です。
+取り込み後の`audit_report.md`と`frames/review.html`はGit管理外です。
+
+## 計算と検証
+
+ゲーム式はPythonへ複製せず、固定したNeroli's Labをローカルビルドして使います。
+
+```sh
+./engine/install.sh
+pokesleep-box verify
+pokesleep-box evaluate
+pokesleep-box decide --keep-top-n 2
+pokesleep-box render
+```
+
+`verify`は表示SPとの一致を確認します。許容差一致の個体も監査対象のままとし、
+厳密一致していない個体は`protected`から外しません。
 
 入力形式は [data/example_individuals.json](data/example_individuals.json) を参照してください。
 この例は架空のサンプルであり、実ユーザーのデータではありません。

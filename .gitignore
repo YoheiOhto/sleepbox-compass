@@ -25,3 +25,6 @@ dist/
 engine/node_modules/
 engine/vendor/
 engine/dist/
+# Keep the small launcher; vendor code and builds remain private/local.
+!engine/bin/
+!engine/bin/pokesleep-engine

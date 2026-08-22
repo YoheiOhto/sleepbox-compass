@@ -20,4 +20,4 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-pokesleep_box = ["schema.sql"]
+pokesleep_box = ["schema.sql", "names_ja.json"]

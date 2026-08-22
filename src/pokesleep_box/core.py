@@ -53,18 +53,25 @@ def connect(path: Path) -> sqlite3.Connection:
 
 
 def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]]) -> int:
+    from .localization import normalize_individual
+
     timestamp = now()
     count = 0
-    for item in items:
+    for raw_item in items:
+        item = normalize_individual(dict(raw_item))
         uid = item.get("uid") or canonical_uid(item)
         db.execute(
             """INSERT INTO individual
             (uid,species,display_name,level,nature,pokemon_type,berry,production_scores_json,island_scores_json,ingredients_json,subskills_json,
              main_skill,skill_level,sp,box_index,first_seen,last_seen,confidence,verified)
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-            ON CONFLICT(uid) DO UPDATE SET level=excluded.level,sp=excluded.sp,
-              box_index=excluded.box_index,last_seen=excluded.last_seen,
-              confidence=excluded.confidence,verified=excluded.verified""",
+            ON CONFLICT(uid) DO UPDATE SET species=excluded.species,display_name=excluded.display_name,
+              level=excluded.level,nature=excluded.nature,pokemon_type=excluded.pokemon_type,
+              berry=excluded.berry,production_scores_json=excluded.production_scores_json,
+              island_scores_json=excluded.island_scores_json,ingredients_json=excluded.ingredients_json,
+              subskills_json=excluded.subskills_json,main_skill=excluded.main_skill,
+              skill_level=excluded.skill_level,sp=excluded.sp,box_index=excluded.box_index,
+              last_seen=excluded.last_seen,confidence=excluded.confidence,verified=excluded.verified""",
             (uid, item["species"], item.get("display_name"), item.get("level"),
              item["nature"], item.get("pokemon_type"),
              item.get("berry"), json.dumps(item.get("production_scores", {}), ensure_ascii=False),
@@ -131,6 +138,7 @@ def decide(db: sqlite3.Connection, keep_top_n: int = 2,
 
 
 def load_dashboard(db: sqlite3.Connection) -> List[Dict[str, Any]]:
+    from .localization import to_japanese
     rows = db.execute("""SELECT i.*,d.verdict,d.reason FROM individual i
                          LEFT JOIN decision d ON d.uid=i.uid ORDER BY i.box_index""").fetchall()
     evaluations: Dict[str, Dict[int, Dict[str, float]]] = {}
@@ -140,7 +148,9 @@ def load_dashboard(db: sqlite3.Connection) -> List[Dict[str, Any]]:
     for row in rows:
         item_scores = evaluations.get(row["uid"], {})
         role_scores = absolute_role_scores(item_scores)
-        result.append({**dict(row), "evaluations": item_scores,
+        result.append({**dict(row), "species_ja": to_japanese("species", row["species"]),
+                       "nature_ja": to_japanese("natures", row["nature"]),
+                       "evaluations": item_scores,
                        "island_scores": json.loads(row["island_scores_json"] or "{}"),
                        "production_scores": json.loads(row["production_scores_json"] or "{}"),
                        "absolute_by_role": role_scores,

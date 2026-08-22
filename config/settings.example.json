@@ -10,4 +10,14 @@
   "deltaSThreshold": 0.15,
   "anchorWeights": {"50": 0.15, "60": 0.30, "70": 0.20, "80": 0.35},
   "absoluteScoreReference": {"berry": 250, "ingredient": 250, "skill": 250}
+  ,"capture": {
+    "frameIntervalSeconds": 1.0,
+    "minimumConfidence": 0.995,
+    "ocr": "json-sidecar",
+    "note": "画像名.jpg.json に抽出JSONを置く。画像・動画はローカル外へ送信しない"
+  },
+  "engine": {
+    "command": "engine/bin/pokesleep-engine",
+    "commit": "a033942b699854a80507e48b5246199afec17e01"
+  }
 }

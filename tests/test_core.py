@@ -6,7 +6,8 @@ from pathlib import Path
 
 from pokesleep_box.core import absolute_role_scores, build_team_plans, canonical_uid, connect, decide, import_individuals, load_dashboard
 from pokesleep_box.render import render_site
-from pokesleep_box.core import load_dashboard
+from pokesleep_box.localization import names, normalize_individual, to_english, to_japanese
+from pokesleep_box.ingest import audit, ingest_path, render_review
 
 
 ROOT = Path(__file__).parents[1]
@@ -67,6 +68,43 @@ class CoreTests(unittest.TestCase):
         plan = build_team_plans(items)[0]
         self.assertEqual(plan["total_score"], 25)
         self.assertEqual([m["name"] for m in plan["members"]], ["7", "6", "5", "4", "3"])
+
+    def test_all_localized_tables_are_reversible(self):
+        for category, table in names().items():
+            if category == "metadata":
+                continue
+            self.assertEqual(len(table), len(set(table.values())), category)
+            for english, japanese in table.items():
+                self.assertEqual(to_english(category, japanese), english)
+                self.assertEqual(to_japanese(category, english), japanese)
+        packaged = ROOT / "src/pokesleep_box/names_ja.json"
+        published = ROOT / "data/names_ja.yaml"
+        self.assertEqual(packaged.read_bytes(), published.read_bytes())
+
+    def test_japanese_individual_is_normalized_on_import(self):
+        item = {
+            "species": "フシギダネ", "nature": "おっとり", "berry": "ドリ",
+            "ingredients": [["あまいミツ", 2], ["あまいミツ", 5], ["ほっこりポテト", 6]],
+            "subskills": [["きのみの数S", 10]], "main_skill": "食材ゲットS",
+            "skill_level": 1, "confidence": 1, "verified": False,
+        }
+        import_individuals(self.db, [item])
+        row = self.db.execute("SELECT * FROM individual").fetchone()
+        self.assertEqual((row["species"], row["nature"], row["berry"]),
+                         ("BULBASAUR", "Mild", "DURIN"))
+
+    def test_sidecar_ingest_and_private_review(self):
+        source = Path(self.tmp.name) / "capture.png"
+        source.write_bytes(b"not a real image; extraction does not decode still images")
+        item = dict(self.items[0], species="フシギダネ", nature="おっとり")
+        Path(str(source) + ".json").write_text(json.dumps(item, ensure_ascii=False))
+        rows = ingest_path(source, Path(self.tmp.name) / "frames")
+        self.assertEqual(rows[0]["species"], "BULBASAUR")
+        report = Path(self.tmp.name) / "audit.md"
+        review = Path(self.tmp.name) / "review.html"
+        self.assertEqual(audit(rows, report)["total"], 1)
+        render_review(rows, review)
+        self.assertIn("取り込みレビュー", review.read_text())
 
 
 if __name__ == "__main__":
