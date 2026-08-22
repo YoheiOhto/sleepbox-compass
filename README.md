@@ -65,6 +65,8 @@ pokesleep-box render
 
 認識結果は安全のため最初は必ず未検証になり、確認前の個体を博士へ送る候補にはしません。
 読み取りにくい項目は監査レポートに出ます。`--interval 0.5`で動画の認識間隔も調整できます。
+きのみは認識文字ではなく種族データから自動確定します。アイコン表示の食材は種族ごとの
+Lv1/30/60候補だけをレビュー画面に表示するので、画像を見ながら各枠を選択できます。
 macOS Visionを使えない環境では`--ocr sidecar --ocr-command /path/to/extractor`で従来の
 ローカル抽出器を利用できます（sidecar方式の動画抽出にはffmpegが必要です）。取り込み後の
 `audit_report.md`、`frames/review.html`、OCR画像、DBはすべてGit管理外です。

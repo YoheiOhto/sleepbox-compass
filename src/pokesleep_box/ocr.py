@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import difflib
 import json
+import math
 import os
 import platform
 import re
@@ -15,6 +16,7 @@ ROOT = Path(__file__).parents[2]
 VISION_SOURCE = ROOT / "engine/macos/vision_ocr.swift"
 VISION_BINARY = ROOT / ".cache/vision-ocr"
 DEMO_SOURCE = ROOT / "engine/macos/make_demo.swift"
+VENDOR_COMMON = ROOT / "engine/vendor/nerolis-lab/common/src"
 
 
 def ensure_vision_binary() -> Path:
@@ -147,8 +149,110 @@ def finalize_candidate(item: Dict[str, Any], box_index: int) -> Dict[str, Any]:
     return normalize_individual(result)
 
 
+def enrich_with_species_data(items: List[Dict[str, Any]],
+                             engine: str = "engine/bin/pokesleep-engine",
+                             pokemon_data: Optional[Mapping[str, Any]] = None) -> List[Dict[str, Any]]:
+    """Resolve deterministic berry and constrain icon-only ingredient fields."""
+    if pokemon_data is None:
+        try:
+            from .engine import run_engine
+            pokemon_data = run_engine({"mode": "metadata"}, engine).get("pokemon", {})
+        except Exception:
+            pokemon_data = load_source_metadata()
+    if not pokemon_data:
+        return items
+    for item in items:
+        metadata = pokemon_data.get(item.get("species"), {})
+        if metadata.get("berry"):
+            item["berry"] = metadata["berry"]
+            item["berry_ja"] = to_japanese("berries", metadata["berry"])
+            item.setdefault("field_confidence", {})["berry"] = 1.0
+        options = []
+        for slot in metadata.get("ingredients", []):
+            choices = [[name, amount, to_japanese("ingredients", name)]
+                       for name, amount in slot.get("choices", [])]
+            options.append({"level": slot.get("level"), "choices": choices})
+        if options:
+            item["ingredient_options"] = options
+            # The Lv1 ingredient is normally species-fixed and can be filled safely.
+            if not item.get("ingredients") and len(options[0]["choices"]) == 1:
+                name, amount, _ = options[0]["choices"][0]
+                item["ingredients"] = [[name, amount]]
+        missing = [key for key in item.get("ocr_missing", [])
+                   if key not in ("berry", "ingredients")]
+        missing.extend(key for key in ("species", "nature", "subskills", "main_skill")
+                       if not item.get(key) and key not in missing)
+        if len(item.get("ingredients", [])) < len(options or [None, None, None]):
+            missing.append("ingredients")
+        item["ocr_missing"] = missing
+    return items
+
+
+def load_source_metadata() -> Dict[str, Any]:
+    """Read the pinned Neroli source when Node's compiled bundle is unavailable."""
+    ingredient_file = VENDOR_COMMON / "types/ingredient/ingredients.ts"
+    pokemon_dir = VENDOR_COMMON / "types/pokemon"
+    if not ingredient_file.exists():
+        return {}
+    ingredient_source = ingredient_file.read_text(encoding="utf-8")
+    ingredient_defs = {constant: (name, int(value)) for constant, name, value in re.findall(
+        r"export const (\w+): Ingredient = createIngredient\(\{\s*name: '([^']+)',\s*value: (\d+)",
+        ingredient_source)}
+    declarations = []
+    pattern = re.compile(
+        r"export const (\w+): Pokemon = (create(?:Berry|Ingredient|Skill)Specialist|evolvedPokemon|preEvolvedPokemon)"
+        r"\((?:(\w+),\s*)?\{([\s\S]*?)\n\}\);"
+    )
+    for filename in ("berry-pokemon.ts", "ingredient-pokemon.ts", "skill-pokemon.ts"):
+        source = (pokemon_dir / filename).read_text(encoding="utf-8")
+        declarations.extend(pattern.findall(source))
+    result: Dict[str, Any] = {}
+    pending = list(declarations)
+    while pending:
+        next_pending = []
+        progressed = False
+        for constant, constructor, relative, body in pending:
+            name_match = re.search(r"name:\s*'([^']+)'", body)
+            name = name_match.group(1) if name_match else constant
+            if constructor in ("evolvedPokemon", "preEvolvedPokemon"):
+                base = result.get(relative)
+                if not base:
+                    next_pending.append((constant, constructor, relative, body))
+                    continue
+                result[constant] = {**base, "name": name}
+                progressed = True
+                continue
+            berry_match = re.search(r"berry:\s*(\w+)", body)
+            ingredient_match = re.search(
+                r"ingredients:\s*\{\s*a:\s*(\w+),\s*b:\s*(\w+)(?:,\s*c:\s*(\w+))?\s*\}", body)
+            if not berry_match or not ingredient_match:
+                continue
+            constants = [x for x in ingredient_match.groups() if x]
+            if any(x not in ingredient_defs for x in constants):
+                continue
+            specialty_factor = 2 if constructor == "createIngredientSpecialist" else 1
+            first_name, first_value = ingredient_defs[constants[0]]
+            slots = []
+            for level, factor, choices in ((1, 1, constants[:1]), (30, 2.25, constants[:2]),
+                                            (60, 3.6, constants)):
+                values = []
+                for ingredient in choices:
+                    ingredient_name, ingredient_value = ingredient_defs[ingredient]
+                    amount = math.floor(first_value * factor * specialty_factor / ingredient_value + .5)
+                    values.append([ingredient_name, amount])
+                slots.append({"level": level, "choices": values})
+            result[constant] = {"name": name, "berry": berry_match.group(1),
+                                "ingredients": slots}
+            progressed = True
+        if not progressed:
+            break
+        pending = next_pending
+    return {value["name"]: {"berry": value["berry"], "ingredients": value["ingredients"]}
+            for value in result.values()}
+
+
 def scan(path: Path, interval: float = .8) -> List[Dict[str, Any]]:
-    return merge_frames(recognize_path(path, interval))
+    return enrich_with_species_data(merge_frames(recognize_path(path, interval)))
 
 
 def make_demo(path: Path) -> Path:

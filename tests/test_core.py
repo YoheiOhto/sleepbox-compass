@@ -9,7 +9,7 @@ from pokesleep_box.render import render_site
 from pokesleep_box.localization import names, normalize_individual, to_english, to_japanese
 from pokesleep_box.ingest import audit, ingest_path, render_review
 from pokesleep_box.analytics import analyze
-from pokesleep_box.ocr import merge_frames
+from pokesleep_box.ocr import enrich_with_species_data, merge_frames
 
 
 ROOT = Path(__file__).parents[1]
@@ -123,6 +123,19 @@ class CoreTests(unittest.TestCase):
         self.assertEqual([x[1] for x in row["subskills"]], [10, 25, 50, 75, 100])
         self.assertEqual((row["level"], row["sp"], row["main_skill"]),
                          (15, 513, "Ingredient Magnet S"))
+
+    def test_species_metadata_fills_berry_and_constrains_ingredients(self):
+        row = {"species": "BULBASAUR", "ingredients": [], "ocr_missing": ["ingredients"]}
+        metadata = {"BULBASAUR": {"berry": "DURIN", "ingredients": [
+            {"level": 1, "choices": [["Honey", 2]]},
+            {"level": 30, "choices": [["Honey", 5], ["Tomato", 4]]},
+            {"level": 60, "choices": [["Honey", 7], ["Potato", 6]]},
+        ]}}
+        result = enrich_with_species_data([row], pokemon_data=metadata)[0]
+        self.assertEqual(result["berry"], "DURIN")
+        self.assertEqual(result["ingredients"], [["Honey", 2]])
+        self.assertEqual(result["ingredient_options"][1]["choices"][1][2], "あんみんトマト")
+        self.assertIn("ingredients", result["ocr_missing"])
 
     def test_cooking_free_energy_forecast_and_growth(self):
         item = dict(self.items[0], uid="energy", verified=True, energy_scores={

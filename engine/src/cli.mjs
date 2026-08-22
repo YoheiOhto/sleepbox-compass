@@ -88,5 +88,15 @@ const benchmark = () => ({benchmarks: OPTIMAL_POKEDEX.filter(p=>!p.evolvesInto.l
   species:p.name,species_ja:input.names?.[p.name],island_scores:Object.fromEntries(
     Object.entries(input.islands).map(([name,berries])=>[name,{60:simulateEnergy(p,60,berries)}]))
 }))});
+const metadata = () => ({pokemon: Object.fromEntries(COMPLETE_POKEDEX.map(p => [p.name, {
+  berry: p.berry.name,
+  ingredients: [p.ingredient0, p.ingredient30, p.ingredient60].map((choices, index) => ({
+    level: [1, 30, 60][index],
+    choices: choices.filter(x => x.amount > 0).map(x => [x.ingredient.name, x.amount])
+  }))
+}]))});
 
-process.stdout.write(JSON.stringify(input.mode === 'verify' ? verify() : input.mode === 'benchmark' ? benchmark() : evaluate()));
+process.stdout.write(JSON.stringify(input.mode === 'verify' ? verify()
+  : input.mode === 'benchmark' ? benchmark()
+  : input.mode === 'metadata' ? metadata()
+  : evaluate()));
