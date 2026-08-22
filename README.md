@@ -45,6 +45,14 @@ pokesleep-box decide --keep-top-n 2
 pokesleep-box render
 ```
 
+実データのページは、公開デモの`site/`と分けてGit管理外の`site/private/`へ生成できます。
+
+```sh
+pokesleep-box --db data/box.sqlite decide
+pokesleep-box --db data/box.sqlite render --out site/private
+python3 -m http.server 8000 --directory site/private
+```
+
 日本語JSONもそのまま取り込めます。macOSでは、ポケモンの詳細画面を撮った画像または
 画面収録を`inbox/`へ置くだけで、Apple Visionの日本語OCRを使ってローカル認識できます。
 画像は外部へ送信されません。初回だけSwift製OCRヘルパーを`.cache/`へ自動ビルドします。
