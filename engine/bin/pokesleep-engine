@@ -6,4 +6,12 @@ if [ ! -f "$DIST" ]; then
   echo "Neroli’s Lab common is not built. Run: cd engine/vendor/nerolis-lab/common && npm run build" >&2
   exit 2
 fi
-exec node "$ROOT/engine/src/cli.mjs"
+if [ -x "$ROOT/.cache/node/bin/node" ]; then
+  NODE="$ROOT/.cache/node/bin/node"
+elif command -v node >/dev/null 2>&1; then
+  NODE=node
+else
+  echo "Node.js 20以上が必要です（READMEのローカルセットアップを参照）" >&2
+  exit 2
+fi
+exec "$NODE" "$ROOT/engine/src/cli.mjs"

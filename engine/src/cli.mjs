@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import {
-  berryPowerForLevel, CarrySizeUtils, COMPLETE_POKEDEX, INGREDIENTS, NATURES, OPTIMAL_POKEDEX,
-  parseTime, RP, SUBSKILLS
+  berryPowerForLevel, CarrySizeUtils, COMPLETE_POKEDEX, getIngredient, getNature, getSubskill,
+  OPTIMAL_POKEDEX, parseTime, RP
 } from '../vendor/nerolis-lab/common/dist/index.mjs';
 import { calculatePokemonProduction } from '../vendor/nerolis-lab/backend/dist/services/api-service/production/production-service.js';
 
@@ -21,10 +21,10 @@ const toInstance = (raw, level = raw.level) => ({
   level,
   ribbon: raw.ribbon ?? 0,
   skillLevel: raw.skillLevel,
-  nature: byName(NATURES, raw.nature),
-  subskills: raw.subskills.map(([name, unlock]) => ({level: unlock, subskill: byName(SUBSKILLS, name)})),
+  nature: getNature(raw.nature),
+  subskills: raw.subskills.map(([name, unlock]) => ({level: unlock, subskill: getSubskill(name)})),
   ingredients: raw.ingredients.map(([name, amount], index) => ({
-    level: [1, 30, 60][index], amount, ingredient: byName(INGREDIENTS, name)
+    level: [1, 30, 60][index], amount, ingredient: getIngredient(name)
   })),
   sneakySnacking: false,
   version: 1, externalId: '', saved: false, shiny: false, gender: 'N', name: ''
@@ -58,7 +58,7 @@ const idealNature = specialty => specialty === 'berry' ? 'Adamant' : specialty =
 const simulateEnergy = (pokemon, level, islandBerries) => {
   const ingredientSet = [pokemon.ingredient0[0], pokemon.ingredient30[0], pokemon.ingredient60[0]]
     .map(x => x.ingredient.name);
-  const stats = {level, ribbon:0, nature:byName(NATURES,idealNature(pokemon.specialty)),
+  const stats = {level, ribbon:0, nature:getNature(idealNature(pokemon.specialty)),
     subskills:new Set(idealSubskills(pokemon.specialty)), skillLevel:pokemon.skill.maxLevel,
     inventoryLimit:CarrySizeUtils.calculateCarrySize({baseWithEvolutions:CarrySizeUtils.baseCarrySize(pokemon),subskillsLevelLimited:new Set(idealSubskills(pokemon.specialty)),ribbon:0,camp:false}), e4eProcs:0,e4eLevel:1,cheer:0,extraHelpful:0,
     helperBoostProcs:0,helperBoostUnique:0,helperBoostLevel:1,helpingBonus:0,camp:false,
@@ -73,7 +73,7 @@ const simulateEnergy = (pokemon, level, islandBerries) => {
 const simulateInstanceEnergy = (raw, level, islandBerries) => {
   const pokemon=finalEvolution(byName(COMPLETE_POKEDEX,raw.species));
   const ingredientSet=raw.ingredients.map(x=>x[0]);
-  const stats={level,ribbon:raw.ribbon??0,nature:byName(NATURES,raw.nature),
+  const stats={level,ribbon:raw.ribbon??0,nature:getNature(raw.nature),
     subskills:new Set(raw.subskills.filter(x=>x[1]<=level).map(x=>x[0])),skillLevel:raw.skillLevel,
     inventoryLimit:CarrySizeUtils.calculateCarrySize({baseWithEvolutions:CarrySizeUtils.baseCarrySize(pokemon),subskillsLevelLimited:new Set(raw.subskills.filter(x=>x[1]<=level).map(x=>x[0])),ribbon:raw.ribbon??0,camp:false}),e4eProcs:0,e4eLevel:1,cheer:0,extraHelpful:0,
     helperBoostProcs:0,helperBoostUnique:0,helperBoostLevel:1,helpingBonus:0,camp:false,
