@@ -52,9 +52,11 @@ class CoreTests(unittest.TestCase):
         self.assertNotIn("</script>\"", page)
 
     def test_absolute_score_uses_fixed_reference(self):
-        evaluations = {level: {role: 125 for role in ("berry", "ingredient", "skill")}
+        references = {level: {role: 1000 for role in ("berry", "ingredient", "skill")}
+                      for level in (50, 60, 70, 80)}
+        evaluations = {level: {role: 500 for role in ("berry", "ingredient", "skill")}
                        for level in (50, 60, 70, 80)}
-        self.assertEqual(absolute_role_scores(evaluations),
+        self.assertEqual(absolute_role_scores(evaluations, references),
                          {"berry": 50.0, "ingredient": 50.0, "skill": 50.0})
 
     def test_missing_anchor_has_no_absolute_score(self):

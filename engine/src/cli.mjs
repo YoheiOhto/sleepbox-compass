@@ -101,8 +101,24 @@ const metadata = () => ({pokemon: Object.fromEntries(COMPLETE_POKEDEX.map(p => [
     choices: choices.filter(x => x.amount > 0).map(x => [x.ingredient.name, x.amount])
   }))
 }]))});
+const scoreReferences = () => {
+  const anchors = input.anchors || [50, 60, 70, 80];
+  const rows = OPTIMAL_POKEDEX.filter(p=>!p.evolvesInto.length).map(p=>{
+    const raw={species:p.name,level:60,nature:idealNature(p.specialty),
+      subskills:idealSubskills(p.specialty).map((name,i)=>[name,[10,25,50,75,100][i]]),
+      ingredients:[p.ingredient0[0],p.ingredient30[0],p.ingredient60[0]].map(x=>[x.ingredient.name,x.amount]),
+      mainSkill:p.skill.name,skillLevel:p.skill.maxLevel};
+    return Object.fromEntries(anchors.map(level=>{const rp=new RP(toInstance(raw,level,false));return [level,
+      {berry:rp.miscFactor*rp.berryFactor,ingredient:rp.miscFactor*rp.ingredientFactor,
+       skill:rp.miscFactor*rp.skillFactor}]}));
+  });
+  const percentile=(values,p=.9)=>{const xs=values.filter(Number.isFinite).sort((a,b)=>a-b);return xs[Math.min(xs.length-1,Math.floor(xs.length*p))]};
+  return {percentile:90,references:Object.fromEntries(anchors.map(level=>[level,
+    Object.fromEntries(['berry','ingredient','skill'].map(role=>[role,Math.round(percentile(rows.map(x=>x[level][role])))]))]))};
+};
 
 process.stdout.write(JSON.stringify(input.mode === 'verify' ? verify()
   : input.mode === 'benchmark' ? benchmark()
   : input.mode === 'metadata' ? metadata()
+  : input.mode === 'score-references' ? scoreReferences()
   : evaluate()));
