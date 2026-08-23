@@ -21,12 +21,16 @@ const finalEvolution = pokemon => {
   while (result.evolvesInto?.length === 1) result = byName(COMPLETE_POKEDEX, result.evolvesInto[0]);
   return result;
 };
-const toInstance = (raw, level = raw.level, evolve = true) => ({
-  pokemon: evolve ? finalEvolution(byName(COMPLETE_POKEDEX, raw.species))
-                  : byName(COMPLETE_POKEDEX, raw.species),
+const projectedSkillLevel=(raw,pokemon,evolve)=>Math.min(pokemon.skill.maxLevel,
+  raw.skillLevel+(evolve?(byName(COMPLETE_POKEDEX,raw.species).remainingEvolutions||0):0));
+const skillLevelFor=(raw,pokemon,level,evolve)=>Math.min(pokemon.skill.maxLevel,
+  projectedSkillLevel(raw,pokemon,evolve)+raw.subskills.filter(([,unlock])=>unlock>raw.level&&unlock<=level)
+    .reduce((sum,[name])=>sum+(name==='Skill Level Up M'?2:name==='Skill Level Up S'?1:0),0));
+const toInstance = (raw, level = raw.level, evolve = true) => {const pokemon=evolve?finalEvolution(byName(COMPLETE_POKEDEX,raw.species)):byName(COMPLETE_POKEDEX,raw.species);return ({
+  pokemon,
   level,
   ribbon: raw.ribbon ?? 0,
-  skillLevel: raw.skillLevel,
+  skillLevel: skillLevelFor(raw,pokemon,level,evolve),
   nature: getNature(raw.nature),
   subskills: raw.subskills.map(([name, unlock]) => ({level: unlock, subskill: getSubskill(name)})),
   ingredients: raw.ingredients.map(([name, amount], index) => ({
@@ -34,7 +38,7 @@ const toInstance = (raw, level = raw.level, evolve = true) => ({
   })),
   sneakySnacking: false,
   version: 1, externalId: '', saved: false, shiny: false, gender: 'N', name: ''
-});
+})};
 const verify = () => ({results: input.instances.map(({uid, instance, displayedSp}) => {
   const computedSp = new RP(toInstance(instance, instance.level, false)).calc();
   const diff = computedSp - displayedSp;
@@ -85,7 +89,7 @@ const simulateInstanceEnergy = (raw, level, islandBerries, evolve=true) => {
   const pokemon=evolve?finalEvolution(basePokemon):basePokemon;
   const ingredientSet=raw.ingredients.map(x=>x[0]);
   const stats={level,ribbon:raw.ribbon??0,nature:getNature(raw.nature),
-    subskills:new Set(raw.subskills.filter(x=>x[1]<=level).map(x=>x[0])),skillLevel:raw.skillLevel,
+    subskills:new Set(raw.subskills.filter(x=>x[1]<=level).map(x=>x[0])),skillLevel:skillLevelFor(raw,pokemon,level,evolve),
     inventoryLimit:CarrySizeUtils.calculateCarrySize({baseWithEvolutions:CarrySizeUtils.baseCarrySize(pokemon),subskillsLevelLimited:new Set(raw.subskills.filter(x=>x[1]<=level).map(x=>x[0])),ribbon:raw.ribbon??0,camp:false}),e4eProcs:0,e4eLevel:1,cheer:0,extraHelpful:0,
     helperBoostProcs:0,helperBoostUnique:0,helperBoostLevel:1,helpingBonus:0,camp:false,
     erb:0,incense:false,mainBedtime:parseTime('22:00'),mainWakeup:parseTime('06:00'),maxPotSize:15};
@@ -98,9 +102,6 @@ const simulateInstanceEnergy = (raw, level, islandBerries, evolve=true) => {
 };
 
 const activeSubskills = (raw, level) => new Set(raw.subskills.filter(x => x[1] <= level).map(x => x[0]));
-const skillLevelAt = (raw, pokemon, level) => Math.min(pokemon.skill.maxLevel,
-  raw.skillLevel + raw.subskills.filter(([,unlock])=>unlock>raw.level && unlock<=level)
-    .reduce((sum,[name])=>sum+(name==='Skill Level Up M'?2:name==='Skill Level Up S'?1:0),0));
 const toTeamMember = (uid, raw, level, evolve=true) => {
   const basePokemon=byName(COMPLETE_POKEDEX,raw.species);
   const pokemon=evolve?finalEvolution(basePokemon):basePokemon;
@@ -116,7 +117,7 @@ const toTeamMember = (uid, raw, level, evolve=true) => {
         ribbon: raw.ribbon ?? 0, camp: false
       }),
       level, ribbon: raw.ribbon ?? 0, nature: getNature(raw.nature),
-      skillLevel: skillLevelAt(raw,pokemon,level),
+      skillLevel: skillLevelFor(raw,pokemon,level,evolve),
       subskills, externalId: uid, sneakySnacking: false
     }
   };
