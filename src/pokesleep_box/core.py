@@ -22,6 +22,16 @@ ZERO_VALUE_SUBSKILLS = {
     "Research EXP Bonus", "Sleep EXP Bonus", "Dream Shard Bonus"
 }
 
+# Base energy added by one ingredient when it is put into a dish. These values
+# are also used by the pinned Neroli engine's RP ingredient component.
+INGREDIENT_BASE_ENERGY = {
+    "Apple": 90, "Milk": 98, "Soybean": 100, "Honey": 101,
+    "Sausage": 103, "Ginger": 109, "Tomato": 110, "Egg": 115,
+    "Oil": 121, "Potato": 124, "Herb": 130, "Corn": 140,
+    "Cacao": 151, "Coffee": 153, "Avocado": 162, "Mushroom": 167,
+    "Leek": 185, "Pumpkin": 250, "Tail": 342, "Slowpoke Tail": 342,
+}
+
 
 def now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -189,12 +199,18 @@ def load_dashboard(db: sqlite3.Connection) -> List[Dict[str, Any]]:
     for row in rows:
         item_scores = evaluations.get(row["uid"], {})
         role_scores = absolute_role_scores(item_scores)
+        ingredients = json.loads(row["ingredients_json"] or "[]")
+        ingredient_slots = [{"name": x[0], "amount": x[1],
+                             "base_energy": INGREDIENT_BASE_ENERGY.get(x[0], 0),
+                             "drop_energy": x[1] * INGREDIENT_BASE_ENERGY.get(x[0], 0)}
+                            for x in ingredients if len(x) >= 2]
         result.append({**dict(row), "species_ja": to_japanese("species", row["species"]),
                        "nature_ja": to_japanese("natures", row["nature"]),
                        "evaluations": item_scores,
                        "island_scores": json.loads(row["island_scores_json"] or "{}"),
                        "energy_scores": json.loads(row["energy_scores_json"] or "{}"),
                        "production_scores": json.loads(row["production_scores_json"] or "{}"),
+                       "ingredient_slots": ingredient_slots,
                        "absolute_by_role": role_scores,
                        "absolute_score": max(role_scores.values(), default=0.0)})
     return result
