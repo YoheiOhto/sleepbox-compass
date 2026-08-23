@@ -51,8 +51,8 @@ const evaluate = () => ({
                     ingredient: rp.miscFactor * rp.ingredientFactor,
                     skill: rp.miscFactor * rp.skillFactor}];
   })), energyScores: input.islands ? Object.fromEntries(Object.entries(input.islands).map(([name,berries]) =>
-    [name,Object.fromEntries([['current',instance.level],...input.anchors.map(x=>[String(x),x])]
-      .map(([mode,level])=>[mode,simulateInstanceEnergy(instance,level,berries)]))])) : undefined}))
+    [name,Object.fromEntries([['current',instance.level,false],...input.anchors.map(x=>[String(x),x,true])]
+      .map(([mode,level,evolve])=>[mode,simulateInstanceEnergy(instance,level,berries,evolve)]))])) : undefined}))
 });
 
 const idealSubskills = specialty => specialty === 'berry'
@@ -80,8 +80,9 @@ const safeSimulateEnergy = (pokemon, level, islandBerries) => {
   try { return simulateEnergy(pokemon, level, islandBerries); }
   catch { return null; }
 };
-const simulateInstanceEnergy = (raw, level, islandBerries) => {
-  const pokemon=finalEvolution(byName(COMPLETE_POKEDEX,raw.species));
+const simulateInstanceEnergy = (raw, level, islandBerries, evolve=true) => {
+  const basePokemon=byName(COMPLETE_POKEDEX,raw.species);
+  const pokemon=evolve?finalEvolution(basePokemon):basePokemon;
   const ingredientSet=raw.ingredients.map(x=>x[0]);
   const stats={level,ribbon:raw.ribbon??0,nature:getNature(raw.nature),
     subskills:new Set(raw.subskills.filter(x=>x[1]<=level).map(x=>x[0])),skillLevel:raw.skillLevel,
@@ -100,8 +101,9 @@ const activeSubskills = (raw, level) => new Set(raw.subskills.filter(x => x[1] <
 const skillLevelAt = (raw, pokemon, level) => Math.min(pokemon.skill.maxLevel,
   raw.skillLevel + raw.subskills.filter(([,unlock])=>unlock>raw.level && unlock<=level)
     .reduce((sum,[name])=>sum+(name==='Skill Level Up M'?2:name==='Skill Level Up S'?1:0),0));
-const toTeamMember = (uid, raw, level) => {
-  const pokemon = finalEvolution(byName(COMPLETE_POKEDEX, raw.species));
+const toTeamMember = (uid, raw, level, evolve=true) => {
+  const basePokemon=byName(COMPLETE_POKEDEX,raw.species);
+  const pokemon=evolve?finalEvolution(basePokemon):basePokemon;
   const subskills = activeSubskills(raw, level);
   return {
     pokemonWithIngredients: {
@@ -144,8 +146,9 @@ const teamResult = (members, name, berries, iterations) => {
 };
 const optimizeTeam = (instances, name, berries, mode) => {
   const levelFor = raw => mode === 'current' ? raw.level : Number(mode);
-  const candidates = instances.map(({uid, instance}) => {const production=simulateInstanceEnergy(instance,levelFor(instance),berries);return {uid,raw:instance,
-    member:toTeamMember(uid,instance,levelFor(instance)),ingredient:production.ingredient||0,
+  const evolve=mode!=='current';
+  const candidates = instances.map(({uid, instance}) => {const production=simulateInstanceEnergy(instance,levelFor(instance),berries,evolve);return {uid,raw:instance,
+    member:toTeamMember(uid,instance,levelFor(instance),evolve),ingredient:production.ingredient||0,
     additive:production.expected}});
   if (!candidates.length) return null;
   const size = Math.min(5, candidates.length), searchIterations = input.teamSearchIterations ?? 80;
