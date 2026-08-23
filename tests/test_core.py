@@ -118,6 +118,12 @@ class CoreTests(unittest.TestCase):
         self.assertIn("data-pokemon-uid", page)
         self.assertIn("任意の5匹をシミュレーション", page)
         self.assertIn("targetIslands", page)
+        self.assertNotIn('data-tab="pokemon"', page)
+        self.assertIn("box-search", page)
+        self.assertIn("データ・計算状態", page)
+        self.assertIn("team-goal", page)
+        self.assertIn("Game8の最新Tier表", page)
+        self.assertIn("このアプリの「理想個体」", page)
 
     def test_individual_label_is_traceable_across_views(self):
         item = dict(self.items[0], display_name="相棒", box_index=20, level=61, sp=4234)
