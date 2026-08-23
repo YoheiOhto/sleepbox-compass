@@ -49,7 +49,8 @@ def verify(db, command: str = "engine/bin/pokesleep-engine", tolerance: int = 0,
     return counts
 
 
-def evaluate(db, command: str = "engine/bin/pokesleep-engine") -> int:
+def evaluate(db, command: str = "engine/bin/pokesleep-engine",
+             team_out: Path = Path("data/private/team_plans.json")) -> int:
     from .analytics import ISLANDS
 
     rows = db.execute("SELECT * FROM individual ORDER BY box_index").fetchall()
@@ -74,6 +75,15 @@ def evaluate(db, command: str = "engine/bin/pokesleep-engine") -> int:
                                 valuation, now()))
                     count += 1
     db.commit()
+    team_response = run_engine({"mode": "team-evaluate", "anchors": list(ANCHORS),
+                                "islands": {name: list(berries) for name, berries in ISLANDS.items()},
+                                "teamSearchIterations": 80, "teamIterations": 500,
+                                "instances": [{"uid": r["uid"], "verified": bool(r["verified"]),
+                                               "instance": individual_to_engine(dict(r))}
+                                              for r in rows]}, command)
+    team_out.parent.mkdir(parents=True, exist_ok=True)
+    team_out.write_text(json.dumps(team_response, ensure_ascii=False, indent=2) + "\n",
+                        encoding="utf-8")
     return count
 
 

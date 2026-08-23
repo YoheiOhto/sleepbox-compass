@@ -172,6 +172,22 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(cyan["modes"]["current"]["daily"]["expected"], 1000)
         self.assertTrue(cyan["modes"]["current"]["provisional"])
 
+    def test_team_plan_overrides_additive_forecast_and_keeps_synergy(self):
+        items = [dict(self.items[0], uid="healer", verified=True, energy_scores={
+            "シアンの砂浜": {"current": {"expected": 1000, "berry": 1000}}
+        })]
+        plans = [{"island": "シアンの砂浜", "mode": "current", "total_energy": 1800,
+                  "synergy_gain": 500, "provisional": False,
+                  "members": [{"uid": "healer", "energy": 1300, "berry": 1200,
+                               "direct_skill": 100, "marginal": 1800,
+                               "team_help_support": 2, "subskills": ["Helping Bonus"]}]}]
+        result = analyze(items, team_plans=plans)
+        cyan = next(x for x in result["forecasts"] if x["island"] == "シアンの砂浜")
+        current = cyan["modes"]["current"]
+        self.assertEqual(current["daily"]["expected"], 1800)
+        self.assertEqual(current["synergy_gain"], 500)
+        self.assertTrue(current["team_aware"])
+
     def test_capture_recommendation_prefers_unowned_species_for_weak_island(self):
         benchmark = {"species": "RAICHU", "island_scores": {
             "ゴールド旧発電所": {"60": {"expected": 80000}}

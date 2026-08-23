@@ -42,7 +42,8 @@ def _item_metric(item: Mapping[str, Any], island: str, mode: str) -> Optional[Di
 
 
 def analyze(items: Sequence[Mapping[str, Any]], settings: Mapping[str, Any] = {},
-            benchmarks: Sequence[Mapping[str, Any]] = (), team_size: int = 5) -> Dict[str, Any]:
+            benchmarks: Sequence[Mapping[str, Any]] = (), team_size: int = 5,
+            team_plans: Sequence[Mapping[str, Any]] = ()) -> Dict[str, Any]:
     bonuses = settings.get("areaBonusByIsland", {})
     default_bonus = float(settings.get("areaBonus", 0) or 0)
     forecasts = []
@@ -52,6 +53,31 @@ def analyze(items: Sequence[Mapping[str, Any]], settings: Mapping[str, Any] = {}
         bonus = float(bonuses.get(island, default_bonus) or 0)
         factor = 1 + bonus / 100
         for mode in MODES:
+            team_plan = next((p for p in team_plans if p.get("island") == island
+                              and str(p.get("mode")) == mode and "total_energy" in p), None)
+            if team_plan:
+                members_by_uid = {x["uid"]: x for x in items}
+                for member in team_plan.get("members", []):
+                    membership.setdefault(member["uid"], set()).add(island)
+                total = float(team_plan["total_energy"]) * factor
+                berry = sum(float(x.get("berry", 0)) for x in team_plan.get("members", [])) * factor
+                skill = sum(float(x.get("direct_skill", 0)) for x in team_plan.get("members", [])) * factor
+                totals = {"expected": round(total), "low": round(total), "high": round(total),
+                          "berry": round(berry), "skill": round(skill)}
+                modes[mode] = {"daily": totals, "weekly": {k: v * 7 for k, v in totals.items()},
+                               "provisional": bool(team_plan.get("provisional")), "team_aware": True,
+                               "synergy_gain": round(float(team_plan.get("synergy_gain", 0)) * factor),
+                               "members": [{"uid": m["uid"],
+                                            "name": (members_by_uid.get(m["uid"], {}).get("display_name")
+                                                     or members_by_uid.get(m["uid"], {}).get("species_ja")
+                                                     or m["uid"]),
+                                            "energy": round(float(m.get("energy", 0)) * factor),
+                                            "marginal": round(float(m.get("marginal", 0)) * factor),
+                                            "recovery": m.get("recovery", 0),
+                                            "team_help_support": m.get("team_help_support", 0),
+                                            "subskills": m.get("subskills", [])}
+                                           for m in team_plan.get("members", [])]}
+                continue
             candidates = []
             for item in items:
                 metric = _item_metric(item, island, mode)

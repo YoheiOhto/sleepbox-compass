@@ -25,6 +25,7 @@ def main() -> None:
     render.add_argument("--out", type=Path, default=Path("site"))
     render.add_argument("--settings", type=Path, default=Path("config/settings.local.json"))
     render.add_argument("--benchmarks", type=Path, default=Path("data/private/species_benchmarks.json"))
+    render.add_argument("--teams", type=Path, default=Path("data/private/team_plans.json"))
     demo = commands.add_parser("demo")
     demo.add_argument("--input", type=Path, default=Path("data/example_individuals.json"))
     demo.add_argument("--out", type=Path, default=Path("site"))
@@ -43,6 +44,7 @@ def main() -> None:
     ver.add_argument("--tolerance", type=int, default=0)
     ev = commands.add_parser("evaluate")
     ev.add_argument("--engine", default="engine/bin/pokesleep-engine")
+    ev.add_argument("--teams-out", type=Path, default=Path("data/private/team_plans.json"))
     bench = commands.add_parser("benchmark")
     bench.add_argument("--engine", default="engine/bin/pokesleep-engine")
     bench.add_argument("--out", type=Path, default=Path("data/private/species_benchmarks.json"))
@@ -63,7 +65,8 @@ def main() -> None:
         dashboard = load_dashboard(db)
         settings = json.loads(args.settings.read_text()) if args.settings.exists() else {}
         benchmarks = json.loads(args.benchmarks.read_text()).get("benchmarks", []) if args.benchmarks.exists() else []
-        render_site(dashboard, args.out, build_team_plans(dashboard), analyze(dashboard, settings, benchmarks))
+        teams = json.loads(args.teams.read_text()).get("plans", []) if args.teams.exists() else build_team_plans(dashboard)
+        render_site(dashboard, args.out, teams, analyze(dashboard, settings, benchmarks, team_plans=teams))
         print(args.out / "index.html")
     elif args.command == "demo":
         payload = json.loads(args.input.read_text(encoding="utf-8"))
@@ -88,7 +91,8 @@ def main() -> None:
             parser.error(str(exc))
     elif args.command == "evaluate":
         try:
-            print(json.dumps({"evaluations": evaluate(db, args.engine)}, ensure_ascii=False))
+            print(json.dumps({"evaluations": evaluate(db, args.engine, args.teams_out),
+                              "teams": str(args.teams_out)}, ensure_ascii=False))
         except EngineUnavailable as exc:
             parser.error(str(exc))
     elif args.command == "benchmark":

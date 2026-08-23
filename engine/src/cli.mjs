@@ -1,9 +1,11 @@
 import fs from 'node:fs';
 import {
-  berryPowerForLevel, CarrySizeUtils, COMPLETE_POKEDEX, getIngredient, getNature, getSubskill,
-  OPTIMAL_POKEDEX, parseTime, RP
+  berryPowerForLevel, CarrySizeUtils, COMPLETE_POKEDEX, DEFAULT_ISLAND,
+  emptyIngredientInventoryFloat, getBerry, getIngredient, getNature, getSubskill,
+  MIN_POT_SIZE, OPTIMAL_POKEDEX, parseTime, RP
 } from '../vendor/nerolis-lab/common/dist/index.mjs';
-import { calculatePokemonProduction } from '../vendor/nerolis-lab/backend/dist/services/api-service/production/production-service.js';
+import { calculatePokemonProduction, calculateTeam } from '../vendor/nerolis-lab/backend/dist/services/api-service/production/production-service.js';
+import { defaultUserRecipes } from '../vendor/nerolis-lab/backend/dist/services/simulation-service/team-simulator/cooking-state/cooking-utils.js';
 
 const input = JSON.parse(fs.readFileSync(0, 'utf8'));
 const byName = (xs, name) => {
@@ -89,6 +91,97 @@ const simulateInstanceEnergy = (raw, level, islandBerries) => {
   return {berry:Math.round(berry),direct_skill:Math.round(skill),expected:Math.round(expected),
           low:Math.round(expected-spread),high:Math.round(expected+spread)};
 };
+
+const activeSubskills = (raw, level) => new Set(raw.subskills.filter(x => x[1] <= level).map(x => x[0]));
+const skillLevelAt = (raw, pokemon, level) => Math.min(pokemon.skill.maxLevel,
+  raw.skillLevel + raw.subskills.filter(([,unlock])=>unlock>raw.level && unlock<=level)
+    .reduce((sum,[name])=>sum+(name==='Skill Level Up M'?2:name==='Skill Level Up S'?1:0),0));
+const toTeamMember = (uid, raw, level) => {
+  const pokemon = finalEvolution(byName(COMPLETE_POKEDEX, raw.species));
+  const subskills = activeSubskills(raw, level);
+  return {
+    pokemonWithIngredients: {
+      pokemon,
+      ingredientList: raw.ingredients.map(([name, amount]) => ({ingredient: getIngredient(name), amount}))
+    },
+    settings: {
+      carrySize: CarrySizeUtils.calculateCarrySize({
+        baseWithEvolutions: CarrySizeUtils.baseCarrySize(pokemon), subskillsLevelLimited: subskills,
+        ribbon: raw.ribbon ?? 0, camp: false
+      }),
+      level, ribbon: raw.ribbon ?? 0, nature: getNature(raw.nature),
+      skillLevel: skillLevelAt(raw,pokemon,level),
+      subskills, externalId: uid, sneakySnacking: false
+    }
+  };
+};
+const teamSettings = (name, berries) => ({
+  bedtime: parseTime('22:00'), wakeup: parseTime('06:00'), camp: false, includeCooking: false,
+  stockpiledIngredients: emptyIngredientInventoryFloat(), potSize: MIN_POT_SIZE,
+  island: {...DEFAULT_ISLAND, name, berries: berries.map(getBerry), areaBonus: 0}
+});
+const teamResult = (members, name, berries, iterations) => {
+  const result = calculateTeam({settings: teamSettings(name, berries), members,
+    userRecipes: defaultUserRecipes()}, iterations);
+  const rows = result.members.map(member => ({
+    uid: member.externalId,
+    berry: member.strength.berries.total,
+    direct_skill: member.strength.skill.total,
+    energy: member.strength.berries.total + member.strength.skill.total,
+    skill_procs: member.skillProcs,
+    recovery: member.advanced.teamSupport.energy,
+    team_energy_support: member.advanced.teamSupport.energy,
+    team_help_support: member.advanced.teamSupport.helps
+  }));
+  return {total: rows.reduce((sum, row) => sum + row.energy, 0), members: rows};
+};
+const optimizeTeam = (instances, name, berries, mode) => {
+  const levelFor = raw => mode === 'current' ? raw.level : Number(mode);
+  const candidates = instances.map(({uid, instance}) => ({uid, raw: instance,
+    member: toTeamMember(uid, instance, levelFor(instance)),
+    additive: simulateInstanceEnergy(instance, levelFor(instance), berries).expected}));
+  if (!candidates.length) return null;
+  const size = Math.min(5, candidates.length), searchIterations = input.teamSearchIterations ?? 80;
+  let selected = [...candidates].sort((a,b) => b.additive-a.additive).slice(0,size);
+  const score = team => teamResult(team.map(x=>x.member), name, berries, searchIterations).total;
+  let bestScore = score(selected), improved = true;
+  while (improved) {
+    improved = false;
+    let bestTeam = selected;
+    const outside = candidates.filter(x => !selected.includes(x));
+    for (let i=0; i<selected.length; i++) for (const candidate of outside) {
+      const trial = selected.map((x,j) => j===i ? candidate : x);
+      const trialScore = score(trial);
+      if (trialScore > bestScore * 1.002) { bestScore=trialScore; bestTeam=trial; improved=true; }
+    }
+    selected = bestTeam;
+  }
+  const iterations = input.teamIterations ?? 500;
+  const final = teamResult(selected.map(x=>x.member), name, berries, iterations);
+  const soloTotal = selected.reduce((sum,x) => sum + teamResult([x.member],name,berries,iterations).total,0);
+  const marginal = Object.fromEntries(selected.map((x) => [x.uid,
+    final.total-teamResult(selected.filter(y=>y!==x).map(y=>y.member),name,berries,iterations).total]));
+  return {
+    island:name, mode, total_energy:Math.round(final.total), synergy_gain:Math.round(final.total-soloTotal),
+    provisional: selected.some(x=>!instances.find(y=>y.uid===x.uid)?.verified),
+    optimizer:'team-swap-v1', cooking_included:false,
+    members: final.members.sort((a,b)=>marginal[b.uid]-marginal[a.uid]).map(row => ({
+      ...Object.fromEntries(Object.entries(row).map(([k,v])=>[k, k==='uid'?v:Math.round(v)])),
+      marginal:Math.round(marginal[row.uid]),
+      subskills:[...activeSubskills(selected.find(x=>x.uid===row.uid).raw,
+        levelFor(selected.find(x=>x.uid===row.uid).raw))],
+      utility_subskills:[...activeSubskills(selected.find(x=>x.uid===row.uid).raw,
+        levelFor(selected.find(x=>x.uid===row.uid).raw))]
+        .filter(x=>['Research EXP Bonus','Sleep EXP Bonus','Dream Shard Bonus'].includes(x))
+    }))
+  };
+};
+const teamEvaluate = () => ({
+  engineVersion:'nerolis-lab@a033942b699854a80507e48b5246199afec17e01',
+  plans:Object.entries(input.islands).flatMap(([name,berries]) =>
+    ['current',...(input.anchors||[50,60,70,80]).map(String)].map(mode =>
+      optimizeTeam(input.instances,name,berries,mode)).filter(Boolean))
+});
 const benchmark = () => ({benchmarks: OPTIMAL_POKEDEX.filter(p=>!p.evolvesInto.length).map(p=>({
   species:p.name,species_ja:input.names?.[p.name],island_scores:Object.fromEntries(
     Object.entries(input.islands).map(([name,berries])=>[name,safeSimulateEnergy(p,60,berries)])
@@ -119,6 +212,7 @@ const scoreReferences = () => {
 
 process.stdout.write(JSON.stringify(input.mode === 'verify' ? verify()
   : input.mode === 'benchmark' ? benchmark()
+  : input.mode === 'team-evaluate' ? teamEvaluate()
   : input.mode === 'metadata' ? metadata()
   : input.mode === 'score-references' ? scoreReferences()
   : evaluate()));
