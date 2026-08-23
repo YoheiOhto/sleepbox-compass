@@ -54,8 +54,6 @@ def analyze(items: Sequence[Mapping[str, Any]], settings: Mapping[str, Any] = {}
         for mode in MODES:
             candidates = []
             for item in items:
-                if not item.get("verified"):
-                    continue
                 metric = _item_metric(item, island, mode)
                 if metric:
                     candidates.append((metric["expected"], item, metric))
@@ -66,6 +64,7 @@ def analyze(items: Sequence[Mapping[str, Any]], settings: Mapping[str, Any] = {}
                 totals = {key: round(sum(m[key] for _, _, m in selected) * factor)
                           for key in ("expected", "low", "high", "berry", "skill")}
                 modes[mode] = {"daily": totals, "weekly": {k: v * 7 for k, v in totals.items()},
+                               "provisional": any(not x[1].get("verified") for x in selected),
                                "members": [{"uid": x[1]["uid"],
                                             "name": x[1].get("display_name") or x[1].get("species_ja") or x[1]["species"],
                                             "energy": round(x[0] * factor)} for x in selected]}

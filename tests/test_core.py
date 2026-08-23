@@ -151,6 +151,15 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(lapis["modes"]["current"]["daily"]["berry"], 1500)
         self.assertEqual(lapis["growth_to_60"], 12600)
 
+    def test_unverified_energy_is_visible_but_marked_provisional(self):
+        item = dict(self.items[0], uid="provisional", verified=False, energy_scores={
+            "シアンの砂浜": {"current": {"berry": 1000, "expected": 1000}}
+        })
+        result = analyze([item])
+        cyan = next(x for x in result["forecasts"] if x["island"] == "シアンの砂浜")
+        self.assertEqual(cyan["modes"]["current"]["daily"]["expected"], 1000)
+        self.assertTrue(cyan["modes"]["current"]["provisional"])
+
     def test_capture_recommendation_prefers_unowned_species_for_weak_island(self):
         benchmark = {"species": "RAICHU", "island_scores": {
             "ゴールド旧発電所": {"60": {"expected": 80000}}
