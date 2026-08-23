@@ -71,6 +71,10 @@ const simulateEnergy = (pokemon, level, islandBerries) => {
   return {berry:Math.round(berry),direct_skill:Math.round(skill),expected:Math.round(expected),
           low:Math.round(expected-spread),high:Math.round(expected+spread)};
 };
+const safeSimulateEnergy = (pokemon, level, islandBerries) => {
+  try { return simulateEnergy(pokemon, level, islandBerries); }
+  catch { return null; }
+};
 const simulateInstanceEnergy = (raw, level, islandBerries) => {
   const pokemon=finalEvolution(byName(COMPLETE_POKEDEX,raw.species));
   const ingredientSet=raw.ingredients.map(x=>x[0]);
@@ -87,8 +91,9 @@ const simulateInstanceEnergy = (raw, level, islandBerries) => {
 };
 const benchmark = () => ({benchmarks: OPTIMAL_POKEDEX.filter(p=>!p.evolvesInto.length).map(p=>({
   species:p.name,species_ja:input.names?.[p.name],island_scores:Object.fromEntries(
-    Object.entries(input.islands).map(([name,berries])=>[name,{60:simulateEnergy(p,60,berries)}]))
-}))});
+    Object.entries(input.islands).map(([name,berries])=>[name,safeSimulateEnergy(p,60,berries)])
+      .filter(([,score])=>score).map(([name,score])=>[name,{60:score}]))
+})).filter(p=>Object.keys(p.island_scores).length)});
 const metadata = () => ({pokemon: Object.fromEntries(COMPLETE_POKEDEX.map(p => [p.name, {
   berry: p.berry.name,
   ingredients: [p.ingredient0, p.ingredient30, p.ingredient60].map((choices, index) => ({
