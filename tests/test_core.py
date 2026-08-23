@@ -86,6 +86,12 @@ class CoreTests(unittest.TestCase):
         self.assertIn("サブスキル", page)
         self.assertIn("取込#", page)
         self.assertIn("食材ゲットS", page)
+        self.assertIn("円内は個体スコア", page)
+        self.assertIn("box-avatar score", page)
+        self.assertIn("性格補正", page)
+        self.assertIn("食材おてつだい確率", page)
+        self.assertIn("nature-up", page)
+        self.assertIn("nature-down", page)
         self.assertIn("detail-row.locked", page)
         self.assertIn("未解放", page)
 
