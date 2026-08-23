@@ -6,9 +6,10 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Mapping
 
-from .analytics import ISLANDS
-from .core import connect
-from .engine import individual_to_engine, run_engine
+from .analytics import ISLANDS, analyze
+from .core import connect, decide, load_dashboard
+from .engine import evaluate, individual_to_engine, run_engine
+from .render import render_site
 
 
 def build_simulation_payload(db, request: Mapping[str, Any]) -> dict[str, Any]:
@@ -39,6 +40,37 @@ def serve(db_path: Path, site: Path, host: str = "127.0.0.1", port: int = 8000,
           engine: str = "engine/bin/pokesleep-engine") -> None:
     class Handler(SimpleHTTPRequestHandler):
         def do_POST(self) -> None:  # noqa: N802 - stdlib handler API
+            if self.path == "/api/recalculate":
+                try:
+                    request_db = connect(db_path)
+                    try:
+                        count = evaluate(request_db, engine)
+                        decisions = decide(request_db)
+                        dashboard = load_dashboard(request_db)
+                    finally:
+                        request_db.close()
+                    settings_path = Path("config/settings.local.json")
+                    benchmark_path = Path("data/private/species_benchmarks.json")
+                    team_path = Path("data/private/team_plans.json")
+                    settings = json.loads(settings_path.read_text()) if settings_path.exists() else {}
+                    benchmarks = (json.loads(benchmark_path.read_text()).get("benchmarks", [])
+                                  if benchmark_path.exists() else [])
+                    teams = (json.loads(team_path.read_text()).get("plans", [])
+                             if team_path.exists() else [])
+                    render_site(dashboard, site, teams,
+                                analyze(dashboard, settings, benchmarks, team_plans=teams))
+                    body = json.dumps({"evaluations": count, "decisions": decisions},
+                                      ensure_ascii=False).encode()
+                    self.send_response(200)
+                except Exception as exc:
+                    body = json.dumps({"error": f"再計算に失敗しました: {exc}"},
+                                      ensure_ascii=False).encode()
+                    self.send_response(500)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
             if self.path != "/api/simulate-team":
                 self.send_error(404)
                 return

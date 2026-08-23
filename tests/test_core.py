@@ -124,6 +124,9 @@ class CoreTests(unittest.TestCase):
         self.assertIn("team-goal", page)
         self.assertIn("Game8の最新Tier表", page)
         self.assertIn("このアプリの「理想個体」", page)
+        self.assertIn("review-mark", page)
+        self.assertIn("評価と編成を再計算", page)
+        self.assertIn("/api/recalculate", page)
 
     def test_individual_label_is_traceable_across_views(self):
         item = dict(self.items[0], display_name="相棒", box_index=20, level=61, sp=4234)

@@ -144,7 +144,8 @@ def analyze(items: Sequence[Mapping[str, Any]], settings: Mapping[str, Any] = {}
     general, tailored = capture_recommendations(items, forecasts, benchmarks)
     quality = {"total": len(items), "verified": sum(bool(x.get("verified")) for x in items),
                "unverified": sum(not x.get("verified") for x in items),
-               "low_confidence": sum(float(x.get("confidence", 0) or 0) < .995 for x in items),
+               "low_confidence": sum(not x.get("verified") and
+                                     float(x.get("confidence", 0) or 0) < .8 for x in items),
                "sp_match": sum(x.get("sp_diff") == 0 and x.get("sp_computed") is not None for x in items)}
     return {"forecasts": forecasts, "growth": growth, "coverage": coverage,
             "capture": {"general": general, "tailored": tailored}, "quality": quality}
