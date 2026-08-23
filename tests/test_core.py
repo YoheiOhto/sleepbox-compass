@@ -76,6 +76,16 @@ class CoreTests(unittest.TestCase):
         page = (out / "index.html").read_text()
         self.assertNotIn("</script>\"", page)
 
+    def test_box_page_links_grid_to_individual_details(self):
+        import_individuals(self.db, self.items)
+        out = Path(self.tmp.name) / "box-site"
+        render_site(load_dashboard(self.db), out)
+        page = (out / "index.html").read_text()
+        self.assertIn("現在のボックス", page)
+        self.assertIn("openPokemonDetail", page)
+        self.assertIn("サブスキル", page)
+        self.assertIn("取込#", page)
+
     def test_individual_label_is_traceable_across_views(self):
         item = dict(self.items[0], display_name="相棒", box_index=20, level=61, sp=4234)
         self.assertEqual(individual_label(item), "相棒 · 取込#20 · Lv61 · SP 4234")
