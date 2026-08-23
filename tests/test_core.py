@@ -96,6 +96,10 @@ class CoreTests(unittest.TestCase):
         self.assertIn("nature-down", page)
         self.assertIn("detail-row.locked", page)
         self.assertIn("未解放", page)
+        self.assertEqual(page.count('id="pokemon-dialog"'), 1)
+        self.assertIn("育成優先 上位", page)
+        self.assertIn("育成停止：現状Lv", page)
+        self.assertIn("data-pokemon-uid", page)
 
     def test_individual_label_is_traceable_across_views(self):
         item = dict(self.items[0], display_name="相棒", box_index=20, level=61, sp=4234)
