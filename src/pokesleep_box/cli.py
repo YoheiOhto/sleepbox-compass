@@ -26,6 +26,11 @@ def main() -> None:
     render.add_argument("--settings", type=Path, default=Path("config/settings.local.json"))
     render.add_argument("--benchmarks", type=Path, default=Path("data/private/species_benchmarks.json"))
     render.add_argument("--teams", type=Path, default=Path("data/private/team_plans.json"))
+    serve_cmd = commands.add_parser("serve")
+    serve_cmd.add_argument("--site", type=Path, default=Path("site/private"))
+    serve_cmd.add_argument("--host", default="127.0.0.1")
+    serve_cmd.add_argument("--port", type=int, default=8000)
+    serve_cmd.add_argument("--engine", default="engine/bin/pokesleep-engine")
     demo = commands.add_parser("demo")
     demo.add_argument("--input", type=Path, default=Path("data/example_individuals.json"))
     demo.add_argument("--out", type=Path, default=Path("site"))
@@ -68,6 +73,9 @@ def main() -> None:
         teams = json.loads(args.teams.read_text()).get("plans", []) if args.teams.exists() else build_team_plans(dashboard)
         render_site(dashboard, args.out, teams, analyze(dashboard, settings, benchmarks, team_plans=teams))
         print(args.out / "index.html")
+    elif args.command == "serve":
+        from .server import serve
+        serve(args.db, args.site, args.host, args.port, args.engine)
     elif args.command == "demo":
         payload = json.loads(args.input.read_text(encoding="utf-8"))
         import_individuals(db, payload["individuals"])

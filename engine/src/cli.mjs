@@ -196,6 +196,12 @@ const teamEvaluate = () => ({
     ['current',...(input.anchors||[50,60,70,80]).map(String)].map(mode =>
       optimizeTeam(input.instances,name,berries,mode)).filter(Boolean))
 });
+const customTeam = () => {
+  if (!input.island?.name || !Array.isArray(input.island.berries)) throw new Error('custom-team requires island');
+  if (!Array.isArray(input.instances) || input.instances.length !== 5) throw new Error('custom-team requires exactly 5 instances');
+  return {engineVersion:'nerolis-lab@a033942b699854a80507e48b5246199afec17e01',
+    plan:optimizeTeam(input.instances,input.island.name,input.island.berries,String(input.teamMode||'current'))};
+};
 const benchmark = () => ({benchmarks: OPTIMAL_POKEDEX.filter(p=>!p.evolvesInto.length).map(p=>({
   species:p.name,species_ja:input.names?.[p.name],island_scores:Object.fromEntries(
     Object.entries(input.islands).map(([name,berries])=>[name,safeSimulateEnergy(p,60,berries)])
@@ -228,6 +234,7 @@ const scoreReferences = () => {
 process.stdout.write(JSON.stringify(input.mode === 'verify' ? verify()
   : input.mode === 'benchmark' ? benchmark()
   : input.mode === 'team-evaluate' ? teamEvaluate()
+  : input.mode === 'custom-team' ? customTeam()
   : input.mode === 'metadata' ? metadata()
   : input.mode === 'score-references' ? scoreReferences()
   : evaluate()));

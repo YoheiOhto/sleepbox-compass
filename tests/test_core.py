@@ -10,6 +10,7 @@ from pokesleep_box.localization import names, normalize_individual, to_english, 
 from pokesleep_box.ingest import audit, ingest_path, render_review
 from pokesleep_box.analytics import analyze, individual_label
 from pokesleep_box.ocr import enrich_with_species_data, merge_frames
+from pokesleep_box.server import build_simulation_payload
 
 
 ROOT = Path(__file__).parents[1]
@@ -29,6 +30,21 @@ class CoreTests(unittest.TestCase):
         a = dict(self.items[0])
         b = dict(a, level=80, box_index=99)
         self.assertEqual(canonical_uid(a), canonical_uid(b))
+
+    def test_custom_team_payload_requires_five_unique_box_members(self):
+        items = [dict(self.items[i % len(self.items)], display_name=f"member-{i}",
+                      box_index=i + 1, sp=1000 + i)
+                 for i in range(5)]
+        import_individuals(self.db, items)
+        uids = [row["uid"] for row in self.db.execute("SELECT uid FROM individual ORDER BY box_index")]
+        payload = build_simulation_payload(
+            self.db, {"uids": uids, "island": "シアンの砂浜", "mode": "60"})
+        self.assertEqual(payload["mode"], "custom-team")
+        self.assertEqual(payload["teamMode"], "60")
+        self.assertEqual(len(payload["instances"]), 5)
+        with self.assertRaisesRegex(ValueError, "異なる5匹"):
+            build_simulation_payload(
+                self.db, {"uids": [uids[0]] * 5, "island": "シアンの砂浜"})
 
     def test_dominated_sample_is_send(self):
         self.assertEqual(import_individuals(self.db, self.items), 3)
@@ -100,6 +116,8 @@ class CoreTests(unittest.TestCase):
         self.assertIn("育成優先 上位", page)
         self.assertIn("育成停止：現状Lv", page)
         self.assertIn("data-pokemon-uid", page)
+        self.assertIn("任意の5匹をシミュレーション", page)
+        self.assertIn("targetIslands", page)
 
     def test_individual_label_is_traceable_across_views(self):
         item = dict(self.items[0], display_name="相棒", box_index=20, level=61, sp=4234)
