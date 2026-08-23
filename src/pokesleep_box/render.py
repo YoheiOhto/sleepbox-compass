@@ -28,7 +28,17 @@ def render_site(items: List[Dict[str, Any]], out: Path, teams: Optional[List[Dic
     out.mkdir(parents=True, exist_ok=True)
     safe = []
     for item in items:
-        safe.append({k: item.get(k) for k in ("uid", "species", "species_ja", "display_name", "level", "box_index", "verdict", "reason", "evaluations", "absolute_score", "absolute_by_role", "pokemon_type", "berry", "production_scores", "energy_scores", "confidence", "verified", "sp", "sp_diff", "nature_ja", "main_skill", "skill_level", "ingredients_json", "subskills_json")})
+        entry = {k: item.get(k) for k in ("uid", "species", "species_ja", "display_name", "level", "box_index", "verdict", "reason", "evaluations", "absolute_score", "absolute_by_role", "pokemon_type", "berry", "production_scores", "energy_scores", "confidence", "verified", "sp", "sp_diff", "nature_ja", "main_skill", "skill_level", "ingredients_json", "subskills_json")}
+        base = entry.get("display_name") or entry.get("species_ja") or entry.get("species") or "不明"
+        identity = [base]
+        if entry.get("box_index") is not None:
+            identity.append(f"取込#{entry['box_index']}")
+        if entry.get("level") is not None:
+            identity.append(f"Lv{entry['level']}")
+        if entry.get("sp") is not None:
+            identity.append(f"SP {entry['sp']}")
+        entry["display_name"] = " · ".join(identity)
+        safe.append(entry)
     data = json.dumps(safe, ensure_ascii=False).replace("</", "<\\/")
     team_data = json.dumps(teams or [], ensure_ascii=False).replace("</", "<\\/")
     insight_data = json.dumps(insights or {}, ensure_ascii=False).replace("</", "<\\/")

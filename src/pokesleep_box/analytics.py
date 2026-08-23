@@ -16,6 +16,19 @@ ISLANDS = {
 MODES = ("current", "50", "60", "70", "80")
 
 
+def individual_label(item: Mapping[str, Any]) -> str:
+    """Human-traceable label shared by every view that mentions an individual."""
+    name = item.get("display_name") or item.get("species_ja") or item.get("species") or "不明"
+    parts = [name]
+    if item.get("box_index") is not None:
+        parts.append(f"取込#{item['box_index']}")
+    if item.get("level") is not None:
+        parts.append(f"Lv{item['level']}")
+    if item.get("sp") is not None:
+        parts.append(f"SP {item['sp']}")
+    return " · ".join(parts)
+
+
 def _metric(value: Any) -> Optional[Dict[str, float]]:
     if value is None:
         return None
@@ -68,9 +81,8 @@ def analyze(items: Sequence[Mapping[str, Any]], settings: Mapping[str, Any] = {}
                                "provisional": bool(team_plan.get("provisional")), "team_aware": True,
                                "synergy_gain": round(float(team_plan.get("synergy_gain", 0)) * factor),
                                "members": [{"uid": m["uid"],
-                                            "name": (members_by_uid.get(m["uid"], {}).get("display_name")
-                                                     or members_by_uid.get(m["uid"], {}).get("species_ja")
-                                                     or m["uid"]),
+                                            "name": (individual_label(members_by_uid[m["uid"]])
+                                                     if m["uid"] in members_by_uid else m["uid"]),
                                             "energy": round(float(m.get("energy", 0)) * factor),
                                             "marginal": round(float(m.get("marginal", 0)) * factor),
                                             "recovery": m.get("recovery", 0),
@@ -92,7 +104,7 @@ def analyze(items: Sequence[Mapping[str, Any]], settings: Mapping[str, Any] = {}
                 modes[mode] = {"daily": totals, "weekly": {k: v * 7 for k, v in totals.items()},
                                "provisional": any(not x[1].get("verified") for x in selected),
                                "members": [{"uid": x[1]["uid"],
-                                            "name": x[1].get("display_name") or x[1].get("species_ja") or x[1]["species"],
+                                            "name": individual_label(x[1]),
                                             "energy": round(x[0] * factor)} for x in selected]}
         current = modes.get("current", {}).get("weekly", {}).get("expected", 0)
         lv60 = modes.get("60", {}).get("weekly", {}).get("expected", 0)
@@ -107,7 +119,7 @@ def analyze(items: Sequence[Mapping[str, Any]], settings: Mapping[str, Any] = {}
         for island in ISLANDS:
             cur, future = _item_metric(item, island, "current"), _item_metric(item, island, "60")
             if cur and future:
-                row = {"uid": item["uid"], "name": item.get("display_name") or item.get("species_ja") or item["species"],
+                row = {"uid": item["uid"], "name": individual_label(item),
                        "species": item.get("species_ja") or item["species"], "island": island,
                        "daily_gain": round(future["expected"] - cur["expected"]),
                        "weekly_gain": round((future["expected"] - cur["expected"]) * 7),
@@ -119,7 +131,7 @@ def analyze(items: Sequence[Mapping[str, Any]], settings: Mapping[str, Any] = {}
     growth.sort(key=lambda x: -x["weekly_gain"])
 
     coverage = sorted([{"uid": item["uid"],
-                        "name": item.get("display_name") or item.get("species_ja") or item["species"],
+                        "name": individual_label(item),
                         "species": item.get("species_ja") or item["species"],
                         "islands": sorted(membership.get(item["uid"], set())),
                         "count": len(membership.get(item["uid"], set()))} for item in items],

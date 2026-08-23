@@ -8,7 +8,7 @@ from pokesleep_box.core import absolute_role_scores, build_team_plans, canonical
 from pokesleep_box.render import render_site
 from pokesleep_box.localization import names, normalize_individual, to_english, to_japanese
 from pokesleep_box.ingest import audit, ingest_path, render_review
-from pokesleep_box.analytics import analyze
+from pokesleep_box.analytics import analyze, individual_label
 from pokesleep_box.ocr import enrich_with_species_data, merge_frames
 
 
@@ -75,6 +75,10 @@ class CoreTests(unittest.TestCase):
         render_site(load_dashboard(self.db), out)
         page = (out / "index.html").read_text()
         self.assertNotIn("</script>\"", page)
+
+    def test_individual_label_is_traceable_across_views(self):
+        item = dict(self.items[0], display_name="相棒", box_index=20, level=61, sp=4234)
+        self.assertEqual(individual_label(item), "相棒 · 取込#20 · Lv61 · SP 4234")
 
     def test_absolute_score_uses_fixed_reference(self):
         references = {level: {role: 1000 for role in ("berry", "ingredient", "skill")}
