@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS individual (
   main_skill TEXT NOT NULL, skill_level INTEGER NOT NULL, sp INTEGER,
   box_index INTEGER, first_seen TEXT NOT NULL, last_seen TEXT NOT NULL,
   confidence REAL NOT NULL, verified INTEGER NOT NULL DEFAULT 0,
+  review_confirmed INTEGER NOT NULL DEFAULT 0,
   sp_computed INTEGER, sp_diff INTEGER,
   verify_mode TEXT CHECK(verify_mode IN ('strict','tolerant','skipped','failed')),
   repaired INTEGER NOT NULL DEFAULT 0

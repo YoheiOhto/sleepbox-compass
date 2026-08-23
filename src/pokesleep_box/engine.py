@@ -41,7 +41,7 @@ def verify(db, command: str = "engine/bin/pokesleep-engine", tolerance: int = 0,
     for result in response.get("results", []):
         mode = result.get("mode", "failed")
         verified = bool(result.get("match")) and mode == "strict"
-        db.execute("""UPDATE individual SET sp_computed=?,sp_diff=?,verify_mode=?,verified=?
+        db.execute("""UPDATE individual SET sp_computed=?,sp_diff=?,verify_mode=?,verified=MAX(review_confirmed,?)
                       WHERE uid=?""", (result.get("computedSp"), result.get("diff"),
                                       mode if mode in counts else "failed", verified, result["uid"]))
         counts[mode if mode in counts else "failed"] += 1

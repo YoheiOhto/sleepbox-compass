@@ -40,6 +40,30 @@ def serve(db_path: Path, site: Path, host: str = "127.0.0.1", port: int = 8000,
           engine: str = "engine/bin/pokesleep-engine") -> None:
     class Handler(SimpleHTTPRequestHandler):
         def do_POST(self) -> None:  # noqa: N802 - stdlib handler API
+            if self.path == "/api/confirm-review":
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    request = json.loads(self.rfile.read(length))
+                    uid = str(request.get("uid", ""))
+                    request_db = connect(db_path)
+                    try:
+                        cursor = request_db.execute(
+                            "UPDATE individual SET review_confirmed=1,verified=1 WHERE uid=?", (uid,))
+                        request_db.commit()
+                    finally:
+                        request_db.close()
+                    if cursor.rowcount != 1:
+                        raise ValueError("個体が見つかりません")
+                    body = b'{"confirmed":true}'
+                    self.send_response(200)
+                except (ValueError, json.JSONDecodeError) as exc:
+                    body = json.dumps({"error": str(exc)}, ensure_ascii=False).encode()
+                    self.send_response(400)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
             if self.path == "/api/recalculate":
                 try:
                     request_db = connect(db_path)

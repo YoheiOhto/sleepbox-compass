@@ -73,6 +73,14 @@ class CoreTests(unittest.TestCase):
         self.assertEqual((rows[0]["uid"], rows[0]["verified"], rows[0]["nature"]),
                          (uid, 0, "Calm"))
 
+    def test_manual_review_confirmation_never_returns_to_review(self):
+        original = dict(self.items[0], verified=False, review_confirmed=True)
+        import_individuals(self.db, [original])
+        import_individuals(self.db, [dict(original, verified=False, review_confirmed=False,
+                                           nature="Calm")])
+        row = self.db.execute("SELECT verified,review_confirmed,nature FROM individual").fetchone()
+        self.assertEqual((row["verified"], row["review_confirmed"], row["nature"]), (1, 1, "Calm"))
+
     def test_partial_rescan_never_erases_reviewed_fields(self):
         original = dict(self.items[0], sp=513, verified=True)
         import_individuals(self.db, [original])
@@ -127,6 +135,8 @@ class CoreTests(unittest.TestCase):
         self.assertIn("review-mark", page)
         self.assertIn("評価と編成を再計算", page)
         self.assertIn("/api/recalculate", page)
+        self.assertIn("この個体を確認済みにする", page)
+        self.assertIn("/api/confirm-review", page)
 
     def test_individual_label_is_traceable_across_views(self):
         item = dict(self.items[0], display_name="相棒", box_index=20, level=61, sp=4234)

@@ -67,6 +67,8 @@ def connect(path: Path) -> sqlite3.Connection:
         db.execute("ALTER TABLE individual ADD COLUMN production_scores_json TEXT NOT NULL DEFAULT '{}'")
     if "energy_scores_json" not in columns:
         db.execute("ALTER TABLE individual ADD COLUMN energy_scores_json TEXT NOT NULL DEFAULT '{}'")
+    if "review_confirmed" not in columns:
+        db.execute("ALTER TABLE individual ADD COLUMN review_confirmed INTEGER NOT NULL DEFAULT 0")
     db.commit()
     return db
 
@@ -108,12 +110,15 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
             existing["main_skill"] == item["main_skill"],
             existing["skill_level"] == item["skill_level"],
         )))
-        verified = bool(item.get("verified") or (same_core and existing["verified"]))
+        review_confirmed = bool(item.get("review_confirmed") or
+                                (existing and existing["review_confirmed"]))
+        verified = bool(review_confirmed or item.get("verified") or
+                        (same_core and existing["verified"]))
         db.execute(
             """INSERT INTO individual
             (uid,species,display_name,level,nature,pokemon_type,berry,production_scores_json,energy_scores_json,island_scores_json,ingredients_json,subskills_json,
-             main_skill,skill_level,sp,box_index,first_seen,last_seen,confidence,verified)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+             main_skill,skill_level,sp,box_index,first_seen,last_seen,confidence,verified,review_confirmed)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(uid) DO UPDATE SET species=excluded.species,display_name=excluded.display_name,
               level=excluded.level,nature=excluded.nature,pokemon_type=excluded.pokemon_type,
               berry=excluded.berry,production_scores_json=excluded.production_scores_json,
@@ -121,7 +126,9 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
               island_scores_json=excluded.island_scores_json,ingredients_json=excluded.ingredients_json,
               subskills_json=excluded.subskills_json,main_skill=excluded.main_skill,
               skill_level=excluded.skill_level,sp=excluded.sp,box_index=excluded.box_index,
-              last_seen=excluded.last_seen,confidence=excluded.confidence,verified=excluded.verified""",
+              last_seen=excluded.last_seen,confidence=excluded.confidence,
+              review_confirmed=MAX(individual.review_confirmed,excluded.review_confirmed),
+              verified=MAX(individual.review_confirmed,excluded.verified,excluded.review_confirmed)""",
             (uid, item["species"], item.get("display_name"), item.get("level"),
              item["nature"], item.get("pokemon_type"),
              item.get("berry"), json.dumps(item.get("production_scores", {}), ensure_ascii=False),
@@ -130,7 +137,7 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
              json.dumps(item["ingredients"], ensure_ascii=False),
              json.dumps(item["subskills"], ensure_ascii=False), item["main_skill"],
              item["skill_level"], item.get("sp"), item.get("box_index"),
-             timestamp, timestamp, item.get("confidence", 0.0), verified),
+             timestamp, timestamp, item.get("confidence", 0.0), verified, review_confirmed),
         )
         for anchor_text, scores in item.get("scores", {}).items():
             for role, score in scores.items():
@@ -212,7 +219,8 @@ def load_dashboard(db: sqlite3.Connection) -> List[Dict[str, Any]]:
                        "production_scores": json.loads(row["production_scores_json"] or "{}"),
                        "ingredient_slots": ingredient_slots,
                        "absolute_by_role": role_scores,
-                       "absolute_score": max(role_scores.values(), default=0.0)})
+                       "absolute_score": max(role_scores.values(), default=0.0),
+                       "review_confirmed": bool(row["review_confirmed"])})
     return result
 
 
