@@ -57,6 +57,16 @@ class CoreTests(unittest.TestCase):
         self.assertEqual((rows[0]["uid"], rows[0]["verified"], rows[0]["nature"]),
                          (uid, 0, "Calm"))
 
+    def test_partial_rescan_never_erases_reviewed_fields(self):
+        original = dict(self.items[0], sp=513, verified=True)
+        import_individuals(self.db, [original])
+        partial = dict(original, ingredients=original["ingredients"][:1], verified=False,
+                       ocr_missing=["ingredients"])
+        import_individuals(self.db, [partial])
+        row = self.db.execute("SELECT ingredients_json,verified FROM individual").fetchone()
+        self.assertEqual(json.loads(row["ingredients_json"]), original["ingredients"])
+        self.assertEqual(row["verified"], 1)
+
     def test_render_escapes_display_name(self):
         item = dict(self.items[0], display_name="<script>alert(1)</script>")
         import_individuals(self.db, [item])
@@ -144,13 +154,14 @@ class CoreTests(unittest.TestCase):
     def test_species_metadata_fills_berry_and_constrains_ingredients(self):
         row = {"species": "BULBASAUR", "ingredients": [], "ingredient_amounts": [2, 4, 6],
                "ocr_missing": ["ingredients"]}
-        metadata = {"BULBASAUR": {"berry": "DURIN", "ingredients": [
+        metadata = {"BULBASAUR": {"berry": "DURIN", "main_skill": "Ingredient Magnet S", "ingredients": [
             {"level": 1, "choices": [["Honey", 2]]},
             {"level": 30, "choices": [["Honey", 5], ["Tomato", 4]]},
             {"level": 60, "choices": [["Honey", 7], ["Potato", 6]]},
         ]}}
         result = enrich_with_species_data([row], pokemon_data=metadata)[0]
         self.assertEqual(result["berry"], "DURIN")
+        self.assertEqual(result["main_skill"], "Ingredient Magnet S")
         self.assertEqual(result["ingredients"], [["Honey", 2], ["Tomato", 4], ["Potato", 6]])
         self.assertEqual(result["ingredient_options"][1]["choices"][1][2], "あんみんトマト")
         self.assertNotIn("ingredients", result["ocr_missing"])
@@ -192,6 +203,16 @@ class CoreTests(unittest.TestCase):
             ]},
         ]
         self.assertEqual(merge_frames(frames)[0]["skill_level"], 3)
+
+    def test_percentage_never_becomes_sp_during_transition(self):
+        frame = {"frame": 1, "observations": [
+            {"text": "イワーク", "confidence": .9},
+            {"text": "SP 100%", "confidence": .9},
+            {"text": "Lv.30", "confidence": .9},
+        ]}
+        row = merge_frames([frame])[0]
+        self.assertIsNone(row.get("sp"))
+        self.assertIsNone(row.get("level"))
 
     def test_cooking_free_energy_forecast_and_growth(self):
         item = dict(self.items[0], uid="energy", verified=True, energy_scores={

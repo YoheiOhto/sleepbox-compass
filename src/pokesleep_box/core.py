@@ -76,6 +76,20 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
             if len(matches) == 1:
                 existing = matches[0]
                 uid = existing["uid"]
+        # A later capture may intentionally show only nature/subskills. Never
+        # replace previously reviewed fields with OCR placeholders or partial
+        # ingredient lists from that complementary video.
+        if existing:
+            missing = set(raw_item.get("ocr_missing", []))
+            if "nature" in missing:
+                item["nature"] = existing["nature"]
+            if "ingredients" in missing:
+                item["ingredients"] = json.loads(existing["ingredients_json"])
+            if "subskills" in missing:
+                item["subskills"] = json.loads(existing["subskills_json"])
+            if "main_skill" in missing:
+                item["main_skill"] = existing["main_skill"]
+                item["skill_level"] = existing["skill_level"]
         uid = uid or canonical_uid(item)
         same_core = bool(existing and all((
             existing["nature"] == item["nature"],

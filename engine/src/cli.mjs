@@ -189,6 +189,7 @@ const benchmark = () => ({benchmarks: OPTIMAL_POKEDEX.filter(p=>!p.evolvesInto.l
 })).filter(p=>Object.keys(p.island_scores).length)});
 const metadata = () => ({pokemon: Object.fromEntries(COMPLETE_POKEDEX.map(p => [p.name, {
   berry: p.berry.name,
+  main_skill: p.skill.name,
   ingredients: [p.ingredient0, p.ingredient30, p.ingredient60].map((choices, index) => ({
     level: [1, 30, 60][index],
     choices: choices.filter(x => x.amount > 0).map(x => [x.ingredient.name, x.amount])

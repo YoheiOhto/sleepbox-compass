@@ -81,22 +81,23 @@ def parse_frame(frame: Mapping[str, Any]) -> Dict[str, Any]:
     # Current level must be anchored to the SP header. Unanchored Lv.30/Lv.60
     # labels belong to ingredient slots, and subskill unlock badges are also
     # visible after scrolling the header off screen.
-    header_level = re.search(
-        r"(?:Lv\.?|レベル)\s*(\d{1,3})[\s\S]{0,40}?(?:SP|RP)\s*[:：]?\s*[0-9,]{3,6}",
-        joined, re.I)
-    if not header_level:
-        header_level = re.search(
-            r"(?:SP|RP)\s*[:：]?\s*[0-9,]{3,6}[\s\S]{0,80}?(?:Lv\.?|レベル)\s*(\d{1,3})",
-            joined, re.I)
-    if not header_level and result.get("species"):
+    header_level = None
+    if result.get("species"):
         species_ja = re.escape(to_japanese("species", result["species"]))
-        header_level = re.search(
-            rf"(?:Lv\.?|レベル)\s*(\d{{1,3}})[^\n]{{0,12}}{species_ja}", joined, re.I)
+        patterns = (
+            rf"(?:SP|RP)\s*[:：]?\s*[0-9,]{{3,6}}[\s\S]{{0,45}}?(?:Lv\.?|レベル)\s*(\d{{1,3}})[^\n]{{0,16}}{species_ja}",
+            rf"{species_ja}[\s\S]{{0,45}}?(?:Lv\.?|レベル)\s*(\d{{1,3}})[\s\S]{{0,35}}?(?:SP|RP)\s*[:：]?\s*[0-9,]{{3,6}}",
+            rf"(?:Lv\.?|レベル)\s*(\d{{1,3}})[\s\S]{{0,35}}?(?:SP|RP)\s*[:：]?\s*[0-9,]{{3,6}}[\s\S]{{0,35}}?{species_ja}",
+        )
+        header_level = next((match for pattern in patterns
+                             if (match := re.search(pattern, joined, re.I))), None)
     if header_level:
         result["level"] = int(header_level.group(1))
     sp = re.search(r"(?:SP|RP)\s*[:：]?\s*([0-9,]{3,6})", joined, re.I)
     if sp:
-        result["sp"] = int(sp.group(1).replace(",", ""))
+        parsed_sp = int(sp.group(1).replace(",", ""))
+        if parsed_sp >= 200:
+            result["sp"] = parsed_sp
     main_skill_ja = (to_japanese("mainskills", result["main_skill"])
                      if result.get("main_skill") else None)
     skill_level = (re.search(rf"{re.escape(main_skill_ja)}[\s\S]{{0,35}}?Lv\.?\s*(\d+)", joined, re.I)
@@ -198,11 +199,15 @@ def enrich_with_species_data(items: List[Dict[str, Any]],
     if not pokemon_data:
         return items
     for item in items:
+        ingredients_need_review = "ingredients" in item.get("ocr_missing", [])
         metadata = pokemon_data.get(item.get("species"), {})
         if metadata.get("berry"):
             item["berry"] = metadata["berry"]
             item["berry_ja"] = to_japanese("berries", metadata["berry"])
             item.setdefault("field_confidence", {})["berry"] = 1.0
+        if metadata.get("main_skill") and not item.get("main_skill"):
+            item["main_skill"] = metadata["main_skill"]
+            item.setdefault("field_confidence", {})["main_skill"] = 1.0
         options = []
         for slot in metadata.get("ingredients", []):
             choices = [[name, amount, to_japanese("ingredients", name)]
@@ -230,11 +235,24 @@ def enrich_with_species_data(items: List[Dict[str, Any]],
                     elif value and index == len(ingredients):
                         ingredients.append(value)
                 item["ingredients"] = ingredients
+                if len(inferred) == len(options) and all(inferred):
+                    ingredients_need_review = False
+            # Keep calculations runnable before review by filling unresolved
+            # slots with the species' first legal option. `ocr_missing` remains
+            # set, so these assumptions are always shown as provisional.
+            ingredients = list(item.get("ingredients", []))
+            while len(ingredients) < len(options):
+                choices = options[len(ingredients)]["choices"]
+                if not choices:
+                    break
+                ingredients.append(choices[0][:2])
+            item["ingredients"] = ingredients
         missing = [key for key in item.get("ocr_missing", [])
-                   if key not in ("berry", "ingredients")]
+                   if key not in ("berry", "ingredients", "main_skill")]
         missing.extend(key for key in ("species", "nature", "subskills", "main_skill")
                        if not item.get(key) and key not in missing)
-        if len(item.get("ingredients", [])) < len(options or [None, None, None]):
+        if (ingredients_need_review or
+                len(item.get("ingredients", [])) < len(options or [None, None, None])):
             missing.append("ingredients")
         item["ocr_missing"] = missing
     return items
