@@ -85,6 +85,9 @@ class CoreTests(unittest.TestCase):
         self.assertIn("openPokemonDetail", page)
         self.assertIn("サブスキル", page)
         self.assertIn("取込#", page)
+        self.assertIn("食材ゲットS", page)
+        self.assertIn("detail-row.locked", page)
+        self.assertIn("未解放", page)
 
     def test_individual_label_is_traceable_across_views(self):
         item = dict(self.items[0], display_name="相棒", box_index=20, level=61, sp=4234)
