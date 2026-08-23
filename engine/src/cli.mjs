@@ -16,8 +16,9 @@ const finalEvolution = pokemon => {
   while (result.evolvesInto?.length === 1) result = byName(COMPLETE_POKEDEX, result.evolvesInto[0]);
   return result;
 };
-const toInstance = (raw, level = raw.level) => ({
-  pokemon: finalEvolution(byName(COMPLETE_POKEDEX, raw.species)),
+const toInstance = (raw, level = raw.level, evolve = true) => ({
+  pokemon: evolve ? finalEvolution(byName(COMPLETE_POKEDEX, raw.species))
+                  : byName(COMPLETE_POKEDEX, raw.species),
   level,
   ribbon: raw.ribbon ?? 0,
   skillLevel: raw.skillLevel,
@@ -30,7 +31,7 @@ const toInstance = (raw, level = raw.level) => ({
   version: 1, externalId: '', saved: false, shiny: false, gender: 'N', name: ''
 });
 const verify = () => ({results: input.instances.map(({uid, instance, displayedSp}) => {
-  const computedSp = new RP(toInstance(instance)).calc();
+  const computedSp = new RP(toInstance(instance, instance.level, false)).calc();
   const diff = computedSp - displayedSp;
   const strict = instance.level < input.strictBelowLevel;
   const match = strict ? diff === 0 : Math.abs(diff) <= input.tolerance;

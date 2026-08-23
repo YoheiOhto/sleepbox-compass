@@ -95,7 +95,14 @@ def parse_frame(frame: Mapping[str, Any]) -> Dict[str, Any]:
             subskills.append([found[0], int(badge.group(1)) if badge else 0])
     if subskills:
         defaults = [10, 25, 50, 75, 100]
-        result["subskills"] = [[name, unlock or defaults[i]] for i, (name, unlock) in enumerate(subskills)]
+        unique_subskills = []
+        seen_subskills = set()
+        for name, unlock in subskills:
+            if name not in seen_subskills:
+                unique_subskills.append((name, unlock))
+                seen_subskills.add(name)
+        result["subskills"] = [[name, unlock or defaults[i]]
+                               for i, (name, unlock) in enumerate(unique_subskills[:5])]
 
     ingredients = []
     for text in texts:
