@@ -105,6 +105,17 @@ def parse_frame(frame: Mapping[str, Any]) -> Dict[str, Any]:
             ingredients.append([found[0], int(amount.group(1)) if amount else 0])
     if ingredients:
         result["ingredients"] = ingredients
+    # In the game screen ingredient names are icons, but their amounts are OCR
+    # text. Restrict to the ingredient row by Vision's normalized coordinates.
+    amount_rows = []
+    for observation in observations:
+        y = float(observation.get("y", 0))
+        text = str(observation.get("text", ""))
+        amount = re.search(r"[x×]\s*(\d{1,2})", text, re.I)
+        if amount and .62 <= y <= .79:
+            amount_rows.append((float(observation.get("x", 0)), int(amount.group(1))))
+    if amount_rows:
+        result["ingredient_amounts"] = [amount for _, amount in sorted(amount_rows)[:3]]
     confidences = [float(x.get("confidence", 0)) for x in observations]
     result["ocr_confidence"] = sum(confidences) / len(confidences) if confidences else 0
     return result
@@ -117,7 +128,8 @@ def merge_frames(frames: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
     for part in partials:
         species_changed = current.get("species") and part.get("species") and current["species"] != part["species"]
         core_conflict = (current.get("nature") and part.get("nature") and current["nature"] != part["nature"])
-        if (species_changed or core_conflict) and current:
+        identity_changed = (current.get("sp") and part.get("sp") and current["sp"] != part["sp"])
+        if (species_changed or core_conflict or identity_changed) and current:
             groups.append(current)
             current = {}
         for key, value in part.items():
@@ -178,6 +190,22 @@ def enrich_with_species_data(items: List[Dict[str, Any]],
             if not item.get("ingredients") and len(options[0]["choices"]) == 1:
                 name, amount, _ = options[0]["choices"][0]
                 item["ingredients"] = [[name, amount]]
+            amounts = item.get("ingredient_amounts", [])
+            inferred = []
+            for index, amount in enumerate(amounts[:len(options)]):
+                matches = [choice for choice in options[index]["choices"] if choice[1] == amount]
+                if len(matches) == 1:
+                    inferred.append(matches[0][:2])
+                else:
+                    inferred.append(None)
+            if inferred:
+                ingredients = list(item.get("ingredients", []))
+                for index, value in enumerate(inferred):
+                    if value and index < len(ingredients):
+                        ingredients[index] = value
+                    elif value and index == len(ingredients):
+                        ingredients.append(value)
+                item["ingredients"] = ingredients
         missing = [key for key in item.get("ocr_missing", [])
                    if key not in ("berry", "ingredients")]
         missing.extend(key for key in ("species", "nature", "subskills", "main_skill")

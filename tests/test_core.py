@@ -125,7 +125,8 @@ class CoreTests(unittest.TestCase):
                          (15, 513, "Ingredient Magnet S"))
 
     def test_species_metadata_fills_berry_and_constrains_ingredients(self):
-        row = {"species": "BULBASAUR", "ingredients": [], "ocr_missing": ["ingredients"]}
+        row = {"species": "BULBASAUR", "ingredients": [], "ingredient_amounts": [2, 4, 6],
+               "ocr_missing": ["ingredients"]}
         metadata = {"BULBASAUR": {"berry": "DURIN", "ingredients": [
             {"level": 1, "choices": [["Honey", 2]]},
             {"level": 30, "choices": [["Honey", 5], ["Tomato", 4]]},
@@ -133,9 +134,18 @@ class CoreTests(unittest.TestCase):
         ]}}
         result = enrich_with_species_data([row], pokemon_data=metadata)[0]
         self.assertEqual(result["berry"], "DURIN")
-        self.assertEqual(result["ingredients"], [["Honey", 2]])
+        self.assertEqual(result["ingredients"], [["Honey", 2], ["Tomato", 4], ["Potato", 6]])
         self.assertEqual(result["ingredient_options"][1]["choices"][1][2], "あんみんトマト")
-        self.assertIn("ingredients", result["ocr_missing"])
+        self.assertNotIn("ingredients", result["ocr_missing"])
+
+    def test_video_frames_split_same_species_when_sp_changes(self):
+        def frame(sp):
+            return {"frame": sp, "observations": [
+                {"text": "ゼニガメ", "confidence": .9},
+                {"text": f"SP {sp}", "confidence": .9},
+            ]}
+        rows = merge_frames([frame(540), frame(540), frame(511), frame(511)])
+        self.assertEqual([x["sp"] for x in rows], [540, 511])
 
     def test_cooking_free_energy_forecast_and_growth(self):
         item = dict(self.items[0], uid="energy", verified=True, energy_scores={
