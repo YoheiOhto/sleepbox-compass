@@ -269,6 +269,7 @@ class CoreTests(unittest.TestCase):
             "シアンの砂浜": {"current": {"expected": 1000, "berry": 1000}}
         })]
         plans = [{"island": "シアンの砂浜", "mode": "current", "total_energy": 1800,
+                  "cooking": 400, "recipe_level": 1,
                   "synergy_gain": 500, "provisional": False,
                   "members": [{"uid": "healer", "energy": 1300, "berry": 1000,
                                "ingredient": 200,
@@ -279,6 +280,7 @@ class CoreTests(unittest.TestCase):
         current = cyan["modes"]["current"]
         self.assertEqual(current["daily"]["expected"], 1800)
         self.assertEqual(current["daily"]["ingredient"], 200)
+        self.assertEqual(current["daily"]["cooking"], 400)
         self.assertEqual(current["synergy_gain"], 500)
         self.assertTrue(current["team_aware"])
 

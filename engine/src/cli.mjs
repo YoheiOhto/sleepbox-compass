@@ -8,6 +8,9 @@ import { calculatePokemonProduction, calculateTeam } from '../vendor/nerolis-lab
 import { defaultUserRecipes } from '../vendor/nerolis-lab/backend/dist/services/simulation-service/team-simulator/cooking-state/cooking-utils.js';
 
 const input = JSON.parse(fs.readFileSync(0, 'utf8'));
+const recipeLevel = Math.max(1, Math.min(60, input.recipeLevel ?? 1));
+const userRecipes = Object.fromEntries(Object.entries(defaultUserRecipes()).map(([type, recipes]) =>
+  [type, recipes.map(recipe => ({...recipe, level: recipeLevel}))]));
 const byName = (xs, name) => {
   const found = xs.find(x => x.name === name);
   if (!found) throw new Error(`Unknown engine value: ${name}`);
@@ -117,13 +120,13 @@ const toTeamMember = (uid, raw, level) => {
   };
 };
 const teamSettings = (name, berries) => ({
-  bedtime: parseTime('22:00'), wakeup: parseTime('06:00'), camp: false, includeCooking: false,
+  bedtime: parseTime('22:00'), wakeup: parseTime('06:00'), camp: false, includeCooking: true,
   stockpiledIngredients: emptyIngredientInventoryFloat(), potSize: MIN_POT_SIZE,
   island: {...DEFAULT_ISLAND, name, berries: berries.map(getBerry), areaBonus: 0}
 });
 const teamResult = (members, name, berries, iterations) => {
   const result = calculateTeam({settings: teamSettings(name, berries), members,
-    userRecipes: defaultUserRecipes()}, iterations);
+    userRecipes}, iterations);
   const rows = result.members.map(member => ({
     uid: member.externalId,
     berry: member.strength.berries.total,
@@ -134,7 +137,10 @@ const teamResult = (members, name, berries, iterations) => {
     team_energy_support: member.advanced.teamSupport.energy,
     team_help_support: member.advanced.teamSupport.helps
   }));
-  return {total: rows.reduce((sum, row) => sum + row.energy, 0), members: rows};
+  const cookingTypes=['curry','salad','dessert'];
+  const cooking=result.cooking?cookingTypes.reduce((sum,type)=>sum+result.cooking[type].weeklyStrength/7,0)/cookingTypes.length:0;
+  return {total: rows.reduce((sum, row) => sum + row.energy, 0)+cooking,
+    cooking, recipe_level:recipeLevel, members: rows};
 };
 const optimizeTeam = (instances, name, berries, mode) => {
   const levelFor = raw => mode === 'current' ? raw.level : Number(mode);
@@ -144,8 +150,7 @@ const optimizeTeam = (instances, name, berries, mode) => {
   if (!candidates.length) return null;
   const size = Math.min(5, candidates.length), searchIterations = input.teamSearchIterations ?? 80;
   let selected = [...candidates].sort((a,b) => b.additive-a.additive).slice(0,size);
-  const score = team => teamResult(team.map(x=>x.member), name, berries, searchIterations).total+
-    team.reduce((sum,x)=>sum+x.ingredient,0);
+  const score = team => teamResult(team.map(x=>x.member), name, berries, searchIterations).total;
   let bestScore = score(selected), improved = true;
   while (improved) {
     improved = false;
@@ -161,15 +166,15 @@ const optimizeTeam = (instances, name, berries, mode) => {
   const iterations = input.teamIterations ?? 500;
   const rawFinal = teamResult(selected.map(x=>x.member), name, berries, iterations);
   const ingredientByUid=Object.fromEntries(selected.map(x=>[x.uid,x.ingredient]));
-  const final={total:rawFinal.total+selected.reduce((sum,x)=>sum+x.ingredient,0),members:rawFinal.members.map(x=>({...x,ingredient:ingredientByUid[x.uid]||0,energy:x.energy+(ingredientByUid[x.uid]||0)}))};
-  const soloTotal = selected.reduce((sum,x) => sum + teamResult([x.member],name,berries,iterations).total+x.ingredient,0);
+  const final={...rawFinal,members:rawFinal.members.map(x=>({...x,ingredient:ingredientByUid[x.uid]||0}))};
+  const soloTotal = selected.reduce((sum,x) => sum + teamResult([x.member],name,berries,iterations).total,0);
   const marginal = Object.fromEntries(selected.map((x) => [x.uid,
-    final.total-(teamResult(selected.filter(y=>y!==x).map(y=>y.member),name,berries,iterations).total+
-      selected.filter(y=>y!==x).reduce((sum,y)=>sum+y.ingredient,0))]));
+    final.total-teamResult(selected.filter(y=>y!==x).map(y=>y.member),name,berries,iterations).total]));
   return {
     island:name, mode, total_energy:Math.round(final.total), synergy_gain:Math.round(final.total-soloTotal),
     provisional: selected.some(x=>!instances.find(y=>y.uid===x.uid)?.verified),
-    optimizer:'team-swap-v2-ingredient-value', cooking_included:true, recipe_bonus_included:false,
+    cooking:Math.round(final.cooking),recipe_level:recipeLevel,
+    optimizer:'team-swap-v3-cooking-and-skills', cooking_included:true, recipe_bonus_included:true,
     members: final.members.sort((a,b)=>marginal[b.uid]-marginal[a.uid]).map(row => ({
       ...Object.fromEntries(Object.entries(row).map(([k,v])=>[k, k==='uid'?v:Math.round(v)])),
       marginal:Math.round(marginal[row.uid]),

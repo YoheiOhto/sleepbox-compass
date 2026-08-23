@@ -77,8 +77,10 @@ def analyze(items: Sequence[Mapping[str, Any]], settings: Mapping[str, Any] = {}
                 berry = sum(float(x.get("berry", 0)) for x in team_plan.get("members", [])) * factor
                 ingredient = sum(float(x.get("ingredient", 0)) for x in team_plan.get("members", [])) * factor
                 skill = sum(float(x.get("direct_skill", 0)) for x in team_plan.get("members", [])) * factor
+                cooking = float(team_plan.get("cooking", 0) or 0) * factor
                 totals = {"expected": round(total), "low": round(total), "high": round(total),
-                          "berry": round(berry), "ingredient": round(ingredient), "skill": round(skill)}
+                          "berry": round(berry), "ingredient": round(ingredient), "skill": round(skill),
+                          "cooking": round(cooking)}
                 modes[mode] = {"daily": totals, "weekly": {k: v * 7 for k, v in totals.items()},
                                "provisional": bool(team_plan.get("provisional")), "team_aware": True,
                                "synergy_gain": round(float(team_plan.get("synergy_gain", 0)) * factor),
