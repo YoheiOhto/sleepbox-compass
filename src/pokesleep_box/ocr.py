@@ -78,14 +78,31 @@ def parse_frame(frame: Mapping[str, Any]) -> Dict[str, Any]:
         found = _match(texts, category, cutoff)
         if found:
             result[field], result["field_confidence"][field] = found
-    levels = [int(x) for x in re.findall(r"(?:Lv\.?|レベル)\s*(\d{1,3})", joined, re.I)]
-    if levels:
-        result["level"] = levels[0]
-    sp = re.search(r"(?:SP|RP)\s*[:：]?\s*([0-9,]{2,6})", joined, re.I)
+    # Current level must be anchored to the SP header. Unanchored Lv.30/Lv.60
+    # labels belong to ingredient slots, and subskill unlock badges are also
+    # visible after scrolling the header off screen.
+    header_level = re.search(
+        r"(?:Lv\.?|レベル)\s*(\d{1,3})[\s\S]{0,40}?(?:SP|RP)\s*[:：]?\s*[0-9,]{3,6}",
+        joined, re.I)
+    if not header_level:
+        header_level = re.search(
+            r"(?:SP|RP)\s*[:：]?\s*[0-9,]{3,6}[\s\S]{0,80}?(?:Lv\.?|レベル)\s*(\d{1,3})",
+            joined, re.I)
+    if not header_level and result.get("species"):
+        species_ja = re.escape(to_japanese("species", result["species"]))
+        header_level = re.search(
+            rf"(?:Lv\.?|レベル)\s*(\d{{1,3}})[^\n]{{0,12}}{species_ja}", joined, re.I)
+    if header_level:
+        result["level"] = int(header_level.group(1))
+    sp = re.search(r"(?:SP|RP)\s*[:：]?\s*([0-9,]{3,6})", joined, re.I)
     if sp:
         result["sp"] = int(sp.group(1).replace(",", ""))
-    skill_level = re.search(r"(?:メインスキル|スキル)[\s\S]{0,50}?Lv\.?\s*(\d+)", joined, re.I)
-    result["skill_level"] = int(skill_level.group(1)) if skill_level else 1
+    main_skill_ja = (to_japanese("mainskills", result["main_skill"])
+                     if result.get("main_skill") else None)
+    skill_level = (re.search(rf"{re.escape(main_skill_ja)}[\s\S]{{0,35}}?Lv\.?\s*(\d+)", joined, re.I)
+                   if main_skill_ja else None)
+    if skill_level:
+        result["skill_level"] = int(skill_level.group(1))
 
     subskills = []
     for text in texts:

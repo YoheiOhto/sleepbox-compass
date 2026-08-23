@@ -42,6 +42,21 @@ class CoreTests(unittest.TestCase):
         import_individuals(self.db, [item])
         self.assertEqual(decide(self.db)["protected"], 1)
 
+    def test_rescan_preserves_verification_only_when_core_is_unchanged(self):
+        original = dict(self.items[0], verified=True, sp=513)
+        import_individuals(self.db, [original])
+        import_individuals(self.db, [dict(original, verified=False)])
+        row = self.db.execute("SELECT uid,verified FROM individual").fetchone()
+        self.assertEqual(row["verified"], 1)
+        uid = row["uid"]
+
+        corrected = dict(original, nature="Calm", verified=False)
+        import_individuals(self.db, [corrected])
+        rows = self.db.execute("SELECT uid,verified,nature FROM individual").fetchall()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual((rows[0]["uid"], rows[0]["verified"], rows[0]["nature"]),
+                         (uid, 0, "Calm"))
+
     def test_render_escapes_display_name(self):
         item = dict(self.items[0], display_name="<script>alert(1)</script>")
         import_individuals(self.db, [item])
@@ -148,6 +163,35 @@ class CoreTests(unittest.TestCase):
             ]}
         rows = merge_frames([frame(540), frame(540), frame(511), frame(511)])
         self.assertEqual([x["sp"] for x in rows], [540, 511])
+
+    def test_scrolled_ingredient_level_never_overwrites_current_level(self):
+        frames = [
+            {"frame": 1, "observations": [
+                {"text": "SP 511", "confidence": .9},
+                {"text": "Lv.11 ゼニガメ", "confidence": .9},
+            ]},
+            {"frame": 2, "observations": [
+                {"text": "ゼニガメ", "confidence": .9},
+                {"text": "Lv.30", "confidence": .9},
+                {"text": "Lv.60", "confidence": .9},
+            ]},
+        ]
+        self.assertEqual(merge_frames(frames)[0]["level"], 11)
+
+    def test_hidden_main_skill_level_never_resets_detected_level(self):
+        frames = [
+            {"frame": 1, "observations": [
+                {"text": "SP 508", "confidence": .9},
+                {"text": "Lv.12 ヒトカゲ", "confidence": .9},
+                {"text": "食材ゲットS Lv.3", "confidence": .9},
+            ]},
+            {"frame": 2, "observations": [
+                {"text": "SP 508", "confidence": .9},
+                {"text": "Lv.12 ヒトカゲ", "confidence": .9},
+                {"text": "詳細ステータス", "confidence": .9},
+            ]},
+        ]
+        self.assertEqual(merge_frames(frames)[0]["skill_level"], 3)
 
     def test_cooking_free_energy_forecast_and_growth(self):
         item = dict(self.items[0], uid="energy", verified=True, energy_scores={

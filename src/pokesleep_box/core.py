@@ -68,7 +68,23 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
     count = 0
     for raw_item in items:
         item = normalize_individual(dict(raw_item))
-        uid = item.get("uid") or canonical_uid(item)
+        uid = item.get("uid")
+        existing = None
+        if not uid and item.get("sp") is not None:
+            matches = db.execute("SELECT * FROM individual WHERE species=? AND sp=?",
+                                 (item["species"], item["sp"])).fetchall()
+            if len(matches) == 1:
+                existing = matches[0]
+                uid = existing["uid"]
+        uid = uid or canonical_uid(item)
+        same_core = bool(existing and all((
+            existing["nature"] == item["nature"],
+            json.loads(existing["ingredients_json"]) == item["ingredients"],
+            json.loads(existing["subskills_json"]) == item["subskills"],
+            existing["main_skill"] == item["main_skill"],
+            existing["skill_level"] == item["skill_level"],
+        )))
+        verified = bool(item.get("verified") or (same_core and existing["verified"]))
         db.execute(
             """INSERT INTO individual
             (uid,species,display_name,level,nature,pokemon_type,berry,production_scores_json,energy_scores_json,island_scores_json,ingredients_json,subskills_json,
@@ -90,7 +106,7 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
              json.dumps(item["ingredients"], ensure_ascii=False),
              json.dumps(item["subskills"], ensure_ascii=False), item["main_skill"],
              item["skill_level"], item.get("sp"), item.get("box_index"),
-             timestamp, timestamp, item.get("confidence", 0.0), bool(item.get("verified"))),
+             timestamp, timestamp, item.get("confidence", 0.0), verified),
         )
         for anchor_text, scores in item.get("scores", {}).items():
             for role, score in scores.items():
