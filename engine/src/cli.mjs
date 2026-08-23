@@ -87,8 +87,9 @@ const simulateInstanceEnergy = (raw, level, islandBerries) => {
     erb:0,incense:false,mainBedtime:parseTime('22:00'),mainWakeup:parseTime('06:00'),maxPotSize:15};
   const result=calculatePokemonProduction(pokemon,stats,ingredientSet,false,input.iterations||500);
   const berry=result.summary.totalProduce.berries.reduce((sum,x)=>sum+x.amount*berryPowerForLevel(x.berry,x.level)*(islandBerries.includes(x.berry.name)?2:1),0);
-  const skill=result.summary.skillStrengthValue||0,expected=berry+skill,spread=skill*.25;
-  return {berry:Math.round(berry),direct_skill:Math.round(skill),expected:Math.round(expected),
+  const ingredient=result.summary.totalProduce.ingredients.reduce((sum,x)=>sum+x.amount*x.ingredient.value,0);
+  const skill=result.summary.skillStrengthValue||0,expected=berry+ingredient+skill,spread=skill*.25;
+  return {berry:Math.round(berry),ingredient:Math.round(ingredient),direct_skill:Math.round(skill),expected:Math.round(expected),
           low:Math.round(expected-spread),high:Math.round(expected+spread)};
 };
 
@@ -137,13 +138,14 @@ const teamResult = (members, name, berries, iterations) => {
 };
 const optimizeTeam = (instances, name, berries, mode) => {
   const levelFor = raw => mode === 'current' ? raw.level : Number(mode);
-  const candidates = instances.map(({uid, instance}) => ({uid, raw: instance,
-    member: toTeamMember(uid, instance, levelFor(instance)),
-    additive: simulateInstanceEnergy(instance, levelFor(instance), berries).expected}));
+  const candidates = instances.map(({uid, instance}) => {const production=simulateInstanceEnergy(instance,levelFor(instance),berries);return {uid,raw:instance,
+    member:toTeamMember(uid,instance,levelFor(instance)),ingredient:production.ingredient||0,
+    additive:production.expected}});
   if (!candidates.length) return null;
   const size = Math.min(5, candidates.length), searchIterations = input.teamSearchIterations ?? 80;
   let selected = [...candidates].sort((a,b) => b.additive-a.additive).slice(0,size);
-  const score = team => teamResult(team.map(x=>x.member), name, berries, searchIterations).total;
+  const score = team => teamResult(team.map(x=>x.member), name, berries, searchIterations).total+
+    team.reduce((sum,x)=>sum+x.ingredient,0);
   let bestScore = score(selected), improved = true;
   while (improved) {
     improved = false;
@@ -157,14 +159,17 @@ const optimizeTeam = (instances, name, berries, mode) => {
     selected = bestTeam;
   }
   const iterations = input.teamIterations ?? 500;
-  const final = teamResult(selected.map(x=>x.member), name, berries, iterations);
-  const soloTotal = selected.reduce((sum,x) => sum + teamResult([x.member],name,berries,iterations).total,0);
+  const rawFinal = teamResult(selected.map(x=>x.member), name, berries, iterations);
+  const ingredientByUid=Object.fromEntries(selected.map(x=>[x.uid,x.ingredient]));
+  const final={total:rawFinal.total+selected.reduce((sum,x)=>sum+x.ingredient,0),members:rawFinal.members.map(x=>({...x,ingredient:ingredientByUid[x.uid]||0,energy:x.energy+(ingredientByUid[x.uid]||0)}))};
+  const soloTotal = selected.reduce((sum,x) => sum + teamResult([x.member],name,berries,iterations).total+x.ingredient,0);
   const marginal = Object.fromEntries(selected.map((x) => [x.uid,
-    final.total-teamResult(selected.filter(y=>y!==x).map(y=>y.member),name,berries,iterations).total]));
+    final.total-(teamResult(selected.filter(y=>y!==x).map(y=>y.member),name,berries,iterations).total+
+      selected.filter(y=>y!==x).reduce((sum,y)=>sum+y.ingredient,0))]));
   return {
     island:name, mode, total_energy:Math.round(final.total), synergy_gain:Math.round(final.total-soloTotal),
     provisional: selected.some(x=>!instances.find(y=>y.uid===x.uid)?.verified),
-    optimizer:'team-swap-v1', cooking_included:false,
+    optimizer:'team-swap-v2-ingredient-value', cooking_included:true, recipe_bonus_included:false,
     members: final.members.sort((a,b)=>marginal[b.uid]-marginal[a.uid]).map(row => ({
       ...Object.fromEntries(Object.entries(row).map(([k,v])=>[k, k==='uid'?v:Math.round(v)])),
       marginal:Math.round(marginal[row.uid]),

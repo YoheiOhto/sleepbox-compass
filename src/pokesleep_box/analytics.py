@@ -35,18 +35,19 @@ def _metric(value: Any) -> Optional[Dict[str, float]]:
     if isinstance(value, (int, float)):
         expected = float(value)
         return {"expected": expected, "low": expected, "high": expected,
-                "berry": expected, "skill": 0.0}
+                "berry": expected, "ingredient": 0.0, "skill": 0.0}
     if not isinstance(value, Mapping):
         return None
-    # Explicit cooking-free energy takes precedence. Ingredients and cooking are
-    # deliberately never added here.
+    # Ingredient base energy can be included without assuming a particular
+    # recipe. Recipe bonuses remain separate until recipe settings are known.
     berry = float(value.get("berry", 0) or 0)
+    ingredient = float(value.get("ingredient", 0) or 0)
     skill = float(value.get("direct_skill", value.get("skill", 0)) or 0)
-    expected = float(value.get("expected", value.get("energy", berry + skill)) or 0)
+    expected = float(value.get("expected", value.get("energy", berry + ingredient + skill)) or 0)
     spread = float(value.get("spread", 0) or 0)
     return {"expected": expected, "low": float(value.get("low", expected - spread) or 0),
             "high": float(value.get("high", expected + spread) or 0),
-            "berry": berry, "skill": skill}
+            "berry": berry, "ingredient": ingredient, "skill": skill}
 
 
 def _item_metric(item: Mapping[str, Any], island: str, mode: str) -> Optional[Dict[str, float]]:
@@ -74,9 +75,10 @@ def analyze(items: Sequence[Mapping[str, Any]], settings: Mapping[str, Any] = {}
                     membership.setdefault(member["uid"], set()).add(island)
                 total = float(team_plan["total_energy"]) * factor
                 berry = sum(float(x.get("berry", 0)) for x in team_plan.get("members", [])) * factor
+                ingredient = sum(float(x.get("ingredient", 0)) for x in team_plan.get("members", [])) * factor
                 skill = sum(float(x.get("direct_skill", 0)) for x in team_plan.get("members", [])) * factor
                 totals = {"expected": round(total), "low": round(total), "high": round(total),
-                          "berry": round(berry), "skill": round(skill)}
+                          "berry": round(berry), "ingredient": round(ingredient), "skill": round(skill)}
                 modes[mode] = {"daily": totals, "weekly": {k: v * 7 for k, v in totals.items()},
                                "provisional": bool(team_plan.get("provisional")), "team_aware": True,
                                "synergy_gain": round(float(team_plan.get("synergy_gain", 0)) * factor),
@@ -100,7 +102,7 @@ def analyze(items: Sequence[Mapping[str, Any]], settings: Mapping[str, Any] = {}
                 for _, item, _ in selected:
                     membership.setdefault(item["uid"], set()).add(island)
                 totals = {key: round(sum(m[key] for _, _, m in selected) * factor)
-                          for key in ("expected", "low", "high", "berry", "skill")}
+                          for key in ("expected", "low", "high", "berry", "ingredient", "skill")}
                 modes[mode] = {"daily": totals, "weekly": {k: v * 7 for k, v in totals.items()},
                                "provisional": any(not x[1].get("verified") for x in selected),
                                "members": [{"uid": x[1]["uid"],

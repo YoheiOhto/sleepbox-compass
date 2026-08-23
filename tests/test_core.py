@@ -239,19 +239,21 @@ class CoreTests(unittest.TestCase):
         self.assertIsNone(row.get("sp"))
         self.assertIsNone(row.get("level"))
 
-    def test_cooking_free_energy_forecast_and_growth(self):
+    def test_ingredient_base_energy_is_included_but_explicit_cooking_is_not(self):
         item = dict(self.items[0], uid="energy", verified=True, energy_scores={
             "ラピスラズリ湖畔": {
-                "current": {"berry": 1000, "direct_skill": 200, "cooking": 999999,
-                            "expected": 1200, "low": 1100, "high": 1300},
-                "60": {"berry": 2000, "direct_skill": 400, "expected": 2400},
+                "current": {"berry": 1000, "ingredient": 300, "direct_skill": 200,
+                            "cooking": 999999, "expected": 1500, "low": 1400, "high": 1600},
+                "60": {"berry": 2000, "ingredient": 600, "direct_skill": 400,
+                       "expected": 3000},
             }
         })
         result = analyze([item], {"areaBonus": 50})
         lapis = next(x for x in result["forecasts"] if x["island"] == "ラピスラズリ湖畔")
-        self.assertEqual(lapis["modes"]["current"]["daily"]["expected"], 1800)
+        self.assertEqual(lapis["modes"]["current"]["daily"]["expected"], 2250)
         self.assertEqual(lapis["modes"]["current"]["daily"]["berry"], 1500)
-        self.assertEqual(lapis["growth_to_60"], 12600)
+        self.assertEqual(lapis["modes"]["current"]["daily"]["ingredient"], 450)
+        self.assertEqual(lapis["growth_to_60"], 15750)
 
     def test_unverified_energy_is_visible_but_marked_provisional(self):
         item = dict(self.items[0], uid="provisional", verified=False, energy_scores={
@@ -268,13 +270,15 @@ class CoreTests(unittest.TestCase):
         })]
         plans = [{"island": "シアンの砂浜", "mode": "current", "total_energy": 1800,
                   "synergy_gain": 500, "provisional": False,
-                  "members": [{"uid": "healer", "energy": 1300, "berry": 1200,
+                  "members": [{"uid": "healer", "energy": 1300, "berry": 1000,
+                               "ingredient": 200,
                                "direct_skill": 100, "marginal": 1800,
                                "team_help_support": 2, "subskills": ["Helping Bonus"]}]}]
         result = analyze(items, team_plans=plans)
         cyan = next(x for x in result["forecasts"] if x["island"] == "シアンの砂浜")
         current = cyan["modes"]["current"]
         self.assertEqual(current["daily"]["expected"], 1800)
+        self.assertEqual(current["daily"]["ingredient"], 200)
         self.assertEqual(current["synergy_gain"], 500)
         self.assertTrue(current["team_aware"])
 

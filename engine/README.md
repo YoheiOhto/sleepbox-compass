@@ -18,8 +18,9 @@ npm run build
 ```
 
 `engine/bin/pokesleep-engine` then exposes batched `verify`, `evaluate`, and
-`benchmark` modes. Evaluation uses Neroli’s Lab's simulation for cooking-free
-berry/direct-strength energy and RP components at Lv50/60/70/80, and never
+`benchmark` modes. Evaluation uses Neroli’s Lab's simulation for berry,
+ingredient base energy, direct-strength energy, and RP components at
+Lv50/60/70/80. Recipe bonuses are not assumed, and the bridge never
 copies its formulas into Python. Until the bridge is built, `import-json`
 accepts externally computed scores. Missing scores or non-strict SP matches are
 fail-safe: the individual becomes `protected`, never `send`.
