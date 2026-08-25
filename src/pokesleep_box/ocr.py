@@ -7,8 +7,9 @@ import os
 import platform
 import re
 import subprocess
+import threading
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from .localization import names, normalize_individual, to_japanese
 
@@ -36,13 +37,35 @@ def ensure_vision_binary() -> Path:
     return VISION_BINARY
 
 
-def recognize_path(path: Path, interval: float = .8) -> List[Dict[str, Any]]:
+def recognize_path(path: Path, interval: float = .8,
+                   on_progress: Optional[Callable[[str], None]] = None) -> List[Dict[str, Any]]:
     binary = ensure_vision_binary()
-    proc = subprocess.run([str(binary), str(path), str(interval)], capture_output=True,
-                          text=True, check=False)
+    proc = subprocess.Popen([str(binary), str(path), str(interval)], stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, text=True)
+    # The binary writes the full JSON result to stdout only once, at the very
+    # end. Draining it concurrently avoids a deadlock: without a reader, a
+    # large result can fill the stdout pipe buffer and block the child while
+    # we are still waiting on stderr progress lines below.
+    stdout_chunks: List[str] = []
+    reader = threading.Thread(target=lambda: stdout_chunks.append(proc.stdout.read()), daemon=True)
+    reader.start()
+    stderr_lines: List[str] = []
+    last_percent = -1
+    for raw_line in proc.stderr:
+        line = raw_line.rstrip("\n")
+        if line.startswith("PROGRESS ") and on_progress:
+            frame, total, seconds = (int(x) for x in line.split(" ")[1:])
+            percent = min(100, round(frame / total * 100)) if total else 0
+            if percent != last_percent:
+                last_percent = percent
+                on_progress(f"{percent}%（{seconds}秒経過, フレーム{frame}/{total}）")
+        elif line:
+            stderr_lines.append(line)
+    reader.join()
+    proc.wait()
     if proc.returncode:
-        raise RuntimeError(proc.stderr.strip() or f"OCRに失敗しました: {path}")
-    return json.loads(proc.stdout)
+        raise RuntimeError("\n".join(stderr_lines).strip() or f"OCRに失敗しました: {path}")
+    return json.loads("".join(stdout_chunks))
 
 
 def _compact(value: str) -> str:
@@ -201,6 +224,11 @@ def enrich_with_species_data(items: List[Dict[str, Any]],
     for item in items:
         ingredients_need_review = "ingredients" in item.get("ocr_missing", [])
         metadata = pokemon_data.get(item.get("species"), {})
+        # Box slots aren't captured by OCR (the game screen doesn't show one),
+        # so display order follows the National Pokédex number instead of scan
+        # order.
+        if metadata.get("pokedex_number") is not None:
+            item["box_index"] = metadata["pokedex_number"]
         if metadata.get("berry"):
             item["berry"] = metadata["berry"]
             item["berry_ja"] = to_japanese("berries", metadata["berry"])
@@ -284,12 +312,14 @@ def load_source_metadata() -> Dict[str, Any]:
         for constant, constructor, relative, body in pending:
             name_match = re.search(r"name:\s*'([^']+)'", body)
             name = name_match.group(1) if name_match else constant
+            pokedex_match = re.search(r"pokedexNumber:\s*(\d+)", body)
+            pokedex_number = int(pokedex_match.group(1)) if pokedex_match else None
             if constructor in ("evolvedPokemon", "preEvolvedPokemon"):
                 base = result.get(relative)
                 if not base:
                     next_pending.append((constant, constructor, relative, body))
                     continue
-                result[constant] = {**base, "name": name}
+                result[constant] = {**base, "name": name, "pokedex_number": pokedex_number}
                 progressed = True
                 continue
             berry_match = re.search(r"berry:\s*(\w+)", body)
@@ -312,17 +342,19 @@ def load_source_metadata() -> Dict[str, Any]:
                     values.append([ingredient_name, amount])
                 slots.append({"level": level, "choices": values})
             result[constant] = {"name": name, "berry": berry_match.group(1),
-                                "ingredients": slots}
+                                "ingredients": slots, "pokedex_number": pokedex_number}
             progressed = True
         if not progressed:
             break
         pending = next_pending
-    return {value["name"]: {"berry": value["berry"], "ingredients": value["ingredients"]}
+    return {value["name"]: {"berry": value["berry"], "ingredients": value["ingredients"],
+                            "pokedex_number": value.get("pokedex_number")}
             for value in result.values()}
 
 
-def scan(path: Path, interval: float = .8) -> List[Dict[str, Any]]:
-    return enrich_with_species_data(merge_frames(recognize_path(path, interval)))
+def scan(path: Path, interval: float = .8,
+        on_progress: Optional[Callable[[str], None]] = None) -> List[Dict[str, Any]]:
+    return enrich_with_species_data(merge_frames(recognize_path(path, interval, on_progress)))
 
 
 def make_demo(path: Path) -> Path:

@@ -53,6 +53,7 @@ func videoFrames(_ url: URL, interval: Double) async throws -> [FrameResult] {
     var results: [FrameResult] = []
     var index = 0
     var second = 0.0
+    let totalFrames = duration > 0 ? Int(duration / interval) + 1 : 1
     while second <= duration {
         do {
             let image = try generator.copyCGImage(at: CMTime(seconds: second, preferredTimescale: 600), actualTime: nil)
@@ -61,6 +62,9 @@ func videoFrames(_ url: URL, interval: Double) async throws -> [FrameResult] {
             // A damaged/transitional frame is skipped; later validation exposes missing fields.
         }
         index += 1
+        // stdout carries only the final JSON blob, so progress is reported on stderr
+        // as it happens, one line per sampled frame.
+        FileHandle.standardError.write(Data("PROGRESS \(index) \(totalFrames) \(Int(second))\n".utf8))
         second += interval
     }
     return results

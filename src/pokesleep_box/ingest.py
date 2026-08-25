@@ -5,7 +5,7 @@ import json
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from .localization import normalize_individual
 
@@ -56,16 +56,30 @@ def sidecar_extract(frame: Path, ocr_command: Optional[str] = None) -> Optional[
 
 
 def ingest_path(path: Path, frames_dir: Path, ocr_command: Optional[str] = None,
-                vision: bool = False, interval: float = .8) -> List[Dict[str, Any]]:
+                vision: bool = False, interval: float = .8,
+                on_progress: Optional[Callable[[str], None]] = None) -> List[Dict[str, Any]]:
     result = []
-    for source in ([path] if path.is_file() else discover_inputs(path)):
+    sources = [path] if path.is_file() else discover_inputs(path)
+    total_sources = len(sources)
+    for source_index, source in enumerate(sources, start=1):
+        prefix = f"[{source_index}/{total_sources}] {source.name}"
         if vision:
             from .ocr import scan
-            scanned = scan(source, interval)
+            if on_progress:
+                on_progress(f"{prefix}: 開始")
+
+            def report(message: str, prefix=prefix) -> None:
+                on_progress(f"{prefix}: {message}")
+
+            scanned = scan(source, interval, report if on_progress else None)
             for item in scanned:
                 item.setdefault("ocr_sources", []).append(source.name)
             result.extend(scanned)
+            if on_progress:
+                on_progress(f"{prefix}: 完了（{len(scanned)}件抽出）")
             continue
+        if on_progress:
+            on_progress(f"{prefix}: 開始")
         for frame in extract_frames(source, frames_dir / source.stem):
             item = sidecar_extract(frame, ocr_command) or sidecar_extract(source, ocr_command)
             if item:
@@ -73,6 +87,8 @@ def ingest_path(path: Path, frames_dir: Path, ocr_command: Optional[str] = None,
                 item.setdefault("confidence", 1.0)
                 item.setdefault("verified", False)
                 result.append(item)
+        if on_progress:
+            on_progress(f"{prefix}: 完了")
     # The same individual can appear in a production video and a later nature
     # video. SP + species joins those complementary captures without image
     # matching or uploading private frames.

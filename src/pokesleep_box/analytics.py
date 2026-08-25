@@ -3,7 +3,13 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, Mapping, Optional, Sequence
 
-from .localization import to_japanese
+from .core import EXTERNAL_TIER_JA
+from .localization import to_english, to_japanese
+
+# Mirrors the SS/S/A/B/C/D scale used by EXTERNAL_TIER_JA (core.py). Species
+# missing from that snapshot rank last, since capture priority should favor
+# species the external tier actually vouches for.
+TIER_ORDER = ("SS", "S", "A", "B", "C", "D")
 
 ISLANDS = {
     "シアンの砂浜": ("ORAN", "PAMTRE", "PECHA"),
@@ -141,14 +147,14 @@ def analyze(items: Sequence[Mapping[str, Any]], settings: Mapping[str, Any] = {}
                         "count": len(membership.get(item["uid"], set()))} for item in items],
                       key=lambda x: (-x["count"], x["name"]))
 
-    general, tailored = capture_recommendations(items, forecasts, benchmarks)
+    general, tailored, favorites = capture_recommendations(items, forecasts, benchmarks)
     quality = {"total": len(items), "verified": sum(bool(x.get("verified")) for x in items),
                "unverified": sum(not x.get("verified") for x in items),
                "low_confidence": sum(not x.get("verified") and
                                      float(x.get("confidence", 0) or 0) < .8 for x in items),
                "sp_match": sum(x.get("sp_diff") == 0 and x.get("sp_computed") is not None for x in items)}
     return {"forecasts": forecasts, "growth": growth, "coverage": coverage,
-            "capture": {"general": general, "tailored": tailored}, "quality": quality}
+            "capture": {"general": general, "tailored": tailored, "favorites": favorites}, "quality": quality}
 
 
 def explain_strength(item: Mapping[str, Any], island: str) -> list:
@@ -169,30 +175,78 @@ def explain_strength(item: Mapping[str, Any], island: str) -> list:
 
 
 def capture_recommendations(items, forecasts, benchmarks):
+    # External tier is the primary sort key throughout: species this app has no
+    # independent tier signal for rank last, even if their own Lv60 ideal energy
+    # looks high, since the ask is to trust the external ranking first.
+    tier_by_species = {to_english("species", ja): tier for ja, tier in EXTERNAL_TIER_JA.items()}
+
+    def tier_rank(species_key: str) -> int:
+        tier = tier_by_species.get(species_key)
+        return TIER_ORDER.index(tier) if tier in TIER_ORDER else len(TIER_ORDER)
+
+    def best_owned(species_key: str, island: str):
+        """Return the owned individual with the highest island metric, if any."""
+        owned = [x for x in items if x["species"] == species_key and _item_metric(x, island, "60")]
+        return max(owned, key=lambda x: _item_metric(x, island, "60")["expected"], default=None)
+
     general = []
     for island in ISLANDS:
         ranked = []
         for row in benchmarks:
             metric = _metric(row.get("island_scores", {}).get(island, {}).get("60"))
             if metric:
-                ranked.append({"species": row.get("species_ja") or to_japanese("species", row["species"]),
-                               "species_key": row["species"], "island": island,
+                species_key = row["species"]
+                owned = best_owned(species_key, island)
+                ranked.append({"species": row.get("species_ja") or to_japanese("species", species_key),
+                               "species_key": species_key, "island": island,
                                "daily": round(metric["expected"]), "sample": bool(row.get("sample")),
-                               "reason": "理想個体のLv60非料理エナジー上位"})
-        general.extend(sorted(ranked, key=lambda x: -x["daily"])[:3])
+                               "external_tier": tier_by_species.get(species_key),
+                               "own_score": owned.get("absolute_score") if owned else None,
+                               "berry": row.get("berry"),
+                               "reason": "外部Tier上位・理想個体のLv60非料理エナジー上位"})
+        ranked.sort(key=lambda x: (tier_rank(x["species_key"]), -x["daily"]))
+        general.extend(ranked[:3])
     weakest = sorted(forecasts, key=lambda x: x["modes"].get("60", {}).get("weekly", {}).get("expected", 0))
-    tailored = []
+    # Keyed by species so the same species recommended for several weak
+    # islands (e.g. it fits more than one island's forecast) surfaces once,
+    # with every relevant island listed together, instead of one row per island.
+    tailored_by_species: Dict[str, Dict[str, Any]] = {}
     for forecast in weakest:
+        island = forecast["island"]
+        island_berries = ISLANDS.get(island, ())
         candidates = []
-        for candidate in (x for x in general if x["island"] == forecast["island"]):
-            owned_values = [_item_metric(x, forecast["island"], "60")["expected"]
-                            for x in items if x["species"] == candidate["species_key"]
-                            and _item_metric(x, forecast["island"], "60")]
-            best_owned = max(owned_values, default=0)
-            if not best_owned or best_owned < candidate["daily"] * .8:
-                reason = (f"{forecast['island']}の戦力穴を埋める未所持候補" if not best_owned else
-                          f"所持個体が理想値の{round(best_owned/candidate['daily']*100)}%のため更新候補")
+        for candidate in (x for x in general if x["island"] == island):
+            owned = best_owned(candidate["species_key"], island)
+            owned_value = _item_metric(owned, island, "60")["expected"] if owned else 0
+            if not owned_value or owned_value < candidate["daily"] * .8:
+                fits_island = candidate.get("berry") in island_berries
+                reason = (f"{island}の戦力穴を埋める未所持候補" if not owned_value else
+                          f"所持個体が理想値の{round(owned_value/candidate['daily']*100)}%のため更新候補")
+                if fits_island:
+                    reason += f"・{island}の固定きのみに合う"
                 candidates.append({**candidate, "reason": reason,
-                                   "improvement": round(max(0, candidate["daily"] - best_owned))})
-        tailored.extend(sorted(candidates, key=lambda x: -x["improvement"])[:2])
-    return general, tailored
+                                   "improvement": round(max(0, candidate["daily"] - owned_value)),
+                                   "own_score": owned.get("absolute_score") if owned else None,
+                                   "fits_island": fits_island})
+        candidates.sort(key=lambda x: (tier_rank(x["species_key"]), not x["fits_island"], -x["improvement"]))
+        for candidate in candidates[:2]:
+            key = candidate["species_key"]
+            existing = tailored_by_species.get(key)
+            if existing is None:
+                tailored_by_species[key] = {**candidate, "islands": [island]}
+            elif candidate["improvement"] > existing["improvement"]:
+                tailored_by_species[key] = {**candidate, "islands": existing["islands"] + [island]}
+            else:
+                existing["islands"].append(island)
+    tailored = sorted(tailored_by_species.values(),
+                      key=lambda x: (tier_rank(x["species_key"]), -x["improvement"]))
+
+    # A separate, tier-independent reference: the box's own best-evaluated
+    # individuals, so the external-tier-driven lists above can be sanity
+    # checked against what this app itself rates highly.
+    favorites = [{"uid": x["uid"], "species": x.get("species_ja") or x["species"],
+                 "species_key": x["species"], "score": x["absolute_score"],
+                 "reason": "本アプリの個体評価が高い手持ちです"}
+                for x in sorted((i for i in items if i.get("verified") and i.get("absolute_score")),
+                                key=lambda i: -i["absolute_score"])[:8]]
+    return general, tailored, favorites
