@@ -63,7 +63,8 @@ def _item_metric(item: Mapping[str, Any], island: str, mode: str) -> Optional[Di
 
 def analyze(items: Sequence[Mapping[str, Any]], settings: Mapping[str, Any] = {},
             benchmarks: Sequence[Mapping[str, Any]] = (), team_size: int = 5,
-            team_plans: Sequence[Mapping[str, Any]] = ()) -> Dict[str, Any]:
+            team_plans: Sequence[Mapping[str, Any]] = (),
+            encounters: Mapping[str, Any] = {}) -> Dict[str, Any]:
     bonuses = settings.get("areaBonusByIsland", {})
     default_bonus = float(settings.get("areaBonus", 0) or 0)
     forecasts = []
@@ -147,14 +148,17 @@ def analyze(items: Sequence[Mapping[str, Any]], settings: Mapping[str, Any] = {}
                         "count": len(membership.get(item["uid"], set()))} for item in items],
                       key=lambda x: (-x["count"], x["name"]))
 
-    general, tailored, favorites = capture_recommendations(items, forecasts, benchmarks)
+    general, tailored, favorites, by_island, encounter_views = capture_recommendations(
+        items, forecasts, benchmarks, encounters)
     quality = {"total": len(items), "verified": sum(bool(x.get("verified")) for x in items),
                "unverified": sum(not x.get("verified") for x in items),
                "low_confidence": sum(not x.get("verified") and
                                      float(x.get("confidence", 0) or 0) < .8 for x in items),
                "sp_match": sum(x.get("sp_diff") == 0 and x.get("sp_computed") is not None for x in items)}
     return {"forecasts": forecasts, "growth": growth, "coverage": coverage,
-            "capture": {"general": general, "tailored": tailored, "favorites": favorites}, "quality": quality}
+            "capture": {"general": general, "tailored": tailored, "favorites": favorites,
+                        "by_island": by_island, "encounter_views": encounter_views,
+                        "encounter_updated": encounters.get("updated")}, "quality": quality}
 
 
 def explain_strength(item: Mapping[str, Any], island: str) -> list:
@@ -174,7 +178,7 @@ def explain_strength(item: Mapping[str, Any], island: str) -> list:
     return reasons or ["外部計算エンジンの非料理エナジーが上位"]
 
 
-def capture_recommendations(items, forecasts, benchmarks):
+def capture_recommendations(items, forecasts, benchmarks, encounters={}):
     # External tier is the primary sort key throughout: species this app has no
     # independent tier signal for rank last, even if their own Lv60 ideal energy
     # looks high, since the ask is to trust the external ranking first.
@@ -185,8 +189,23 @@ def capture_recommendations(items, forecasts, benchmarks):
         return TIER_ORDER.index(tier) if tier in TIER_ORDER else len(TIER_ORDER)
 
     def best_owned(species_key: str, island: str):
-        """Return the owned individual with the highest island metric, if any."""
-        owned = [x for x in items if x["species"] == species_key and _item_metric(x, island, "60")]
+        """Return the best verified member of the benchmark's evolution family."""
+        owned = [x for x in items
+                 if x.get("verified")
+                 and (x.get("final_evolution") or x["species"]) == species_key
+                 and _item_metric(x, island, "60")]
+        return max(owned, key=lambda x: _item_metric(x, island, "60")["expected"], default=None)
+
+    def slot(row):
+        """Competition slot: production role × berry type (the field-relevant type)."""
+        return (row.get("specialty") or "unknown", row.get("berry") or "unknown")
+
+    def best_owned_in_slot(candidate, island: str):
+        same_slot_species = {x["species"] for x in benchmarks if slot(x) == slot(candidate)}
+        owned = [x for x in items
+                 if x.get("verified")
+                 and (x.get("final_evolution") or x["species"]) in same_slot_species
+                 and _item_metric(x, island, "60")]
         return max(owned, key=lambda x: _item_metric(x, island, "60")["expected"], default=None)
 
     general = []
@@ -205,7 +224,128 @@ def capture_recommendations(items, forecasts, benchmarks):
                                "berry": row.get("berry"),
                                "reason": "外部Tier上位・理想個体のLv60非料理エナジー上位"})
         ranked.sort(key=lambda x: (tier_rank(x["species_key"]), -x["daily"]))
-        general.extend(ranked[:3])
+        general.extend(ranked[:5])
+
+    # Field-specific capture board. Only the theoretical leader in each
+    # specialty×berry slot remains eligible, preventing a weaker duplicate
+    # species from being recommended merely because the box does not own it.
+    by_island = []
+    for island in ISLANDS:
+        available = []
+        for row in benchmarks:
+            metric = _metric(row.get("island_scores", {}).get(island, {}).get("60"))
+            if metric:
+                available.append((row, round(metric["expected"])))
+        leaders = {}
+        for row, daily in available:
+            key = slot(row)
+            if key not in leaders or daily > leaders[key][1]:
+                leaders[key] = (row, daily)
+
+        priority, skipped = [], []
+        for row, daily in available:
+            species_key, key = row["species"], slot(row)
+            leader, leader_daily = leaders[key]
+            base = {"species": row.get("species_ja") or to_japanese("species", species_key),
+                    "species_key": species_key, "island": island, "daily": daily,
+                    "specialty": row.get("specialty"), "berry": row.get("berry"),
+                    "fits_island": row.get("berry") in ISLANDS.get(island, ()),
+                    "external_tier": tier_by_species.get(species_key),
+                    "sample": bool(row.get("sample"))}
+            if leader["species"] != species_key:
+                gap = round((leader_daily / daily - 1) * 100) if daily else 0
+                skipped.append({**base, "reason":
+                                f"同じ役割×タイプでは{leader.get('species_ja') or to_japanese('species', leader['species'])}が{gap}%上"})
+                continue
+            family_owned = best_owned(species_key, island)
+            if family_owned and float(family_owned.get("absolute_score") or 0) >= 80:
+                skipped.append({**base, "own_score": family_owned.get("absolute_score"),
+                                "reason": "同じ進化系に80点以上の理想級個体を所持"})
+                continue
+            slot_owned = best_owned_in_slot(row, island)
+            owned_daily = (_item_metric(slot_owned, island, "60")["expected"]
+                           if slot_owned else 0)
+            if owned_daily >= daily * .9:
+                skipped.append({**base, "own_score": slot_owned.get("absolute_score"),
+                                "reason": f"手持ちの同じ役割×タイプが理想値の{round(owned_daily/daily*100)}%"})
+                continue
+            improvement = round(max(0, daily - owned_daily))
+            priority.append({**base, "own_score": slot_owned.get("absolute_score") if slot_owned else None,
+                             "improvement": improvement,
+                             "reason": ("同枠未所持" if not slot_owned else
+                                        f"同枠戦力を1日{improvement:,}改善")})
+        priority.sort(key=lambda x: (not x["fits_island"], tier_rank(x["species_key"]),
+                                     -x["improvement"], -x["daily"]))
+        skipped.sort(key=lambda x: (not x["fits_island"], tier_rank(x["species_key"]), -x["daily"]))
+        by_island.append({"island": island, "priority": priority[:5], "skip": skipped[:5]})
+
+    def normalized_name(value):
+        return "".join(ch for ch in str(value or "").lower() if ch.isalnum())
+
+    # What to catch tonight: restrict the candidates to unevolved Pokémon that
+    # actually appear at the selected research area and sleep type. A seed with
+    # branching evolutions is shown once, using its best useful destination.
+    encounter_views = []
+    fields = encounters.get("fields", {}) if isinstance(encounters, Mapping) else {}
+    for sleeping_field, sleep_groups in fields.items():
+        groups = []
+        for sleep_type, encounter_names in sleep_groups.items():
+            available_seeds = {normalized_name(x) for x in encounter_names}
+            seed_rows = {}
+            skipped_seeds = {}
+            for candidate in benchmarks:
+                base_en = candidate.get("base_species_en")
+                if not base_en or normalized_name(base_en) not in available_seeds:
+                    continue
+                base_key = candidate.get("base_species") or candidate["species"]
+                base_name = (candidate.get("base_species_ja") or
+                             to_japanese("species", base_key))
+                best = None
+                reject_reason = None
+                for target_field in ISLANDS:
+                    metric = _metric(candidate.get("island_scores", {}).get(target_field, {}).get("60"))
+                    if not metric:
+                        continue
+                    daily = round(metric["expected"])
+                    peers = [(row, _metric(row.get("island_scores", {}).get(target_field, {}).get("60")))
+                             for row in benchmarks if slot(row) == slot(candidate)]
+                    peers = [(row, score) for row, score in peers if score]
+                    leader, leader_metric = max(peers, key=lambda x: x[1]["expected"])
+                    if leader["species"] != candidate["species"]:
+                        reject_reason = (f"同枠では{leader.get('species_ja') or to_japanese('species', leader['species'])}が上")
+                        continue
+                    family_owned = best_owned(candidate["species"], target_field)
+                    if family_owned and float(family_owned.get("absolute_score") or 0) >= 80:
+                        reject_reason = "進化先と同じ系統に80点以上を所持"
+                        continue
+                    slot_owned = best_owned_in_slot(candidate, target_field)
+                    owned_daily = (_item_metric(slot_owned, target_field, "60")["expected"]
+                                   if slot_owned else 0)
+                    if owned_daily >= daily * .9:
+                        reject_reason = f"手持ちの同枠戦力が理想値の{round(owned_daily/daily*100)}%"
+                        continue
+                    row = {"species": base_name, "species_key": base_key,
+                           "evolves_to": candidate.get("species_ja") or to_japanese("species", candidate["species"]),
+                           "target_island": target_field, "daily": daily,
+                           "improvement": round(max(0, daily - owned_daily)),
+                           "specialty": candidate.get("specialty"), "berry": candidate.get("berry"),
+                           "external_tier": tier_by_species.get(candidate["species"]),
+                           "tier_rank": tier_rank(candidate["species"]),
+                           "own_score": slot_owned.get("absolute_score") if slot_owned else None}
+                    ranking = (-row["improvement"], tier_rank(candidate["species"]), -daily)
+                    if best is None or ranking < best[0]:
+                        best = (ranking, row)
+                if best:
+                    current = seed_rows.get(base_key)
+                    if current is None or best[0] < current[0]:
+                        seed_rows[base_key] = best
+                elif reject_reason:
+                    skipped_seeds[base_key] = {"species": base_name, "reason": reject_reason}
+            priorities = [x[1] for x in seed_rows.values()]
+            priorities.sort(key=lambda x: (-x["improvement"], x["tier_rank"], -x["daily"]))
+            groups.append({"sleep_type": sleep_type, "priority": priorities[:5],
+                           "skip": list(skipped_seeds.values())[:5]})
+        encounter_views.append({"field": sleeping_field, "sleep_types": groups})
     weakest = sorted(forecasts, key=lambda x: x["modes"].get("60", {}).get("weekly", {}).get("expected", 0))
     # Keyed by species so the same species recommended for several weak
     # islands (e.g. it fits more than one island's forecast) surfaces once,
@@ -218,7 +358,8 @@ def capture_recommendations(items, forecasts, benchmarks):
         for candidate in (x for x in general if x["island"] == island):
             owned = best_owned(candidate["species_key"], island)
             owned_value = _item_metric(owned, island, "60")["expected"] if owned else 0
-            if not owned_value or owned_value < candidate["daily"] * .8:
+            owned_is_ideal = bool(owned and float(owned.get("absolute_score") or 0) >= 80.0)
+            if not owned_is_ideal and (not owned_value or owned_value < candidate["daily"] * .8):
                 fits_island = candidate.get("berry") in island_berries
                 reason = (f"{island}の戦力穴を埋める未所持候補" if not owned_value else
                           f"所持個体が理想値の{round(owned_value/candidate['daily']*100)}%のため更新候補")
@@ -249,4 +390,4 @@ def capture_recommendations(items, forecasts, benchmarks):
                  "reason": "本アプリの個体評価が高い手持ちです"}
                 for x in sorted((i for i in items if i.get("verified") and i.get("absolute_score")),
                                 key=lambda i: -i["absolute_score"])[:8]]
-    return general, tailored, favorites
+    return general, tailored, favorites, by_island, encounter_views

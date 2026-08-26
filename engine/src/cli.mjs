@@ -21,6 +21,11 @@ const finalEvolution = pokemon => {
   while (result.evolvesInto?.length === 1) result = byName(COMPLETE_POKEDEX, result.evolvesInto[0]);
   return result;
 };
+const firstEvolution = pokemon => {
+  let result = pokemon;
+  while (result.evolvesFrom) result = byName(COMPLETE_POKEDEX, result.evolvesFrom);
+  return result;
+};
 const projectedSkillLevel=(raw,pokemon,evolve)=>Math.min(pokemon.skill.maxLevel,
   raw.skillLevel+(evolve?(byName(COMPLETE_POKEDEX,raw.species).remainingEvolutions||0):0));
 const skillLevelFor=(raw,pokemon,level,evolve)=>Math.min(pokemon.skill.maxLevel,
@@ -49,7 +54,9 @@ const verify = () => ({results: input.instances.map(({uid, instance, displayedSp
 const evaluate = () => {
   const total = input.instances.length;
   const results = input.instances.map(({uid, instance}, index) => {
-    const row = {uid, scores: Object.fromEntries(input.anchors.map(level => {
+    const finalPokemon = finalEvolution(byName(COMPLETE_POKEDEX, instance.species));
+    const row = {uid, finalEvolution: finalPokemon.name, mainSkillMaxLevel: finalPokemon.skill.maxLevel,
+      scores: Object.fromEntries(input.anchors.map(level => {
       const rp = new RP(toInstance(instance, level));
       return [level, {berry: rp.miscFactor * rp.berryFactor,
                       ingredient: rp.miscFactor * rp.ingredientFactor,
@@ -81,8 +88,10 @@ const simulateEnergy = (pokemon, level, islandBerries) => {
   const result = calculatePokemonProduction(pokemon,stats,ingredientSet,false,input.iterations||500);
   const berry = result.summary.totalProduce.berries.reduce((sum,x) => sum + x.amount *
     berryPowerForLevel(x.berry,x.level) * (islandBerries.includes(x.berry.name)?2:1),0);
-  const skill = result.summary.skillStrengthValue || 0, expected=berry+skill, spread=skill*.25;
-  return {berry:Math.round(berry),direct_skill:Math.round(skill),expected:Math.round(expected),
+  const ingredient = result.summary.totalProduce.ingredients.reduce(
+    (sum,x)=>sum+x.amount*x.ingredient.value,0);
+  const skill = result.summary.skillStrengthValue || 0, expected=berry+ingredient+skill, spread=skill*.25;
+  return {berry:Math.round(berry),ingredient:Math.round(ingredient),direct_skill:Math.round(skill),expected:Math.round(expected),
           low:Math.round(expected-spread),high:Math.round(expected+spread)};
 };
 const safeSimulateEnergy = (pokemon, level, islandBerries) => {
@@ -216,7 +225,10 @@ const customTeam = () => {
     plan:optimizeTeam(input.instances,input.island.name,input.island.berries,String(input.teamMode||'current'))};
 };
 const benchmark = () => ({benchmarks: OPTIMAL_POKEDEX.filter(p=>!p.evolvesInto.length).map(p=>({
-  species:p.name,species_ja:input.names?.[p.name],berry:p.berry.name,island_scores:Object.fromEntries(
+  species:p.name,species_ja:input.names?.[p.name],
+  base_species:firstEvolution(p).name,base_species_ja:input.names?.[firstEvolution(p).name],
+  base_species_en:firstEvolution(p).displayName,berry:p.berry.name,
+  pokemon_type:p.berry.type,specialty:p.specialty,island_scores:Object.fromEntries(
     Object.entries(input.islands).map(([name,berries])=>[name,safeSimulateEnergy(p,60,berries)])
       .filter(([,score])=>score).map(([name,score])=>[name,{60:score}]))
 })).filter(p=>Object.keys(p.island_scores).length)});

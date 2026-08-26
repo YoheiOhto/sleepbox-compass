@@ -11,6 +11,7 @@ from pokesleep_box.ingest import audit, ingest_path, render_review
 from pokesleep_box.analytics import analyze, individual_label
 from pokesleep_box.ocr import enrich_with_species_data, merge_frames
 from pokesleep_box.server import build_simulation_payload
+from pokesleep_box.engine import individual_to_engine
 
 
 ROOT = Path(__file__).parents[1]
@@ -46,17 +47,66 @@ class CoreTests(unittest.TestCase):
             build_simulation_payload(
                 self.db, {"uids": [uids[0]] * 5, "island": "シアンの砂浜"})
 
+    def test_engine_normalizes_legacy_soft_potato_name(self):
+        row = {"species": "BULBASAUR", "level": 50, "nature": "Mild",
+               "ingredients_json": '[["Soft Potato",6]]', "subskills_json": "[]",
+               "main_skill": "Ingredient Magnet S", "skill_level": 1}
+        self.assertEqual(individual_to_engine(row)["ingredients"], [["Potato", 6]])
+
     def test_dominated_sample_is_send(self):
         self.assertEqual(import_individuals(self.db, self.items), 3)
         result = decide(self.db, keep_top_n=2)
         self.assertEqual(result, {"keep": 2, "send": 1, "protected": 0})
         sent = self.db.execute("SELECT reason FROM decision WHERE verdict='send'").fetchone()
-        self.assertIn("全3ロール", sent["reason"])
+        self.assertIn("最も尖った役割", sent["reason"])
+
+    def test_decision_ranks_each_individual_by_its_peak_future_role(self):
+        items = []
+        for index, (nature, berry, ingredient, skill) in enumerate(
+                (("Mild", 1200, 100, 100),
+                 ("Calm", 100, 1000, 100),
+                 ("Sassy", 100, 100, 600)), 1):
+            item = dict(self.items[0], display_name=f"peak-{index}", box_index=index,
+                        nature=nature, sp=500 + index)
+            item["scores"] = {
+                str(anchor): {"berry": berry, "ingredient": ingredient, "skill": skill}
+                for anchor in (50, 60, 70, 80)
+            }
+            items.append(item)
+        import_individuals(self.db, items)
+
+        result = decide(self.db, keep_top_n=2)
+
+        self.assertEqual(result, {"keep": 2, "send": 1, "protected": 0})
+        sent = self.db.execute(
+            "SELECT i.display_name,d.reason FROM decision d JOIN individual i ON i.uid=d.uid "
+            "WHERE d.verdict='send'"
+        ).fetchone()
+        self.assertEqual(sent["display_name"], "peak-3")
+        self.assertIn("skill", sent["reason"])
 
     def test_unverified_is_never_sent(self):
         item = dict(self.items[0], verified=False)
         import_individuals(self.db, [item])
         self.assertEqual(decide(self.db)["protected"], 1)
+
+    def test_archived_individual_is_hidden_and_not_decided(self):
+        import_individuals(self.db, [self.items[0]])
+        self.db.execute("UPDATE individual SET archived=1")
+        self.db.commit()
+
+        self.assertEqual(decide(self.db), {"keep": 0, "send": 0, "protected": 0})
+        self.assertEqual(load_dashboard(self.db), [])
+
+    def test_lone_species_is_kept_even_when_absolute_score_is_low(self):
+        import_individuals(self.db, [self.items[0]])
+
+        result = decide(self.db)
+
+        self.assertEqual(result, {"keep": 1, "send": 0, "protected": 0})
+        decision = self.db.execute("SELECT verdict,reason FROM decision").fetchone()
+        self.assertEqual(decision["verdict"], "keep")
+        self.assertIn("最も尖った役割", decision["reason"])
 
     def test_rescan_preserves_verification_only_when_core_is_unchanged(self):
         original = dict(self.items[0], verified=True, sp=513)
@@ -132,10 +182,13 @@ class CoreTests(unittest.TestCase):
         self.assertIn("team-goal", page)
         self.assertIn("Game8の最新Tier表", page)
         self.assertIn("このアプリの「理想個体」", page)
+        self.assertIn("たねの使い道", page)
+        self.assertIn("サブスキルのたねは解放済み候補が複数あるとランダム", page)
+        self.assertIn("SUBSKILL_UPGRADES", page)
         self.assertIn("review-mark", page)
         self.assertIn("評価と編成を再計算", page)
         self.assertIn("/api/recalculate", page)
-        self.assertIn("この個体を確認済みにする", page)
+        self.assertIn("確認済みにする", page)
         self.assertIn("/api/confirm-review", page)
 
     def test_individual_label_is_traceable_across_views(self):
@@ -332,6 +385,70 @@ class CoreTests(unittest.TestCase):
         result = analyze([], {}, [benchmark])
         self.assertEqual(result["capture"]["general"][0]["species"], "ライチュウ")
         self.assertTrue(any(x["species_key"] == "RAICHU" for x in result["capture"]["tailored"]))
+
+    def test_capture_recommendation_counts_owned_pre_evolution(self):
+        benchmark = {"species": "RAICHU", "island_scores": {
+            "ゴールド旧発電所": {"60": {"expected": 80000}}
+        }}
+        pikachu = dict(self.items[0], uid="owned-pikachu", species="PIKACHU", final_evolution="RAICHU",
+                       verified=True, absolute_score=90, energy_scores={
+                           "ゴールド旧発電所": {"60": {"expected": 50000}}
+                       })
+
+        result = analyze([pikachu], {}, [benchmark])
+
+        self.assertFalse(any(x["species_key"] == "RAICHU"
+                             for x in result["capture"]["tailored"]))
+
+    def test_capture_board_excludes_weaker_species_in_same_role_type_slot(self):
+        benchmarks = [
+            {"species": "ALTARIA", "species_ja": "チルタリス", "specialty": "berry",
+             "berry": "YACHE", "island_scores": {"アンバー渓谷": {"60": {"expected": 70000}}}},
+            {"species": "OTHER", "species_ja": "同枠上位", "specialty": "berry",
+             "berry": "YACHE", "island_scores": {"アンバー渓谷": {"60": {"expected": 80000}}}},
+        ]
+
+        result = analyze([], {}, benchmarks)
+        amber = next(x for x in result["capture"]["by_island"] if x["island"] == "アンバー渓谷")
+
+        self.assertEqual([x["species_key"] for x in amber["priority"]], ["OTHER"])
+        self.assertIn("同枠上位", next(x for x in amber["skip"]
+                                      if x["species_key"] == "ALTARIA")["reason"])
+
+    def test_capture_board_keeps_different_roles_separate(self):
+        benchmarks = [
+            {"species": "ALTARIA", "specialty": "berry", "berry": "YACHE",
+             "island_scores": {"アンバー渓谷": {"60": {"expected": 70000}}}},
+            {"species": "DRAGONITE", "specialty": "ingredient", "berry": "YACHE",
+             "island_scores": {"アンバー渓谷": {"60": {"expected": 90000}}}},
+        ]
+
+        result = analyze([], {}, benchmarks)
+        amber = next(x for x in result["capture"]["by_island"] if x["island"] == "アンバー渓谷")
+
+        self.assertEqual({x["species_key"] for x in amber["priority"]},
+                         {"ALTARIA", "DRAGONITE"})
+
+    def test_capture_encounter_view_uses_seed_species_and_selected_sleep_pool(self):
+        benchmarks = [
+            {"species": "RAICHU", "species_ja": "ライチュウ", "base_species": "PICHU",
+             "base_species_ja": "ピチュー", "base_species_en": "Pichu", "specialty": "berry",
+             "berry": "GREPA", "island_scores": {
+                 "ゴールド旧発電所": {"60": {"expected": 80000}}}},
+            {"species": "TYPHLOSION", "species_ja": "バクフーン", "base_species": "CYNDAQUIL",
+             "base_species_ja": "ヒノアラシ", "base_species_en": "Cyndaquil", "specialty": "berry",
+             "berry": "LEPPA", "island_scores": {
+                 "トープ洞窟": {"60": {"expected": 90000}}}},
+        ]
+        encounters = {"updated": "2026-08-26", "fields": {"ゴールド旧発電所": {
+            "ぐっすり": ["Pichu"], "すやすや": ["Cyndaquil"]}}}
+
+        result = analyze([], {}, benchmarks, encounters=encounters)
+        view = result["capture"]["encounter_views"][0]
+
+        self.assertEqual(view["sleep_types"][0]["priority"][0]["species"], "ピチュー")
+        self.assertEqual(view["sleep_types"][0]["priority"][0]["evolves_to"], "ライチュウ")
+        self.assertEqual(view["sleep_types"][1]["priority"][0]["species"], "ヒノアラシ")
 
 
 if __name__ == "__main__":

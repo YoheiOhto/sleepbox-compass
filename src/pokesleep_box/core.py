@@ -69,6 +69,10 @@ def connect(path: Path) -> sqlite3.Connection:
         db.execute("ALTER TABLE individual ADD COLUMN energy_scores_json TEXT NOT NULL DEFAULT '{}'")
     if "review_confirmed" not in columns:
         db.execute("ALTER TABLE individual ADD COLUMN review_confirmed INTEGER NOT NULL DEFAULT 0")
+    if "archived" not in columns:
+        db.execute("ALTER TABLE individual ADD COLUMN archived INTEGER NOT NULL DEFAULT 0")
+    if "final_evolution" not in columns:
+        db.execute("ALTER TABLE individual ADD COLUMN final_evolution TEXT")
     db.commit()
     return db
 
@@ -155,7 +159,7 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
 
 def decide(db: sqlite3.Connection, keep_top_n: int = 2,
            protected_uids: Sequence[str] = (), low_score_threshold: float = 30.0) -> Dict[str, int]:
-    people = db.execute("SELECT * FROM individual ORDER BY species, box_index").fetchall()
+    people = db.execute("SELECT * FROM individual WHERE archived=0 ORDER BY species, box_index").fetchall()
     scores = {(r["uid"], r["anchor_level"], r["role"]): r["score"] for r in
               db.execute("SELECT uid,anchor_level,role,score FROM evaluation")}
     by_species: Dict[str, List[sqlite3.Row]] = {}
@@ -173,36 +177,28 @@ def decide(db: sqlite3.Connection, keep_top_n: int = 2,
             elif any((uid, a, r) not in scores for a in ANCHORS for r in ROLES):
                 verdict, reason = "protected", "Lv60/Lv80の全ロール評価が未完了です"
             else:
-                better = []
-                for anchor in ANCHORS:
-                    for role in ROLES:
-                        own = scores[(uid, anchor, role)]
-                        n = sum(scores.get((other["uid"], anchor, role), float("-inf")) > own
-                                for other in group if other["uid"] != uid)
-                        better.append(n)
-                dominated = all(n >= keep_top_n for n in better)
-                if dominated:
+                def peak_role_score(candidate_uid: str) -> Tuple[str, float]:
+                    evaluations = {
+                        anchor: {role: scores[(candidate_uid, anchor, role)] for role in ROLES}
+                        for anchor in ANCHORS
+                    }
+                    role_scores = absolute_role_scores(evaluations)
+                    return max(role_scores.items(), key=lambda item: item[1])
+
+                best_role, best_role_score = peak_role_score(uid)
+                better = sum(
+                    peak_role_score(other["uid"])[1] > best_role_score
+                    for other in group if other["uid"] != uid
+                )
+                if better >= keep_top_n:
                     verdict = "send"
-                    reason = (f"同種の上位個体が全3ロール・Lv50/60/70/80で"
-                              f"それぞれ{keep_top_n}匹以上います")
-                elif len(group) == 1:
-                    # A lone individual of its species can never be "dominated" by
-                    # definition (there is nothing to compare it against), so it
-                    # would otherwise always default to "keep" no matter how weak.
-                    # Give it an absolute floor instead.
-                    own_evaluations = {a: {r: scores[(uid, a, r)] for r in ROLES} for a in ANCHORS}
-                    best_role_score = max(absolute_role_scores(own_evaluations).values(), default=0.0)
-                    if best_role_score < low_score_threshold:
-                        verdict = "send"
-                        reason = (f"同種を1匹しか所持しておらず、総合評価も"
-                                  f"{low_score_threshold:.0f}点未満（{best_role_score:.1f}点）で"
-                                  f"実戦での採用見込みが低いためです")
-                    else:
-                        verdict = "keep"
-                        reason = "Lv50/60/70/80のいずれかの役割で同種上位候補です"
+                    reason = (f"Lv50/60/70/80で最も尖った役割（{best_role}・"
+                              f"{best_role_score:.1f}点）を比べても、同種の上位個体が"
+                              f"{keep_top_n}匹以上います")
                 else:
                     verdict = "keep"
-                    reason = "Lv50/60/70/80のいずれかの役割で同種上位候補です"
+                    reason = (f"Lv50/60/70/80で最も尖った役割（{best_role}・"
+                              f"{best_role_score:.1f}点）が同種上位候補です")
             db.execute("INSERT OR REPLACE INTO decision VALUES (?,?,?,?)",
                        (uid, verdict, reason, timestamp))
             counts[verdict] += 1
@@ -213,7 +209,8 @@ def decide(db: sqlite3.Connection, keep_top_n: int = 2,
 def load_dashboard(db: sqlite3.Connection) -> List[Dict[str, Any]]:
     from .localization import to_japanese
     rows = db.execute("""SELECT i.*,d.verdict,d.reason FROM individual i
-                         LEFT JOIN decision d ON d.uid=i.uid ORDER BY i.box_index""").fetchall()
+                         LEFT JOIN decision d ON d.uid=i.uid
+                         WHERE i.archived=0 ORDER BY i.box_index""").fetchall()
     evaluations: Dict[str, Dict[int, Dict[str, float]]] = {}
     for row in db.execute("SELECT uid,anchor_level,role,score FROM evaluation"):
         evaluations.setdefault(row["uid"], {}).setdefault(row["anchor_level"], {})[row["role"]] = row["score"]
