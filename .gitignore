@@ -20,6 +20,7 @@ __pycache__/
 .venv/
 .cache/
 dist/
+*.egg-info/
 .DS_Store
 
 # Engine vendor/build artifacts

@@ -20,7 +20,9 @@ CREATE TABLE IF NOT EXISTS individual (
   review_confirmed INTEGER NOT NULL DEFAULT 0,
   sp_computed INTEGER, sp_diff INTEGER,
   verify_mode TEXT CHECK(verify_mode IN ('strict','tolerant','skipped','failed')),
-  repaired INTEGER NOT NULL DEFAULT 0
+  repaired INTEGER NOT NULL DEFAULT 0,
+  archived INTEGER NOT NULL DEFAULT 0,
+  final_evolution TEXT
 );
 
 CREATE TABLE IF NOT EXISTS evaluation (

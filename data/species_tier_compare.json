@@ -1,0 +1,480 @@
+{
+  "rows": [
+    {
+      "species": "CHARIZARD",
+      "species_ja": "リザードン",
+      "our_score": 100.0,
+      "our_tier": "SS",
+      "external_tier": "SS"
+    },
+    {
+      "species": "BLASTOISE",
+      "species_ja": "カメックス",
+      "our_score": 100.0,
+      "our_tier": "SS",
+      "external_tier": "SS"
+    },
+    {
+      "species": "DRAGONITE",
+      "species_ja": "カイリュー",
+      "our_score": 100.0,
+      "our_tier": "SS",
+      "external_tier": "SS"
+    },
+    {
+      "species": "TYPHLOSION",
+      "species_ja": "バクフーン",
+      "our_score": 100.0,
+      "our_tier": "SS",
+      "external_tier": "SS"
+    },
+    {
+      "species": "MEGANIUM",
+      "species_ja": "メガニウム",
+      "our_score": 100.0,
+      "our_tier": "SS",
+      "external_tier": "SS"
+    },
+    {
+      "species": "STEELIX",
+      "species_ja": "ハガネール",
+      "our_score": 100.0,
+      "our_tier": "SS",
+      "external_tier": "SS"
+    },
+    {
+      "species": "VENUSAUR",
+      "species_ja": "フシギバナ",
+      "our_score": 100.0,
+      "our_tier": "SS",
+      "external_tier": "S"
+    },
+    {
+      "species": "RAICHU",
+      "species_ja": "ライチュウ",
+      "our_score": 100.0,
+      "our_tier": "SS",
+      "external_tier": "S"
+    },
+    {
+      "species": "TYRANITAR",
+      "species_ja": "バンギラス",
+      "our_score": 100.0,
+      "our_tier": "SS",
+      "external_tier": "S"
+    },
+    {
+      "species": "NINETALES",
+      "species_ja": "キュウコン",
+      "our_score": 100.0,
+      "our_tier": "SS",
+      "external_tier": "S"
+    },
+    {
+      "species": "SUICUNE",
+      "species_ja": "スイクン",
+      "our_score": 100.0,
+      "our_tier": "SS",
+      "external_tier": "S"
+    },
+    {
+      "species": "BEWEAR",
+      "species_ja": "キテルグマ",
+      "our_score": 100.0,
+      "our_tier": "SS",
+      "external_tier": "A"
+    },
+    {
+      "species": "GALLADE",
+      "species_ja": "エルレイド",
+      "our_score": 100.0,
+      "our_tier": "SS",
+      "external_tier": "C"
+    },
+    {
+      "species": "SABLEYE",
+      "species_ja": "ヤミラミ",
+      "our_score": 100.0,
+      "our_tier": "SS",
+      "external_tier": "D"
+    },
+    {
+      "species": "SWALOT",
+      "species_ja": "マルノーム",
+      "our_score": 100.0,
+      "our_tier": "SS",
+      "external_tier": "D"
+    },
+    {
+      "species": "LUCARIO",
+      "species_ja": "ルカリオ",
+      "our_score": 100.0,
+      "our_tier": "SS",
+      "external_tier": "D"
+    },
+    {
+      "species": "ENTEI",
+      "species_ja": "エンテイ",
+      "our_score": 99.7,
+      "our_tier": "SS",
+      "external_tier": "S"
+    },
+    {
+      "species": "DODRIO",
+      "species_ja": "ドードリオ",
+      "our_score": 99.7,
+      "our_tier": "SS",
+      "external_tier": "A"
+    },
+    {
+      "species": "TOGEKISS",
+      "species_ja": "トゲキッス",
+      "our_score": 99.6,
+      "our_tier": "SS",
+      "external_tier": "B"
+    },
+    {
+      "species": "GENGAR",
+      "species_ja": "ゲンガー",
+      "our_score": 99.1,
+      "our_tier": "SS",
+      "external_tier": "S"
+    },
+    {
+      "species": "FERALIGATR",
+      "species_ja": "オーダイル",
+      "our_score": 98.4,
+      "our_tier": "SS",
+      "external_tier": "SS"
+    },
+    {
+      "species": "AMPHAROS",
+      "species_ja": "デンリュウ",
+      "our_score": 98.3,
+      "our_tier": "SS",
+      "external_tier": "A"
+    },
+    {
+      "species": "WALREIN",
+      "species_ja": "トドゼルガ",
+      "our_score": 98.0,
+      "our_tier": "SS",
+      "external_tier": "SS"
+    },
+    {
+      "species": "MAGNEZONE",
+      "species_ja": "ジバコイル",
+      "our_score": 97.7,
+      "our_tier": "SS",
+      "external_tier": "S"
+    },
+    {
+      "species": "COMFEY",
+      "species_ja": "キュワワー",
+      "our_score": 97.5,
+      "our_tier": "SS",
+      "external_tier": "B"
+    },
+    {
+      "species": "GLACEON",
+      "species_ja": "グレイシア",
+      "our_score": 96.3,
+      "our_tier": "SS",
+      "external_tier": "A"
+    },
+    {
+      "species": "VAPOREON",
+      "species_ja": "シャワーズ",
+      "our_score": 96.2,
+      "our_tier": "SS",
+      "external_tier": "B"
+    },
+    {
+      "species": "BANETTE",
+      "species_ja": "ジュペッタ",
+      "our_score": 96.0,
+      "our_tier": "SS",
+      "external_tier": "B"
+    },
+    {
+      "species": "PERSIAN",
+      "species_ja": "ペルシアン",
+      "our_score": 96.0,
+      "our_tier": "SS",
+      "external_tier": "D"
+    },
+    {
+      "species": "ESPEON",
+      "species_ja": "エーフィ",
+      "our_score": 95.9,
+      "our_tier": "SS",
+      "external_tier": "A"
+    },
+    {
+      "species": "ARCANINE",
+      "species_ja": "ウインディ",
+      "our_score": 95.8,
+      "our_tier": "SS",
+      "external_tier": "C"
+    },
+    {
+      "species": "ABOMASNOW",
+      "species_ja": "ユキノオー",
+      "our_score": 95.5,
+      "our_tier": "SS",
+      "external_tier": "B"
+    },
+    {
+      "species": "VICTREEBEL",
+      "species_ja": "ウツボット",
+      "our_score": 95.4,
+      "our_tier": "SS",
+      "external_tier": "S"
+    },
+    {
+      "species": "KANGASKHAN",
+      "species_ja": "ガルーラ",
+      "our_score": 95.3,
+      "our_tier": "SS",
+      "external_tier": "A"
+    },
+    {
+      "species": "ABSOL",
+      "species_ja": "アブソル",
+      "our_score": 94.9,
+      "our_tier": "S",
+      "external_tier": "C"
+    },
+    {
+      "species": "PINSIR",
+      "species_ja": "カイロス",
+      "our_score": 94.8,
+      "our_tier": "S",
+      "external_tier": "C"
+    },
+    {
+      "species": "MEOWSCARADA",
+      "species_ja": "マスカーニャ",
+      "our_score": 94.5,
+      "our_tier": "S",
+      "external_tier": "A"
+    },
+    {
+      "species": "RAIKOU",
+      "species_ja": "ライコウ",
+      "our_score": 94.2,
+      "our_tier": "S",
+      "external_tier": "S"
+    },
+    {
+      "species": "GOLEM",
+      "species_ja": "ゴローニャ",
+      "our_score": 94.2,
+      "our_tier": "S",
+      "external_tier": "A"
+    },
+    {
+      "species": "SUDOWOODO",
+      "species_ja": "ウソッキー",
+      "our_score": 94.1,
+      "our_tier": "S",
+      "external_tier": "B"
+    },
+    {
+      "species": "FLAREON",
+      "species_ja": "ブースター",
+      "our_score": 94.0,
+      "our_tier": "S",
+      "external_tier": "A"
+    },
+    {
+      "species": "SKELEDIRGE",
+      "species_ja": "ラウドボーン",
+      "our_score": 93.2,
+      "our_tier": "S",
+      "external_tier": "B"
+    },
+    {
+      "species": "QUAQUAVAL",
+      "species_ja": "ウェーニバル",
+      "our_score": 93.0,
+      "our_tier": "S",
+      "external_tier": "A"
+    },
+    {
+      "species": "SLAKING",
+      "species_ja": "ケッキング",
+      "our_score": 90.8,
+      "our_tier": "S",
+      "external_tier": "A"
+    },
+    {
+      "species": "PRIMEAPE",
+      "species_ja": "オコリザル",
+      "our_score": 90.8,
+      "our_tier": "S",
+      "external_tier": "B"
+    },
+    {
+      "species": "BUTTERFREE",
+      "species_ja": "バタフリー",
+      "our_score": 90.5,
+      "our_tier": "S",
+      "external_tier": "A"
+    },
+    {
+      "species": "DELIBIRD",
+      "species_ja": "デリバード",
+      "our_score": 90.1,
+      "our_tier": "S",
+      "external_tier": "S"
+    },
+    {
+      "species": "CLEFABLE",
+      "species_ja": "ピクシー",
+      "our_score": 90.1,
+      "our_tier": "S",
+      "external_tier": "B"
+    },
+    {
+      "species": "ALTARIA",
+      "species_ja": "チルタリス",
+      "our_score": 88.7,
+      "our_tier": "S",
+      "external_tier": "B"
+    },
+    {
+      "species": "MR_MIME",
+      "species_ja": "バリヤード",
+      "our_score": 88.5,
+      "our_tier": "S",
+      "external_tier": "B"
+    },
+    {
+      "species": "HOUNDOOM",
+      "species_ja": "ヘルガー",
+      "our_score": 88.1,
+      "our_tier": "S",
+      "external_tier": "B"
+    },
+    {
+      "species": "GOLDUCK",
+      "species_ja": "ゴルダック",
+      "our_score": 87.4,
+      "our_tier": "S",
+      "external_tier": "C"
+    },
+    {
+      "species": "JOLTEON",
+      "species_ja": "サンダース",
+      "our_score": 86.6,
+      "our_tier": "S",
+      "external_tier": "B"
+    },
+    {
+      "species": "RATICATE",
+      "species_ja": "ラッタ",
+      "our_score": 86.1,
+      "our_tier": "S",
+      "external_tier": "B"
+    },
+    {
+      "species": "TOXICROAK",
+      "species_ja": "ドクロッグ",
+      "our_score": 84.9,
+      "our_tier": "A",
+      "external_tier": "C"
+    },
+    {
+      "species": "GARDEVOIR",
+      "species_ja": "サーナイト",
+      "our_score": 84.7,
+      "our_tier": "A",
+      "external_tier": "SS"
+    },
+    {
+      "species": "SLOWKING",
+      "species_ja": "ヤドキング",
+      "our_score": 84.6,
+      "our_tier": "A",
+      "external_tier": "C"
+    },
+    {
+      "species": "ARBOK",
+      "species_ja": "アーボック",
+      "our_score": 82.9,
+      "our_tier": "A",
+      "external_tier": "C"
+    },
+    {
+      "species": "DUGTRIO",
+      "species_ja": "ダグトリオ",
+      "our_score": 82.3,
+      "our_tier": "A",
+      "external_tier": "A"
+    },
+    {
+      "species": "MAROWAK",
+      "species_ja": "ガラガラ",
+      "our_score": 80.5,
+      "our_tier": "A",
+      "external_tier": "B"
+    },
+    {
+      "species": "WOBBUFFET",
+      "species_ja": "ソーナンス",
+      "our_score": 77.4,
+      "our_tier": "A",
+      "external_tier": "D"
+    },
+    {
+      "species": "UMBREON",
+      "species_ja": "ブラッキー",
+      "our_score": 76.4,
+      "our_tier": "A",
+      "external_tier": "C"
+    },
+    {
+      "species": "LEAFEON",
+      "species_ja": "リーフィア",
+      "our_score": 76.1,
+      "our_tier": "A",
+      "external_tier": "B"
+    },
+    {
+      "species": "SYLVEON",
+      "species_ja": "ニンフィア",
+      "our_score": 74.5,
+      "our_tier": "A",
+      "external_tier": "A"
+    },
+    {
+      "species": "DITTO",
+      "species_ja": "メタモン",
+      "our_score": 72.4,
+      "our_tier": "A",
+      "external_tier": "B"
+    },
+    {
+      "species": "WIGGLYTUFF",
+      "species_ja": "プクリン",
+      "our_score": 70.3,
+      "our_tier": "A",
+      "external_tier": "S"
+    },
+    {
+      "species": "SLOWBRO",
+      "species_ja": "ヤドラン",
+      "our_score": 69.5,
+      "our_tier": "B",
+      "external_tier": "C"
+    },
+    {
+      "species": "DEDENNE",
+      "species_ja": "デデンネ",
+      "our_score": 68.4,
+      "our_tier": "B",
+      "external_tier": "B"
+    }
+  ]
+}

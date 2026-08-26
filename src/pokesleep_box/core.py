@@ -69,6 +69,10 @@ def connect(path: Path) -> sqlite3.Connection:
         db.execute("ALTER TABLE individual ADD COLUMN energy_scores_json TEXT NOT NULL DEFAULT '{}'")
     if "review_confirmed" not in columns:
         db.execute("ALTER TABLE individual ADD COLUMN review_confirmed INTEGER NOT NULL DEFAULT 0")
+    if "archived" not in columns:
+        db.execute("ALTER TABLE individual ADD COLUMN archived INTEGER NOT NULL DEFAULT 0")
+    if "final_evolution" not in columns:
+        db.execute("ALTER TABLE individual ADD COLUMN final_evolution TEXT")
     db.commit()
     return db
 
@@ -154,8 +158,8 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
 
 
 def decide(db: sqlite3.Connection, keep_top_n: int = 2,
-           protected_uids: Sequence[str] = ()) -> Dict[str, int]:
-    people = db.execute("SELECT * FROM individual ORDER BY species, box_index").fetchall()
+           protected_uids: Sequence[str] = (), low_score_threshold: float = 30.0) -> Dict[str, int]:
+    people = db.execute("SELECT * FROM individual WHERE archived=0 ORDER BY species, box_index").fetchall()
     scores = {(r["uid"], r["anchor_level"], r["role"]): r["score"] for r in
               db.execute("SELECT uid,anchor_level,role,score FROM evaluation")}
     by_species: Dict[str, List[sqlite3.Row]] = {}
@@ -173,21 +177,28 @@ def decide(db: sqlite3.Connection, keep_top_n: int = 2,
             elif any((uid, a, r) not in scores for a in ANCHORS for r in ROLES):
                 verdict, reason = "protected", "Lv60/Lv80の全ロール評価が未完了です"
             else:
-                better = []
-                for anchor in ANCHORS:
-                    for role in ROLES:
-                        own = scores[(uid, anchor, role)]
-                        n = sum(scores.get((other["uid"], anchor, role), float("-inf")) > own
-                                for other in group if other["uid"] != uid)
-                        better.append(n)
-                dominated = all(n >= keep_top_n for n in better)
-                if dominated:
+                def peak_role_score(candidate_uid: str) -> Tuple[str, float]:
+                    evaluations = {
+                        anchor: {role: scores[(candidate_uid, anchor, role)] for role in ROLES}
+                        for anchor in ANCHORS
+                    }
+                    role_scores = absolute_role_scores(evaluations)
+                    return max(role_scores.items(), key=lambda item: item[1])
+
+                best_role, best_role_score = peak_role_score(uid)
+                better = sum(
+                    peak_role_score(other["uid"])[1] > best_role_score
+                    for other in group if other["uid"] != uid
+                )
+                if better >= keep_top_n:
                     verdict = "send"
-                    reason = (f"同種の上位個体が全3ロール・Lv50/60/70/80で"
-                              f"それぞれ{keep_top_n}匹以上います")
+                    reason = (f"Lv50/60/70/80で最も尖った役割（{best_role}・"
+                              f"{best_role_score:.1f}点）を比べても、同種の上位個体が"
+                              f"{keep_top_n}匹以上います")
                 else:
                     verdict = "keep"
-                    reason = "Lv50/60/70/80のいずれかの役割で同種上位候補です"
+                    reason = (f"Lv50/60/70/80で最も尖った役割（{best_role}・"
+                              f"{best_role_score:.1f}点）が同種上位候補です")
             db.execute("INSERT OR REPLACE INTO decision VALUES (?,?,?,?)",
                        (uid, verdict, reason, timestamp))
             counts[verdict] += 1
@@ -198,7 +209,8 @@ def decide(db: sqlite3.Connection, keep_top_n: int = 2,
 def load_dashboard(db: sqlite3.Connection) -> List[Dict[str, Any]]:
     from .localization import to_japanese
     rows = db.execute("""SELECT i.*,d.verdict,d.reason FROM individual i
-                         LEFT JOIN decision d ON d.uid=i.uid ORDER BY i.box_index""").fetchall()
+                         LEFT JOIN decision d ON d.uid=i.uid
+                         WHERE i.archived=0 ORDER BY i.box_index""").fetchall()
     evaluations: Dict[str, Dict[int, Dict[str, float]]] = {}
     for row in db.execute("SELECT uid,anchor_level,role,score FROM evaluation"):
         evaluations.setdefault(row["uid"], {}).setdefault(row["anchor_level"], {})[row["role"]] = row["score"]
@@ -268,3 +280,66 @@ def absolute_role_scores(evaluations: Mapping[int, Mapping[str, float]],
                     for a in ANCHORS)
         result[role] = round(min(100.0, ratio * 100.0), 1)
     return result
+
+
+# Convenience 0-100 cut points for this app's own species tier, chosen to
+# roughly match a six-tier external scale (SS/S/A/B/C/D). The score itself is
+# the only rigorous part; these letters are just a readable label on top of it.
+TIER_CUTS = (("SS", 95.0), ("S", 85.0), ("A", 70.0), ("B", 50.0), ("C", 30.0))
+
+
+def score_to_tier(score: float) -> str:
+    for label, cutoff in TIER_CUTS:
+        if score >= cutoff:
+            return label
+    return "D"
+
+
+# Snapshot of a third-party Pokémon Sleep tier list, kept only to let users
+# sanity-check this app's own 0-100 species score against an independent
+# source. Source: https://gamerch.com/pokesleep/787542 (終盤最強 ranking),
+# fetched 2026-08-24. Species names are the Japanese names used by that site;
+# they are mapped to this app's English species keys via localization.to_english.
+EXTERNAL_TIER_JA: Dict[str, str] = {
+    **{name: "SS" for name in (
+        "サーナイト", "リザードン", "カメックス", "トドゼルガ", "カイリュー",
+        "バクフーン", "オーダイル", "メガニウム", "ハガネール")},
+    **{name: "S" for name in (
+        "ジバコイル", "プクリン", "フシギバナ", "ライチュウ", "ゲンガー", "デリバード",
+        "ウツボット", "バンギラス", "キュウコン", "エンテイ", "ライコウ", "スイクン")},
+    **{name: "A" for name in (
+        "ガルーラ", "グレイシア", "ブースター", "ニンフィア", "バタフリー", "ケッキング",
+        "ドードリオ", "デンリュウ", "エーフィ", "ヘラクレス", "ダグトリオ", "ゴローニャ",
+        "キテルグマ", "マスカーニャ", "ウェーニバル")},
+    **{name: "B" for name in (
+        "シャワーズ", "ヘルガー", "サンダース", "ウソッキー", "オコリザル", "ガラガラ",
+        "バリヤード", "メタモン", "トゲキッス", "ユキノオー", "キュワワー", "デデンネ",
+        "リーフィア", "ピクシー", "ジュペッタ", "ラッタ", "チルタリス", "ラウドボーン")},
+    **{name: "C" for name in (
+        "エルレイド", "アブソル", "ゴルダック", "カイロス", "ドクロッグ", "ヤドキング",
+        "ヤドラン", "ウインディ", "アーボック", "ブラッキー")},
+    **{name: "D" for name in (
+        "ソーナンス", "ヤミラミ", "マルノーム", "ペルシアン", "ルカリオ")},
+}
+
+
+def compare_species_tiers(species_scores: Mapping[str, Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    """Pair this app's own species score against the external tier snapshot.
+
+    `species_scores` maps English species key to {"absolute_score": float, ...},
+    as produced by engine.species_scores(). Species missing from either side
+    are left out rather than guessed.
+    """
+    from .localization import to_english, to_japanese
+
+    external_by_key = {to_english("species", ja): tier for ja, tier in EXTERNAL_TIER_JA.items()}
+    rows = []
+    for key, tier in external_by_key.items():
+        own = species_scores.get(key)
+        if own is None:
+            continue
+        rows.append({"species": key, "species_ja": to_japanese("species", key),
+                     "our_score": own["absolute_score"], "our_tier": score_to_tier(own["absolute_score"]),
+                     "external_tier": tier})
+    rows.sort(key=lambda r: -r["our_score"])
+    return rows

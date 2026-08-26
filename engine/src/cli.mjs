@@ -21,6 +21,11 @@ const finalEvolution = pokemon => {
   while (result.evolvesInto?.length === 1) result = byName(COMPLETE_POKEDEX, result.evolvesInto[0]);
   return result;
 };
+const firstEvolution = pokemon => {
+  let result = pokemon;
+  while (result.evolvesFrom) result = byName(COMPLETE_POKEDEX, result.evolvesFrom);
+  return result;
+};
 const projectedSkillLevel=(raw,pokemon,evolve)=>Math.min(pokemon.skill.maxLevel,
   raw.skillLevel+(evolve?(byName(COMPLETE_POKEDEX,raw.species).remainingEvolutions||0):0));
 const skillLevelFor=(raw,pokemon,level,evolve)=>Math.min(pokemon.skill.maxLevel,
@@ -46,18 +51,25 @@ const verify = () => ({results: input.instances.map(({uid, instance, displayedSp
   const match = strict ? diff === 0 : Math.abs(diff) <= input.tolerance;
   return {uid, computedSp, diff, match, mode: strict ? 'strict' : (match ? 'tolerant' : 'failed')};
 })});
-const evaluate = () => ({
-  engineVersion: 'nerolis-lab@a033942b699854a80507e48b5246199afec17e01',
-  valuationHash: 'rp-components-v1',
-  results: input.instances.map(({uid, instance}) => ({uid, scores: Object.fromEntries(input.anchors.map(level => {
-    const rp = new RP(toInstance(instance, level));
-    return [level, {berry: rp.miscFactor * rp.berryFactor,
-                    ingredient: rp.miscFactor * rp.ingredientFactor,
-                    skill: rp.miscFactor * rp.skillFactor}];
-  })), energyScores: input.islands ? Object.fromEntries(Object.entries(input.islands).map(([name,berries]) =>
-    [name,Object.fromEntries([['current',instance.level,false],...input.anchors.map(x=>[String(x),x,true])]
-      .map(([mode,level,evolve])=>[mode,simulateInstanceEnergy(instance,level,berries,evolve)]))])) : undefined}))
-});
+const evaluate = () => {
+  const total = input.instances.length;
+  const results = input.instances.map(({uid, instance}, index) => {
+    const finalPokemon = finalEvolution(byName(COMPLETE_POKEDEX, instance.species));
+    const row = {uid, finalEvolution: finalPokemon.name, mainSkillMaxLevel: finalPokemon.skill.maxLevel,
+      scores: Object.fromEntries(input.anchors.map(level => {
+      const rp = new RP(toInstance(instance, level));
+      return [level, {berry: rp.miscFactor * rp.berryFactor,
+                      ingredient: rp.miscFactor * rp.ingredientFactor,
+                      skill: rp.miscFactor * rp.skillFactor}];
+    })), energyScores: input.islands ? Object.fromEntries(Object.entries(input.islands).map(([name,berries]) =>
+      [name,Object.fromEntries([['current',instance.level,false],...input.anchors.map(x=>[String(x),x,true])]
+        .map(([mode,level,evolve])=>[mode,simulateInstanceEnergy(instance,level,berries,evolve)]))])) : undefined};
+    process.stderr.write(`PROGRESS evaluate ${index + 1} ${total}\n`);
+    return row;
+  });
+  return {engineVersion: 'nerolis-lab@a033942b699854a80507e48b5246199afec17e01',
+    valuationHash: 'rp-components-v1', results};
+};
 
 const idealSubskills = specialty => specialty === 'berry'
   ? ['Berry Finding S','Helping Speed M','Helping Speed S','Helping Bonus','Skill Trigger M']
@@ -76,8 +88,10 @@ const simulateEnergy = (pokemon, level, islandBerries) => {
   const result = calculatePokemonProduction(pokemon,stats,ingredientSet,false,input.iterations||500);
   const berry = result.summary.totalProduce.berries.reduce((sum,x) => sum + x.amount *
     berryPowerForLevel(x.berry,x.level) * (islandBerries.includes(x.berry.name)?2:1),0);
-  const skill = result.summary.skillStrengthValue || 0, expected=berry+skill, spread=skill*.25;
-  return {berry:Math.round(berry),direct_skill:Math.round(skill),expected:Math.round(expected),
+  const ingredient = result.summary.totalProduce.ingredients.reduce(
+    (sum,x)=>sum+x.amount*x.ingredient.value,0);
+  const skill = result.summary.skillStrengthValue || 0, expected=berry+ingredient+skill, spread=skill*.25;
+  return {berry:Math.round(berry),ingredient:Math.round(ingredient),direct_skill:Math.round(skill),expected:Math.round(expected),
           low:Math.round(expected-spread),high:Math.round(expected+spread)};
 };
 const safeSimulateEnergy = (pokemon, level, islandBerries) => {
@@ -190,12 +204,20 @@ const optimizeTeam = (instances, name, berries, mode) => {
     }))
   };
 };
-const teamEvaluate = () => ({
-  engineVersion:'nerolis-lab@a033942b699854a80507e48b5246199afec17e01',
-  plans:Object.entries(input.islands).flatMap(([name,berries]) =>
-    ['current',...(input.anchors||[50,60,70,80]).map(String)].map(mode =>
-      optimizeTeam(input.instances,name,berries,mode)).filter(Boolean))
-});
+const teamEvaluate = () => {
+  const islandEntries = Object.entries(input.islands);
+  const modes = ['current', ...(input.anchors || [50, 60, 70, 80]).map(String)];
+  const total = islandEntries.length * modes.length;
+  let done = 0;
+  const plans = islandEntries.flatMap(([name, berries]) =>
+    modes.map(mode => {
+      const plan = optimizeTeam(input.instances, name, berries, mode);
+      done += 1;
+      process.stderr.write(`PROGRESS team-evaluate ${done} ${total}\n`);
+      return plan;
+    }).filter(Boolean));
+  return {engineVersion: 'nerolis-lab@a033942b699854a80507e48b5246199afec17e01', plans};
+};
 const customTeam = () => {
   if (!input.island?.name || !Array.isArray(input.island.berries)) throw new Error('custom-team requires island');
   if (!Array.isArray(input.instances) || input.instances.length !== 5) throw new Error('custom-team requires exactly 5 instances');
@@ -203,13 +225,17 @@ const customTeam = () => {
     plan:optimizeTeam(input.instances,input.island.name,input.island.berries,String(input.teamMode||'current'))};
 };
 const benchmark = () => ({benchmarks: OPTIMAL_POKEDEX.filter(p=>!p.evolvesInto.length).map(p=>({
-  species:p.name,species_ja:input.names?.[p.name],island_scores:Object.fromEntries(
+  species:p.name,species_ja:input.names?.[p.name],
+  base_species:firstEvolution(p).name,base_species_ja:input.names?.[firstEvolution(p).name],
+  base_species_en:firstEvolution(p).displayName,berry:p.berry.name,
+  pokemon_type:p.berry.type,specialty:p.specialty,island_scores:Object.fromEntries(
     Object.entries(input.islands).map(([name,berries])=>[name,safeSimulateEnergy(p,60,berries)])
       .filter(([,score])=>score).map(([name,score])=>[name,{60:score}]))
 })).filter(p=>Object.keys(p.island_scores).length)});
 const metadata = () => ({pokemon: Object.fromEntries(COMPLETE_POKEDEX.map(p => [p.name, {
   berry: p.berry.name,
   main_skill: p.skill.name,
+  pokedex_number: p.pokedexNumber,
   ingredients: [p.ingredient0, p.ingredient30, p.ingredient60].map((choices, index) => ({
     level: [1, 30, 60][index],
     choices: choices.filter(x => x.amount > 0).map(x => [x.ingredient.name, x.amount])
@@ -217,18 +243,39 @@ const metadata = () => ({pokemon: Object.fromEntries(COMPLETE_POKEDEX.map(p => [
 }]))});
 const scoreReferences = () => {
   const anchors = input.anchors || [50, 60, 70, 80];
-  const rows = OPTIMAL_POKEDEX.filter(p=>!p.evolvesInto.length).map(p=>{
-    const raw={species:p.name,level:60,nature:idealNature(p.specialty),
-      subskills:idealSubskills(p.specialty).map((name,i)=>[name,[10,25,50,75,100][i]]),
-      ingredients:[p.ingredient0[0],p.ingredient30[0],p.ingredient60[0]].map(x=>[x.ingredient.name,x.amount]),
-      mainSkill:p.skill.name,skillLevel:p.skill.maxLevel};
-    return Object.fromEntries(anchors.map(level=>{const rp=new RP(toInstance(raw,level,false));return [level,
-      {berry:rp.miscFactor*rp.berryFactor,ingredient:rp.miscFactor*rp.ingredientFactor,
-       skill:rp.miscFactor*rp.skillFactor}]}));
+  const pool = OPTIMAL_POKEDEX.filter(p=>!p.evolvesInto.length);
+  const idealRaw = (p, specialty) => ({species:p.name,level:60,nature:idealNature(specialty),
+    subskills:idealSubskills(specialty).map((name,i)=>[name,[10,25,50,75,100][i]]),
+    ingredients:[p.ingredient0[0],p.ingredient30[0],p.ingredient60[0]].map(x=>[x.ingredient.name,x.amount]),
+    mainSkill:p.skill.name,skillLevel:p.skill.maxLevel});
+  const bySpecies = pool.map((p, index) => {
+    // Score each role from its OWN role-optimized ideal individual (best
+    // nature/subskills for that role), instead of one individual built for
+    // the species' single labeled specialty. A skill that pays off in a
+    // different role (e.g. a berry-boosting main skill on a "skill"
+    // specialist) would otherwise be scored on a nature/subskill spread that
+    // was never meant to maximize that role, underrating it.
+    const perRole = {berry: idealRaw(p, 'berry'), ingredient: idealRaw(p, 'ingredient'),
+                     skill: idealRaw(p, 'skill')};
+    const scores = Object.fromEntries(anchors.map(level => {
+      const rpBerry = new RP(toInstance(perRole.berry, level, false));
+      const rpIngredient = new RP(toInstance(perRole.ingredient, level, false));
+      const rpSkill = new RP(toInstance(perRole.skill, level, false));
+      return [level, {berry: rpBerry.miscFactor * rpBerry.berryFactor,
+                      ingredient: rpIngredient.miscFactor * rpIngredient.ingredientFactor,
+                      skill: rpSkill.miscFactor * rpSkill.skillFactor}];
+    }));
+    process.stderr.write(`PROGRESS score-references ${index + 1} ${pool.length}\n`);
+    return {species: p.name, scores};
   });
   const percentile=(values,p=.9)=>{const xs=values.filter(Number.isFinite).sort((a,b)=>a-b);return xs[Math.min(xs.length-1,Math.floor(xs.length*p))]};
-  return {percentile:90,references:Object.fromEntries(anchors.map(level=>[level,
-    Object.fromEntries(['berry','ingredient','skill'].map(role=>[role,Math.round(percentile(rows.map(x=>x[level][role])))]))]))};
+  return {percentile:90,
+    references:Object.fromEntries(anchors.map(level=>[level,
+      Object.fromEntries(['berry','ingredient','skill'].map(role=>[role,Math.round(percentile(bySpecies.map(x=>x.scores[level][role])))]))])),
+    // Per-species ideal-individual RP components, so callers can score each
+    // species on the same 0-100 scale used for owned individuals instead of
+    // only the aggregate percentile above.
+    species: Object.fromEntries(bySpecies.map(x=>[x.species, x.scores]))};
 };
 
 process.stdout.write(JSON.stringify(input.mode === 'verify' ? verify()
