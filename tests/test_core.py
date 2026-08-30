@@ -4,12 +4,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from pokesleep_box.cli import build_parser
 from pokesleep_box.core import absolute_role_scores, build_team_plans, canonical_uid, connect, decide, import_individuals, load_dashboard
 from pokesleep_box.render import render_site
 from pokesleep_box.localization import names, normalize_individual, to_english, to_japanese
 from pokesleep_box.ingest import audit, ingest_path, render_review
 from pokesleep_box.analytics import analyze, individual_label
-from pokesleep_box.ocr import enrich_with_species_data, merge_frames
+from pokesleep_box.ocr import (enrich_with_species_data, ingredient_amount_row, merge_frames,
+                               write_vision_vocabulary)
 from pokesleep_box.server import build_simulation_payload
 from pokesleep_box.engine import individual_to_engine
 
@@ -293,6 +295,96 @@ class CoreTests(unittest.TestCase):
             ]}
         rows = merge_frames([frame(540), frame(540), frame(511), frame(511)])
         self.assertEqual([x["sp"] for x in rows], [540, 511])
+
+    def test_rescan_keeps_engine_scores_when_the_core_is_unchanged(self):
+        item = dict(self.items[0], sp=513, energy_scores={"シアンの砂浜": {"current": {"expected": 1}}})
+        import_individuals(self.db, [item])
+        capture = {k: v for k, v in item.items() if k not in ("energy_scores", "uid")}
+        import_individuals(self.db, [capture])
+        row = self.db.execute("SELECT energy_scores_json FROM individual").fetchone()
+        self.assertEqual(json.loads(row["energy_scores_json"])["シアンの砂浜"]["current"]["expected"], 1)
+
+    def test_rescan_drops_engine_scores_when_the_core_changed(self):
+        item = dict(self.items[0], sp=513, energy_scores={"シアンの砂浜": {"current": {"expected": 1}}})
+        import_individuals(self.db, [item])
+        capture = {k: v for k, v in item.items() if k not in ("energy_scores", "uid")}
+        capture["skill_level"] = int(item["skill_level"]) + 1
+        import_individuals(self.db, [capture])
+        rows = self.db.execute(
+            "SELECT energy_scores_json FROM individual WHERE sp=513 ORDER BY last_seen").fetchall()
+        self.assertEqual([json.loads(x["energy_scores_json"]) for x in rows][-1], {})
+
+    def test_render_never_defaults_into_the_published_site_directory(self):
+        parser = build_parser()
+        private = parser.parse_args(["render"])
+        public = parser.parse_args(["demo"])
+        # `render` reads the private box, so its page must stay out of `site/`,
+        # which is tracked by Git and published. Only `demo` writes there.
+        self.assertEqual(private.out, Path("site/private"))
+        self.assertEqual(private.db, Path("data/box.sqlite"))
+        self.assertEqual(public.out, Path("site"))
+
+    def test_single_misread_frame_never_splits_one_individual(self):
+        def frame(index, species, sp):
+            return {"frame": index, "observations": [
+                {"text": species, "confidence": .9},
+                {"text": f"SP {sp}", "confidence": .9},
+            ]}
+        rows = merge_frames([frame(1, "ゼニガメ", 540), frame(2, "ゼニガメ", 540),
+                             frame(3, "ゼニガメ", 511), frame(4, "ゼニガメ", 540),
+                             frame(5, "ゼニガメ", 540)])
+        self.assertEqual([x["sp"] for x in rows], [540])
+
+    def test_higher_confidence_frame_wins_over_a_later_blurry_frame(self):
+        frames = [
+            {"frame": 1, "observations": [
+                {"text": "ヒトカゲ", "confidence": .97},
+                {"text": "SP 508", "confidence": .97},
+                {"text": "おっとり", "confidence": .95},
+            ]},
+            {"frame": 2, "observations": [
+                {"text": "ヒトカゲ", "confidence": .4},
+                {"text": "SP 508", "confidence": .4},
+                {"text": "さみしがり", "confidence": .4},
+            ]},
+        ]
+        self.assertEqual(merge_frames(frames)[0]["nature"], "Mild")
+
+    def test_subskills_from_different_scroll_positions_are_combined(self):
+        frames = [
+            {"frame": 1, "observations": [
+                {"text": "ゼニガメ", "confidence": .9},
+                {"text": "SP 511", "confidence": .9},
+                {"text": "Lv.10 げんき回復ボーナス", "confidence": .9},
+                {"text": "Lv.25 きのみの数S", "confidence": .9},
+            ]},
+            {"frame": 2, "observations": [
+                {"text": "ゼニガメ", "confidence": .9},
+                {"text": "Lv.50 食材確率アップM", "confidence": .9},
+                {"text": "Lv.75 おてつだいスピードS", "confidence": .9},
+                {"text": "Lv.100 リサーチEXPボーナス", "confidence": .9},
+            ]},
+        ]
+        row = merge_frames(frames)[0]
+        self.assertEqual([x[1] for x in row["subskills"]], [10, 25, 50, 75, 100])
+        self.assertNotIn("subskills", row["ocr_missing"])
+
+    def test_ingredient_amounts_survive_a_shifted_capture(self):
+        observations = [
+            {"text": "あまいミツ x2", "confidence": .9, "x": .20, "y": .55},
+            {"text": "あまいミツ x5 Lv.30", "confidence": .9, "x": .50, "y": .55},
+            {"text": "ほっこりポテト x6 Lv.60", "confidence": .9, "x": .80, "y": .54},
+        ]
+        self.assertEqual(ingredient_amount_row(observations), [2, 5, 6])
+
+    def test_unrelated_amount_is_never_read_as_an_ingredient_row(self):
+        self.assertEqual(ingredient_amount_row(
+            [{"text": "ゆめのかけす x20", "confidence": .9, "x": .5, "y": .12}]), [])
+
+    def test_vision_vocabulary_carries_the_known_game_names(self):
+        words = json.loads(write_vision_vocabulary().read_text(encoding="utf-8"))
+        self.assertIn("フシギダネ", words)
+        self.assertIn("げんき回復ボーナス", words)
 
     def test_scrolled_ingredient_level_never_overwrites_current_level(self):
         frames = [

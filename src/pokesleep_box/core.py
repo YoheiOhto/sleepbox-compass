@@ -63,8 +63,6 @@ def connect(path: Path) -> sqlite3.Connection:
         db.execute("ALTER TABLE individual ADD COLUMN island_scores_json TEXT NOT NULL DEFAULT '{}'")
     if "berry" not in columns:
         db.execute("ALTER TABLE individual ADD COLUMN berry TEXT")
-    if "production_scores_json" not in columns:
-        db.execute("ALTER TABLE individual ADD COLUMN production_scores_json TEXT NOT NULL DEFAULT '{}'")
     if "energy_scores_json" not in columns:
         db.execute("ALTER TABLE individual ADD COLUMN energy_scores_json TEXT NOT NULL DEFAULT '{}'")
     if "review_confirmed" not in columns:
@@ -118,14 +116,30 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
                                 (existing and existing["review_confirmed"]))
         verified = bool(review_confirmed or item.get("verified") or
                         (same_core and existing["verified"]))
+
+        def engine_scores(field: str, column: str) -> str:
+            """Keep engine output that a capture cannot carry.
+
+            A rescan supplies no score at all, so overwriting would silently
+            discard `evaluate` results and force a full recomputation. The
+            scores describe the stats they were computed from, so they are only
+            preserved while those stats are unchanged.
+            """
+            value = item.get(field)
+            if value:
+                return json.dumps(value, ensure_ascii=False)
+            if same_core:
+                return existing[column]
+            return "{}"
+
         db.execute(
             """INSERT INTO individual
-            (uid,species,display_name,level,nature,pokemon_type,berry,production_scores_json,energy_scores_json,island_scores_json,ingredients_json,subskills_json,
+            (uid,species,display_name,level,nature,pokemon_type,berry,energy_scores_json,island_scores_json,ingredients_json,subskills_json,
              main_skill,skill_level,sp,box_index,first_seen,last_seen,confidence,verified,review_confirmed)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(uid) DO UPDATE SET species=excluded.species,display_name=excluded.display_name,
               level=excluded.level,nature=excluded.nature,pokemon_type=excluded.pokemon_type,
-              berry=excluded.berry,production_scores_json=excluded.production_scores_json,
+              berry=excluded.berry,
               energy_scores_json=excluded.energy_scores_json,
               island_scores_json=excluded.island_scores_json,ingredients_json=excluded.ingredients_json,
               subskills_json=excluded.subskills_json,main_skill=excluded.main_skill,
@@ -135,9 +149,9 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
               verified=MAX(individual.review_confirmed,excluded.verified,excluded.review_confirmed)""",
             (uid, item["species"], item.get("display_name"), item.get("level"),
              item["nature"], item.get("pokemon_type"),
-             item.get("berry"), json.dumps(item.get("production_scores", {}), ensure_ascii=False),
-             json.dumps(item.get("energy_scores", {}), ensure_ascii=False),
-             json.dumps(item.get("island_scores", {}), ensure_ascii=False),
+             item.get("berry"),
+             engine_scores("energy_scores", "energy_scores_json"),
+             engine_scores("island_scores", "island_scores_json"),
              json.dumps(item["ingredients"], ensure_ascii=False),
              json.dumps(item["subskills"], ensure_ascii=False), item["main_skill"],
              item["skill_level"], item.get("sp"), item.get("box_index"),
@@ -228,7 +242,6 @@ def load_dashboard(db: sqlite3.Connection) -> List[Dict[str, Any]]:
                        "evaluations": item_scores,
                        "island_scores": json.loads(row["island_scores_json"] or "{}"),
                        "energy_scores": json.loads(row["energy_scores_json"] or "{}"),
-                       "production_scores": json.loads(row["production_scores_json"] or "{}"),
                        "ingredient_slots": ingredient_slots,
                        "absolute_by_role": role_scores,
                        "absolute_score": max(role_scores.values(), default=0.0),

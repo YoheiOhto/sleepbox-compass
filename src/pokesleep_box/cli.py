@@ -14,7 +14,12 @@ from .localization import names
 from .render import render_site
 
 
-def main() -> None:
+def build_parser() -> argparse.ArgumentParser:
+    """Build the command line parser.
+
+    Kept separate from `main` so tests can assert on defaults that carry
+    privacy consequences, such as where `render` writes personal data.
+    """
     parser = argparse.ArgumentParser(prog="pokesleep-box")
     parser.add_argument("--db", type=Path, default=Path("data/box.sqlite"))
     commands = parser.add_subparsers(dest="command", required=True)
@@ -24,7 +29,10 @@ def main() -> None:
     dec = commands.add_parser("decide")
     dec.add_argument("--keep-top-n", type=int, default=2)
     render = commands.add_parser("render")
-    render.add_argument("--out", type=Path, default=Path("site"))
+    # `--db` defaults to the private box, so the rendered page contains personal
+    # data. It must never default into `site/`, which is tracked by Git and
+    # published to GitHub Pages; only `demo` writes the public sample page.
+    render.add_argument("--out", type=Path, default=Path("site/private"))
     render.add_argument("--settings", type=Path, default=Path("config/settings.local.json"))
     render.add_argument("--benchmarks", type=Path, default=Path("data/private/species_benchmarks.json"))
     render.add_argument("--encounters", type=Path, default=Path("data/seed_encounters.json"))
@@ -75,6 +83,11 @@ def main() -> None:
     commands.add_parser("validate-names")
     ocr_demo = commands.add_parser("make-ocr-demo")
     ocr_demo.add_argument("--out", type=Path, default=Path("inbox/ocr-demo.png"))
+    return parser
+
+
+def main() -> None:
+    parser = build_parser()
     args = parser.parse_args()
     db = connect(args.db)
     if args.command == "init-db":

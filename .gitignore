@@ -8,6 +8,7 @@ config/settings.local.json
 config/protected.local.json
 site/private/*
 audit_report.md
+agent/
 
 # Keep empty private directories documented
 !inbox/.gitkeep

@@ -52,12 +52,14 @@ pokesleep-box decide --keep-top-n 2
 pokesleep-box render
 ```
 
-実データのページは、公開デモの`site/`と分けてGit管理外の`site/private/`へ生成できます。
+実データのページは、Git管理外の`site/private/`へ生成されます。`render`の出力先の既定は
+`site/private`であり、公開デモの`site/`へは`demo`だけが書き込みます。個人データが
+GitHub Pagesへ公開されるのを防ぐため、`render --out site`のように公開側を明示指定しないでください。
 
 ```sh
 pokesleep-box --db data/box.sqlite decide
 pokesleep-box --db data/box.sqlite evaluate
-pokesleep-box --db data/box.sqlite render --out site/private
+pokesleep-box --db data/box.sqlite render
 python3 -m http.server 8000 --directory site/private
 ```
 
@@ -87,6 +89,19 @@ Lv1/30/60候補だけをレビュー画面に表示するので、画像を見�
 1本目で生産情報、2本目でスクロールして性格を撮る運用ができます。現在レベルはSP付近の
 ヘッダーだけから読み、食材のLv30/60やサブスキル解放Lvを現在レベルとして扱いません。
 レビュー画面では現在レベル・SP・性格・メインスキルLv・食材を直接修正してから照合済みにできます。
+
+動画は1個体をスクロールしながら何フレームも撮るため、フレームの統合精度がそのまま
+取り込み精度になります。個体の切れ目は、種族・性格・SPの食い違いが**連続2フレーム**
+続いたときだけ確定します。1フレームだけのブレによる誤読は破棄するので、同じ個体が
+複数の個体へ分裂しません。同じ項目を複数フレームが読んだ場合は、最後のフレームではなく
+**信頼度が最も高いフレーム**の値を採用します（スクロール終盤ほどブレやすいため）。
+サブスキルと食材はフレームごとに見える枠が変わるので、上書きではなく**和集合**で
+統合し、多くのフレームが支持した枠を優先します。解放Lvのバッジはどのフレームで
+読めても採用します。食材の個数は固定座標ではなく、`×n`の並びを画面の行としてまとめ、
+Lv1/30/60バッジなどの根拠がある行だけを食材行として採用するため、画角やスクロール位置が
+変わっても取りこぼしません。認識時にはVisionへ種族・性格・サブスキル・食材・きのみの
+日本語名を語彙ヒントとして渡し、日本語補正が固有名を一般的な単語へ書き換えるのを防ぎます。
+
 macOS Visionを使えない環境では`--ocr sidecar --ocr-command /path/to/extractor`で従来の
 ローカル抽出器を利用できます（sidecar方式の動画抽出にはffmpegが必要です）。取り込み後の
 `audit_report.md`、`frames/review.html`、OCR画像、DBはすべてGit管理外です。
@@ -97,11 +112,34 @@ macOS Visionを使えない環境では`--ocr sidecar --ocr-command /path/to/ext
 
 ```sh
 ./engine/install.sh
+```
+
+初回のみ実行します（既にビルド済みなら不要です）。
+
+### 起動（ワンコマンド）
+
+実データの検証・評価・たね育成プラン計算・整理判定・画面生成・ローカルサーバー起動を
+まとめて行うスクリプトです。`Ctrl+C`で停止します。
+
+```sh
+./scripts/serve.sh
+```
+
+ブラウザで `http://localhost:8000` を開きます。再計算せずサーバーだけ起動したい場合は
+`./scripts/serve.sh --serve-only` を使います。DBや出力先を変える場合は
+`POKESLEEP_DB` / `POKESLEEP_SITE` 環境変数で上書きできます（既定は
+`data/box.sqlite` / `site/private`）。
+
+内部では次のコマンドを順に実行しています（個別に実行したい場合の参考）。
+
+```sh
 pokesleep-box verify
 pokesleep-box evaluate
-pokesleep-box benchmark
+pokesleep-box seed-evaluate
+pokesleep-box main-seed-evaluate
 pokesleep-box decide --keep-top-n 2
-pokesleep-box render
+pokesleep-box render --out site/private
+pokesleep-box --db data/box.sqlite serve --site site/private
 ```
 
 `verify`は表示SPとの一致を確認します。許容差一致の個体も監査対象のままとし、
@@ -110,16 +148,20 @@ pokesleep-box render
 入力形式は [data/example_individuals.json](data/example_individuals.json) を参照してください。
 この例は架空のサンプルであり、実ユーザーのデータではありません。
 
-任意の5匹をその場で再計算する場合は、静的HTTPサーバーではなく次で起動します。
+一般的な捕獲候補用の理想個体ベンチマークは、種族データや計算式を更新したときだけ
+再生成します（`起動`のたびには実行されません）。
 
 ```sh
-PYTHONPATH=src python3 -m pokesleep_box.cli --db data/box.sqlite serve --site site/private
+pokesleep-box benchmark
 ```
 
-`pokemon_type` にタイプ、`berry` にその個体のきのみ、`production_scores` に計算エンジンが
-算出した現在値とLv50/60/70/80の総生産・きのみ生産を渡します。画面で好みのきのみ3種を
-選ぶたび、好物ボーナスを加えて同一個体を重複させず上位5匹を再計算します。固定島を選ぶと
-3種が自動入力され、ワカクサ本島ではその週の3種を自由に選べます。
+上記の`serve`は、`./scripts/serve.sh`が最終的に起動するのと同じローカルAPIサーバーです。
+任意の5匹をその場で再計算する画面の編成機能は、このサーバー経由でのみ動作します。
+
+`pokemon_type` にタイプ、`berry` にその個体のきのみを渡します。編成の順位づけは
+`energy_scores` の島別・育成段階別の期待エナジーだけを使い、個体を重複させずに上位5匹を
+選びます。固定島を選ぶときのみ3種が自動入力されます。きのみの表示は、その島で
+好物になる個体を★で示すためのもので、順位そのものは島の選択で決まります。
 
 島別予測では`energy_scores`に加え、`evaluate`が非公開の
 `data/private/team_plans.json`を生成します。値は1日あたりで、`berry`、料理、直接エナジーを

@@ -16,8 +16,24 @@ from .localization import names, normalize_individual, to_japanese
 ROOT = Path(__file__).parents[2]
 VISION_SOURCE = ROOT / "engine/macos/vision_ocr.swift"
 VISION_BINARY = ROOT / ".cache/vision-ocr"
+VISION_VOCABULARY = ROOT / ".cache/vision-vocabulary.json"
 DEMO_SOURCE = ROOT / "engine/macos/make_demo.swift"
 VENDOR_COMMON = ROOT / "engine/vendor/nerolis-lab/common/src"
+
+# Fields that identify which individual a frame is showing. A scrolling capture
+# keeps them stable while the rest of the screen changes.
+IDENTITY_KEYS = ("species", "nature", "sp")
+# Pokemon Sleep unlocks the five subskill rows at these levels.
+SUBSKILL_UNLOCKS = (10, 25, 50, 75, 100)
+MAX_SUBSKILLS = len(SUBSKILL_UNLOCKS)
+INGREDIENT_SLOTS = 3
+# Ingredient amounts sit on one screen row. The band is prior knowledge used to
+# rank candidate rows, not a hard crop, so a differently cropped or scrolled
+# capture still resolves.
+INGREDIENT_ROW_CENTER = .705
+INGREDIENT_ROW_MIN = .50
+INGREDIENT_ROW_MAX = .88
+INGREDIENT_ROW_TOLERANCE = .04
 
 
 def ensure_vision_binary() -> Path:
@@ -37,11 +53,32 @@ def ensure_vision_binary() -> Path:
     return VISION_BINARY
 
 
+def write_vision_vocabulary() -> Path:
+    """Write the closed game vocabulary Vision should prefer while recognizing.
+
+    Vision's Japanese language correction rewrites unfamiliar katakana into
+    ordinary words, which silently turns species and subskill names into
+    near-miss text. Supplying the known names as custom words keeps the
+    correction inside the vocabulary this project can actually resolve.
+    """
+    table = names()
+    words = sorted({japanese
+                    for category in ("species", "natures", "mainskills", "berries",
+                                     "ingredients", "subskills")
+                    for japanese in table.get(category, {}).values() if japanese})
+    payload = json.dumps(words, ensure_ascii=False)
+    VISION_VOCABULARY.parent.mkdir(parents=True, exist_ok=True)
+    if not VISION_VOCABULARY.exists() or VISION_VOCABULARY.read_text(encoding="utf-8") != payload:
+        VISION_VOCABULARY.write_text(payload, encoding="utf-8")
+    return VISION_VOCABULARY
+
+
 def recognize_path(path: Path, interval: float = .8,
                    on_progress: Optional[Callable[[str], None]] = None) -> List[Dict[str, Any]]:
     binary = ensure_vision_binary()
-    proc = subprocess.Popen([str(binary), str(path), str(interval)], stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE, text=True)
+    vocabulary = write_vision_vocabulary()
+    proc = subprocess.Popen([str(binary), str(path), str(interval), str(vocabulary)],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     # The binary writes the full JSON result to stdout only once, at the very
     # end. Draining it concurrently avoids a deadlock: without a reader, a
     # large result can fill the stdout pipe buffer and block the child while
@@ -90,6 +127,57 @@ def _match(texts: Sequence[str], category: str, cutoff: float = .72) -> Optional
     return best
 
 
+def ingredient_amount_row(observations: Sequence[Mapping[str, Any]]) -> List[int]:
+    """Read the ingredient amounts from whichever screen row actually holds them.
+
+    In the game screen ingredient names are icons, so only the "x n" amounts are
+    OCR text and the row has to be located by layout. A fixed coordinate band
+    silently drops every amount as soon as the capture is cropped, rotated or
+    scrolled differently, so the amount observations are clustered into screen
+    rows and the row that looks like the ingredient row is chosen. Rows are only
+    accepted with positive evidence, keeping an unrelated "x2" elsewhere on the
+    screen from being read as an ingredient.
+
+    Args:
+        observations: Vision text observations for a single frame.
+
+    Returns:
+        Up to three amounts in left-to-right order, or an empty list when no
+        row can be identified.
+    """
+    marks: List[Tuple[float, float, int, bool]] = []
+    for observation in observations:
+        if "y" not in observation:
+            continue  # sidecar payloads carry no layout, so the row is unverifiable
+        text = str(observation.get("text", ""))
+        amount = re.search(r"[x×]\s*(\d{1,2})", text, re.I)
+        if not amount:
+            continue
+        slot_badge = re.search(r"(?:Lv\.?|レベル)\s*(?:1|30|60)\b", text, re.I)
+        marks.append((float(observation["y"]), float(observation.get("x", 0)),
+                      int(amount.group(1)), bool(slot_badge)))
+    if not marks:
+        return []
+    rows: List[List[Tuple[float, float, int, bool]]] = []
+    for mark in sorted(marks, key=lambda item: -item[0]):
+        if rows and abs(rows[-1][0][0] - mark[0]) <= INGREDIENT_ROW_TOLERANCE:
+            rows[-1].append(mark)
+        else:
+            rows.append([mark])
+    plausible = []
+    for row in rows:
+        if len(row) > INGREDIENT_SLOTS:
+            continue  # a row with more than three amounts is not the ingredient row
+        center = sum(mark[0] for mark in row) / len(row)
+        badged = any(mark[3] for mark in row)
+        if badged or INGREDIENT_ROW_MIN <= center <= INGREDIENT_ROW_MAX:
+            plausible.append((badged, -abs(center - INGREDIENT_ROW_CENTER), row))
+    if not plausible:
+        return []
+    best = max(plausible, key=lambda item: item[:2])[2]
+    return [amount for _, _, amount, _ in sorted(best, key=lambda mark: mark[1])]
+
+
 def parse_frame(frame: Mapping[str, Any]) -> Dict[str, Any]:
     observations = frame.get("observations", [])
     texts = [str(x.get("text", "")) for x in observations]
@@ -128,22 +216,26 @@ def parse_frame(frame: Mapping[str, Any]) -> Dict[str, Any]:
     if skill_level:
         result["skill_level"] = int(skill_level.group(1))
 
-    subskills = []
+    # The unlock badge is kept raw here (0 when it was not readable). Assigning
+    # the fixed unlock levels is deferred to `finalize_candidate`, so a badge
+    # read in any frame of a scroll wins over a positional guess.
+    subskills: List[List[Any]] = []
+    subskill_rows: Dict[str, List[Any]] = {}
     for text in texts:
         found = _match([text], "subskills", .78)
-        if found:
-            badge = re.search(r"Lv\.?\s*(\d{1,3})", text, re.I)
-            subskills.append([found[0], int(badge.group(1)) if badge else 0])
+        if not found:
+            continue
+        badge = re.search(r"Lv\.?\s*(\d{1,3})", text, re.I)
+        unlock = int(badge.group(1)) if badge else 0
+        row = subskill_rows.get(found[0])
+        if row is None:
+            row = [found[0], unlock]
+            subskill_rows[found[0]] = row
+            subskills.append(row)
+        elif unlock and not row[1]:
+            row[1] = unlock
     if subskills:
-        defaults = [10, 25, 50, 75, 100]
-        unique_subskills = []
-        seen_subskills = set()
-        for name, unlock in subskills:
-            if name not in seen_subskills:
-                unique_subskills.append((name, unlock))
-                seen_subskills.add(name)
-        result["subskills"] = [[name, unlock or defaults[i]]
-                               for i, (name, unlock) in enumerate(unique_subskills[:5])]
+        result["subskills"] = subskills
 
     ingredients = []
     for text in texts:
@@ -153,41 +245,167 @@ def parse_frame(frame: Mapping[str, Any]) -> Dict[str, Any]:
             ingredients.append([found[0], int(amount.group(1)) if amount else 0])
     if ingredients:
         result["ingredients"] = ingredients
-    # In the game screen ingredient names are icons, but their amounts are OCR
-    # text. Restrict to the ingredient row by Vision's normalized coordinates.
-    amount_rows = []
-    for observation in observations:
-        y = float(observation.get("y", 0))
-        text = str(observation.get("text", ""))
-        amount = re.search(r"[x×]\s*(\d{1,2})", text, re.I)
-        if amount and .62 <= y <= .79:
-            amount_rows.append((float(observation.get("x", 0)), int(amount.group(1))))
-    if amount_rows:
-        result["ingredient_amounts"] = [amount for _, amount in sorted(amount_rows)[:3]]
+    amounts = ingredient_amount_row(observations)
+    if amounts:
+        result["ingredient_amounts"] = amounts
     confidences = [float(x.get("confidence", 0)) for x in observations]
     result["ocr_confidence"] = sum(confidences) / len(confidences) if confidences else 0
     return result
 
 
+def identity_conflict(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
+    """Report whether two frames disagree about which individual they show."""
+    return any(left.get(key) and right.get(key) and left[key] != right[key]
+               for key in IDENTITY_KEYS)
+
+
+def identity_agrees(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
+    """Report whether two frames positively confirm the same individual."""
+    if identity_conflict(left, right):
+        return False
+    return any(left.get(key) and right.get(key) and left[key] == right[key]
+               for key in IDENTITY_KEYS)
+
+
+def merge_subskills(existing: Sequence[Sequence[Any]],
+                    incoming: Sequence[Sequence[Any]]) -> List[List[Any]]:
+    """Union subskill rows by name, counting how many frames saw each row.
+
+    A scrolling capture shows a different subset of the five rows per frame, so
+    replacing the list with whichever frame saw the most rows drops rows that
+    only appear in another frame. The vote count keeps a single misread from
+    permanently occupying one of the five slots.
+    """
+    merged = [[entry[0], entry[1], entry[2] if len(entry) > 2 else 1] for entry in existing]
+    by_name = {entry[0]: entry for entry in merged}
+    for entry in incoming:
+        votes = entry[2] if len(entry) > 2 else 1
+        row = by_name.get(entry[0])
+        if row is None:
+            row = [entry[0], entry[1], votes]
+            by_name[entry[0]] = row
+            merged.append(row)
+            continue
+        row[2] += votes
+        if entry[1] and not row[1]:
+            row[1] = entry[1]
+    return merged
+
+
+def merge_ingredients(existing: Sequence[Sequence[Any]],
+                      incoming: Sequence[Sequence[Any]]) -> List[List[Any]]:
+    """Union ingredient rows by name and amount, counting frames per row.
+
+    Unlike subskills the same ingredient legitimately fills two slots at
+    different amounts, so the amount is part of the row identity.
+    """
+    merged = [[entry[0], entry[1], entry[2] if len(entry) > 2 else 1] for entry in existing]
+    by_slot = {(entry[0], entry[1]): entry for entry in merged}
+    for entry in incoming:
+        votes = entry[2] if len(entry) > 2 else 1
+        row = by_slot.get((entry[0], entry[1]))
+        if row is None:
+            row = [entry[0], entry[1], votes]
+            by_slot[(entry[0], entry[1])] = row
+            merged.append(row)
+        else:
+            row[2] += votes
+    return merged
+
+
+def resolve_subskill_unlocks(entries: Sequence[Sequence[Any]]) -> List[List[Any]]:
+    """Assign the fixed unlock levels, keeping badges actually read from a frame.
+
+    Rows seen in more frames win the five slots; rows whose badge was never
+    readable take the unlock levels the readable rows did not claim.
+    """
+    ranked = sorted(entries, key=lambda entry: -(entry[2] if len(entry) > 2 else 1))[:MAX_SUBSKILLS]
+    known = sorted(([entry[0], int(entry[1])] for entry in ranked if entry[1]),
+                   key=lambda entry: entry[1])
+    claimed = {entry[1] for entry in known}
+    spare = [level for level in SUBSKILL_UNLOCKS if level not in claimed]
+    unknown = [entry[0] for entry in ranked if not entry[1]]
+    filled = known + [[name, spare[index]] for index, name in enumerate(unknown)
+                      if index < len(spare)]
+    return sorted(filled, key=lambda entry: entry[1])
+
+
+def resolve_ingredient_slots(entries: Sequence[Sequence[Any]]) -> List[List[Any]]:
+    """Keep the three ingredient rows seen in the most frames, in screen order."""
+    indexed = list(enumerate(entries))
+    ranked = sorted(indexed, key=lambda pair: (-(pair[1][2] if len(pair[1]) > 2 else 1), pair[0]))
+    kept = sorted(ranked[:INGREDIENT_SLOTS], key=lambda pair: pair[0])
+    return [[entry[0], entry[1]] for _, entry in kept]
+
+
+def _field_score(part: Mapping[str, Any], field: str) -> float:
+    """Score how much a frame should be trusted for one field."""
+    confidence = part.get("field_confidence", {})
+    if field in confidence:
+        return float(confidence[field])
+    return float(part.get("ocr_confidence", 0.0))
+
+
+def _absorb(current: Dict[str, Any], scores: Dict[str, float], part: Mapping[str, Any]) -> None:
+    """Fold one frame into the individual being assembled.
+
+    Scalar fields keep the reading with the highest confidence rather than the
+    last one seen, because the final frames of a scroll are systematically the
+    blurriest. Slot fields are unioned instead of replaced.
+    """
+    for key, value in part.items():
+        if key == "field_confidence":
+            merged = current.setdefault(key, {})
+            for field, score in value.items():
+                merged[field] = max(float(score), float(merged.get(field, 0.0)))
+        elif key == "subskills":
+            current[key] = merge_subskills(current.get(key, []), value)
+        elif key == "ingredients":
+            current[key] = merge_ingredients(current.get(key, []), value)
+        elif key == "ingredient_amounts":
+            if len(value) > len(current.get(key, [])):
+                current[key] = value
+        elif value not in (None, "", [], {}):
+            score = _field_score(part, key)
+            if key not in current or score >= scores.get(key, -1.0):
+                current[key] = value
+                scores[key] = score
+
+
 def merge_frames(frames: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    """Group consecutive frames into individuals and fold each group into one row.
+
+    A boundary is only accepted once two consecutive frames agree on the new
+    identity. Splitting on the first disagreement turned a single misread frame
+    mid-scroll into a phantom individual, which left both halves with virtual
+    gaps in their ingredients and subskills.
+    """
     partials = [parse_frame(frame) for frame in frames]
     groups: List[Dict[str, Any]] = []
     current: Dict[str, Any] = {}
+    scores: Dict[str, float] = {}
+    held: Optional[Dict[str, Any]] = None
     for part in partials:
-        species_changed = current.get("species") and part.get("species") and current["species"] != part["species"]
-        core_conflict = (current.get("nature") and part.get("nature") and current["nature"] != part["nature"])
-        identity_changed = (current.get("sp") and part.get("sp") and current["sp"] != part["sp"])
-        if (species_changed or core_conflict or identity_changed) and current:
+        if held is not None:
+            if identity_agrees(held, part):
+                if current:
+                    groups.append(current)
+                current, scores = {}, {}
+                _absorb(current, scores, held)
+            # A held frame that agrees with neither neighbour is a transient
+            # misread and is dropped rather than started as an individual.
+            held = None
+        if current and identity_conflict(current, part):
+            held = part
+            continue
+        _absorb(current, scores, part)
+    if held is not None:
+        # A capture can end one frame into the next individual. Keeping it costs
+        # one row that review already flags, while dropping it loses real data.
+        if current:
             groups.append(current)
-            current = {}
-        for key, value in part.items():
-            if key == "field_confidence":
-                current.setdefault(key, {}).update(value)
-            elif key in ("subskills", "ingredients"):
-                if len(value) >= len(current.get(key, [])):
-                    current[key] = value
-            elif value not in (None, "", [], {}):
-                current[key] = value
+        current, scores = {}, {}
+        _absorb(current, scores, held)
     if current:
         groups.append(current)
     return [finalize_candidate(x, index + 1) for index, x in enumerate(groups)]
@@ -200,11 +418,11 @@ def finalize_candidate(item: Dict[str, Any], box_index: int) -> Dict[str, Any]:
     result = {**item, "box_index": box_index, "confidence": round(confidence, 4),
               "verified": False, "ocr_missing": missing}
     result.setdefault("nature", "Hardy")
-    result.setdefault("ingredients", [])
-    result.setdefault("subskills", [])
     result.setdefault("main_skill", "Metronome")
     result.setdefault("skill_level", 1)
     result.setdefault("species", "UNKNOWN")
+    result["ingredients"] = resolve_ingredient_slots(result.get("ingredients", []))
+    result["subskills"] = resolve_subskill_unlocks(result.get("subskills", []))
     result["species_ja"] = to_japanese("species", result["species"])
     return normalize_individual(result)
 

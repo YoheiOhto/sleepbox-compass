@@ -19,12 +19,24 @@ struct FrameResult: Codable {
     let observations: [Observation]
 }
 
-func recognize(_ image: CGImage, frame: Int, seconds: Double) throws -> FrameResult {
+/// Load the closed game vocabulary the caller wants Vision to prefer.
+///
+/// Japanese language correction otherwise rewrites unfamiliar katakana names
+/// into ordinary words, so the recognized text stops matching any known name.
+func loadCustomWords(_ path: String?) -> [String] {
+    guard let path, let data = FileManager.default.contents(atPath: path),
+          let words = try? JSONDecoder().decode([String].self, from: data) else { return [] }
+    return words
+}
+
+func recognize(_ image: CGImage, frame: Int, seconds: Double,
+               customWords: [String]) throws -> FrameResult {
     let request = VNRecognizeTextRequest()
     request.recognitionLevel = .accurate
     request.recognitionLanguages = ["ja-JP", "en-US"]
     request.usesLanguageCorrection = true
     request.minimumTextHeight = 0.008
+    request.customWords = customWords
     let handler = VNImageRequestHandler(cgImage: image, options: [:])
     try handler.perform([request])
     let rows = (request.results ?? []).compactMap { result -> Observation? in
@@ -43,7 +55,7 @@ func imageAt(_ url: URL) -> CGImage? {
     return CGImageSourceCreateImageAtIndex(source, 0, nil)
 }
 
-func videoFrames(_ url: URL, interval: Double) async throws -> [FrameResult] {
+func videoFrames(_ url: URL, interval: Double, customWords: [String]) async throws -> [FrameResult] {
     let asset = AVURLAsset(url: url)
     let duration = try await asset.load(.duration).seconds
     let generator = AVAssetImageGenerator(asset: asset)
@@ -57,7 +69,8 @@ func videoFrames(_ url: URL, interval: Double) async throws -> [FrameResult] {
     while second <= duration {
         do {
             let image = try generator.copyCGImage(at: CMTime(seconds: second, preferredTimescale: 600), actualTime: nil)
-            results.append(try recognize(image, frame: index, seconds: second))
+            results.append(try recognize(image, frame: index, seconds: second,
+                                         customWords: customWords))
         } catch {
             // A damaged/transitional frame is skipped; later validation exposes missing fields.
         }
@@ -73,17 +86,18 @@ func videoFrames(_ url: URL, interval: Double) async throws -> [FrameResult] {
 @main struct VisionOCR {
     static func main() async throws {
         guard CommandLine.arguments.count >= 2 else {
-            FileHandle.standardError.write(Data("usage: vision-ocr FILE [INTERVAL]\n".utf8))
+            FileHandle.standardError.write(Data("usage: vision-ocr FILE [INTERVAL] [VOCABULARY]\n".utf8))
             exit(2)
         }
         let url = URL(fileURLWithPath: CommandLine.arguments[1])
         let interval = CommandLine.arguments.count > 2 ? Double(CommandLine.arguments[2]) ?? 0.8 : 0.8
+        let customWords = loadCustomWords(CommandLine.arguments.count > 3 ? CommandLine.arguments[3] : nil)
         let video = ["mov", "mp4", "m4v"].contains(url.pathExtension.lowercased())
         let results: [FrameResult]
         if video {
-            results = try await videoFrames(url, interval: interval)
+            results = try await videoFrames(url, interval: interval, customWords: customWords)
         } else if let image = imageAt(url) {
-            results = [try recognize(image, frame: 0, seconds: 0)]
+            results = [try recognize(image, frame: 0, seconds: 0, customWords: customWords)]
         } else {
             throw NSError(domain: "VisionOCR", code: 1,
                           userInfo: [NSLocalizedDescriptionKey: "画像を読み込めません: \(url.path)"])

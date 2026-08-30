@@ -92,6 +92,7 @@ def ingest_path(path: Path, frames_dir: Path, ocr_command: Optional[str] = None,
     # The same individual can appear in a production video and a later nature
     # video. SP + species joins those complementary captures without image
     # matching or uploading private frames.
+    from .ocr import merge_subskills, resolve_subskill_unlocks
     joined = {}
     for item in result:
         key = ((item.get("species"), item.get("sp")) if item.get("sp") is not None
@@ -105,9 +106,15 @@ def ingest_path(path: Path, frames_dir: Path, ocr_command: Optional[str] = None,
         for field in ("nature", "level", "main_skill", "skill_level"):
             if field not in item_missing and (field in base_missing or not base.get(field)):
                 base[field] = item.get(field)
-        for field in ("ingredients", "subskills"):
-            if field not in item_missing and len(item.get(field, [])) >= len(base.get(field, [])):
-                base[field] = item[field]
+        # Two videos of one individual usually stop scrolling at different rows,
+        # so the subskill lists are complementary rather than redundant.
+        if "subskills" not in item_missing:
+            base["subskills"] = resolve_subskill_unlocks(
+                merge_subskills(base.get("subskills", []), item.get("subskills", [])))
+        if "ingredients" not in item_missing and (
+                "ingredients" in base_missing
+                or len(item.get("ingredients", [])) > len(base.get("ingredients", []))):
+            base["ingredients"] = item["ingredients"]
         base["confidence"] = max(float(base.get("confidence", 0)), float(item.get("confidence", 0)))
         base["ocr_sources"] = sorted(set(base.get("ocr_sources", [])) | set(item.get("ocr_sources", [])))
         base["ocr_missing"] = sorted(base_missing & item_missing)
