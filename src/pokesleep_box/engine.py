@@ -6,7 +6,7 @@ import threading
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional
 
-from .core import ANCHORS, ROLES, absolute_role_scores, now
+from .core import ANCHORS, ROLES, absolute_role_scores, latest_evaluations, now
 
 SUBSKILL_UPGRADES = {
     "Helping Speed S": "Helping Speed M", "Ingredient Finder S": "Ingredient Finder M",
@@ -41,13 +41,17 @@ def run_engine(payload: Mapping[str, Any], command: str = "engine/bin/pokesleep-
     last_percent: Dict[str, int] = {}
     for raw_line in proc.stderr:
         line = raw_line.rstrip("\n")
-        if line.startswith("PROGRESS ") and on_progress:
-            label, done, total = line.split(" ")[1:]
-            done, total = int(done), int(total)
-            percent = min(100, round(done / total * 100)) if total else 0
-            if last_percent.get(label) != percent:
-                last_percent[label] = percent
-                on_progress(f"{label}: {percent}%（{done}/{total}）")
+        if line.startswith("PROGRESS "):
+            # Progress is never part of a failure message: keeping it out of
+            # `stderr_lines` stops thousands of counter lines from burying the
+            # real error when no progress callback is listening.
+            fields = line.split(" ")
+            if on_progress and len(fields) == 4 and fields[2].isdigit() and fields[3].isdigit():
+                label, done, total = fields[1], int(fields[2]), int(fields[3])
+                percent = min(100, round(done / total * 100)) if total else 0
+                if last_percent.get(label) != percent:
+                    last_percent[label] = percent
+                    on_progress(f"{label}: {percent}%（{done}/{total}）")
         elif line:
             stderr_lines.append(line)
     reader.join()
@@ -65,7 +69,12 @@ def verify(db, command: str = "engine/bin/pokesleep-engine", tolerance: int = 0,
     # Individuals whose species OCR never resolved carry the "UNKNOWN"
     # placeholder (see ocr.finalize_candidate); the engine only knows real
     # species names, so they stay unverified/protected instead of being sent.
-    computable = [row for row in rows if row["species"] != "UNKNOWN"]
+    # Production simulation rejects an empty ingredient set. OCR rows that
+    # still need review must remain visible in the box, but cannot participate
+    # in evaluation until their positional ingredients are confirmed.
+    computable = [row for row in rows
+                  if row["species"] != "UNKNOWN"
+                  and json.loads(row["ingredients_json"] or "[]")]
     if not computable:
         return counts
     payload = {"mode": "verify", "tolerance": tolerance,
@@ -86,14 +95,20 @@ def verify(db, command: str = "engine/bin/pokesleep-engine", tolerance: int = 0,
 
 def evaluate(db, command: str = "engine/bin/pokesleep-engine",
              team_out: Path = Path("data/private/team_plans.json"),
+             simulation: Mapping[str, Any] = {},
              on_progress: Optional[Callable[[str], None]] = None) -> int:
     from .analytics import ISLANDS
 
     rows = db.execute("SELECT * FROM individual WHERE archived=0 ORDER BY box_index").fetchall()
-    computable = [row for row in rows if row["species"] != "UNKNOWN"]
+    # Keep incomplete OCR rows visible in the box, but do not send rows with
+    # unresolved species or an empty ingredient set to the simulation engine.
+    computable = [row for row in rows
+                  if row["species"] != "UNKNOWN"
+                  and json.loads(row["ingredients_json"] or "[]")]
     response = run_engine({"mode": "evaluate", "anchors": list(ANCHORS),
                            "islands": {name: list(berries) for name, berries in ISLANDS.items()},
-                           "iterations": 500,
+                           "iterations": int(simulation.get("iterations", 500)),
+                           "simulation": dict(simulation),
                            "instances": [{"uid": r["uid"], "instance": individual_to_engine(dict(r))}
                                          for r in computable]}, command, on_progress)
     version = response.get("engineVersion", "nerolis-lab")
@@ -117,7 +132,9 @@ def evaluate(db, command: str = "engine/bin/pokesleep-engine",
     db.commit()
     team_response = run_engine({"mode": "team-evaluate", "anchors": list(ANCHORS),
                                 "islands": {name: list(berries) for name, berries in ISLANDS.items()},
-                                "teamSearchIterations": 80, "teamIterations": 500,
+                                "teamSearchIterations": int(simulation.get("teamSearchIterations", 80)),
+                                "teamIterations": int(simulation.get("teamIterations", 500)),
+                                "simulation": dict(simulation),
                                 "instances": [{"uid": r["uid"], "verified": bool(r["verified"]),
                                                "instance": individual_to_engine(dict(r))}
                                               for r in computable]}, command, on_progress)
@@ -173,9 +190,7 @@ def evaluate_seed_upgrades(db, command: str = "engine/bin/pokesleep-engine",
         return []
     response = run_engine({"mode": "evaluate", "anchors": list(ANCHORS),
                            "instances": variants}, command, on_progress)
-    baseline = {}
-    for row in db.execute("SELECT uid,anchor_level,role,score FROM evaluation"):
-        baseline.setdefault(row["uid"], {}).setdefault(row["anchor_level"], {})[row["role"]] = row["score"]
+    baseline = latest_evaluations(db)
     best = {}
     for result in response.get("results", []):
         info = metadata[result["uid"]]
@@ -207,9 +222,7 @@ def evaluate_main_seed_upgrades(db, command: str = "engine/bin/pokesleep-engine"
         return []
     response = run_engine({"mode": "evaluate", "anchors": list(ANCHORS),
                            "instances": variants}, command, on_progress)
-    baseline = {}
-    for row in db.execute("SELECT uid,anchor_level,role,score FROM evaluation"):
-        baseline.setdefault(row["uid"], {}).setdefault(row["anchor_level"], {})[row["role"]] = row["score"]
+    baseline = latest_evaluations(db)
     by_uid = {row["uid"]: row for row in rows}
     plans = []
     for result in response.get("results", []):
@@ -236,4 +249,4 @@ def individual_to_engine(row: Mapping[str, Any]) -> Dict[str, Any]:
                             for name, amount in json.loads(row.get("ingredients_json") or "[]")],
             "subskills": json.loads(row.get("subskills_json") or "[]"),
             "mainSkill": row["main_skill"], "skillLevel": row["skill_level"],
-            "ribbon": 0}
+            "ribbon": int(row.get("ribbon") or 0)}

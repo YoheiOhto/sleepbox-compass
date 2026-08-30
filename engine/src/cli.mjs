@@ -8,7 +8,18 @@ import { calculatePokemonProduction, calculateTeam } from '../vendor/nerolis-lab
 import { defaultUserRecipes } from '../vendor/nerolis-lab/backend/dist/services/simulation-service/team-simulator/cooking-state/cooking-utils.js';
 
 const input = JSON.parse(fs.readFileSync(0, 'utf8'));
-const recipeLevel = Math.max(1, Math.min(60, input.recipeLevel ?? 1));
+const simulation = input.simulation || {};
+const recipeLevel = Math.max(1, Math.min(60, simulation.recipeLevel ?? input.recipeLevel ?? 1));
+const simNumber = (key, fallback) => Number.isFinite(Number(simulation[key])) ? Number(simulation[key]) : fallback;
+const simBool = (key, fallback) => typeof simulation[key] === 'boolean' ? simulation[key] : fallback;
+const simTime = (key, fallback) => parseTime(simulation[key] || fallback);
+const areaBonusFor = name => {
+  const perIsland = simulation.areaBonusByIsland || {};
+  const direct = Number(simulation[`areaBonus:${name}`]);
+  if (Number.isFinite(direct)) return direct;
+  const perField = Number(perIsland[name]);
+  return Number.isFinite(perField) ? perField : simNumber('areaBonus', 0);
+};
 const userRecipes = Object.fromEntries(Object.entries(defaultUserRecipes()).map(([type, recipes]) =>
   [type, recipes.map(recipe => ({...recipe, level: recipeLevel}))]));
 const byName = (xs, name) => {
@@ -47,9 +58,13 @@ const toInstance = (raw, level = raw.level, evolve = true) => {const pokemon=evo
 const verify = () => ({results: input.instances.map(({uid, instance, displayedSp}) => {
   const computedSp = new RP(toInstance(instance, instance.level, false)).calc();
   const diff = computedSp - displayedSp;
-  const strict = instance.level < input.strictBelowLevel;
-  const match = strict ? diff === 0 : Math.abs(diff) <= input.tolerance;
-  return {uid, computedSp, diff, match, mode: strict ? 'strict' : (match ? 'tolerant' : 'failed')};
+  const exact = diff === 0;
+  const match = instance.level < input.strictBelowLevel ? exact : Math.abs(diff) <= input.tolerance;
+  // `mode` is the outcome, not the rule that was applied: a mismatch must
+  // report `failed` (otherwise the caller stores verify_mode='strict' and
+  // counts it as a success), and an exact SP match is a strict match at any
+  // level -- only a within-tolerance approximation is `tolerant`.
+  return {uid, computedSp, diff, match, mode: !match ? 'failed' : exact ? 'strict' : 'tolerant'};
 })});
 const evaluate = () => {
   const total = input.instances.length;
@@ -104,12 +119,17 @@ const simulateInstanceEnergy = (raw, level, islandBerries, evolve=true) => {
   const ingredientSet=raw.ingredients.map(x=>x[0]);
   const stats={level,ribbon:raw.ribbon??0,nature:getNature(raw.nature),
     subskills:new Set(raw.subskills.filter(x=>x[1]<=level).map(x=>x[0])),skillLevel:skillLevelFor(raw,pokemon,level,evolve),
-    inventoryLimit:CarrySizeUtils.calculateCarrySize({baseWithEvolutions:CarrySizeUtils.baseCarrySize(pokemon),subskillsLevelLimited:new Set(raw.subskills.filter(x=>x[1]<=level).map(x=>x[0])),ribbon:raw.ribbon??0,camp:false}),e4eProcs:0,e4eLevel:1,cheer:0,extraHelpful:0,
-    helperBoostProcs:0,helperBoostUnique:0,helperBoostLevel:1,helpingBonus:0,camp:false,
-    erb:0,incense:false,mainBedtime:parseTime('22:00'),mainWakeup:parseTime('06:00'),maxPotSize:15};
+    inventoryLimit:CarrySizeUtils.calculateCarrySize({baseWithEvolutions:CarrySizeUtils.baseCarrySize(pokemon),subskillsLevelLimited:new Set(raw.subskills.filter(x=>x[1]<=level).map(x=>x[0])),ribbon:raw.ribbon??0,camp:simBool('camp',false)}),e4eProcs:0,e4eLevel:1,cheer:0,extraHelpful:0,
+    helperBoostProcs:0,helperBoostUnique:0,helperBoostLevel:1,helpingBonus:0,camp:simBool('camp',false),
+    erb:0,incense:false,mainBedtime:simTime('bedtime','22:00'),mainWakeup:simTime('wakeup','06:00'),maxPotSize:simNumber('potSize',MIN_POT_SIZE)};
   const result=calculatePokemonProduction(pokemon,stats,ingredientSet,false,input.iterations||500);
   const berry=result.summary.totalProduce.berries.reduce((sum,x)=>sum+x.amount*berryPowerForLevel(x.berry,x.level)*(islandBerries.includes(x.berry.name)?2:1),0);
   const ingredient=result.summary.totalProduce.ingredients.reduce((sum,x)=>sum+x.amount*x.ingredient.value,0);
+  // No area bonus here: it scaled `expected` but not the `berry`/`ingredient`/
+  // `direct_skill` components in the same object, and the Python caller applies
+  // the per-island bonus to these single-instance scores itself, so folding it
+  // in again counted it twice. `teamSettings` still hands the bonus to the
+  // engine for the team totals it owns.
   const skill=result.summary.skillStrengthValue||0,expected=berry+ingredient+skill,spread=skill*.25;
   return {berry:Math.round(berry),ingredient:Math.round(ingredient),direct_skill:Math.round(skill),expected:Math.round(expected),
           low:Math.round(expected-spread),high:Math.round(expected+spread)};
@@ -128,7 +148,7 @@ const toTeamMember = (uid, raw, level, evolve=true) => {
     settings: {
       carrySize: CarrySizeUtils.calculateCarrySize({
         baseWithEvolutions: CarrySizeUtils.baseCarrySize(pokemon), subskillsLevelLimited: subskills,
-        ribbon: raw.ribbon ?? 0, camp: false
+        ribbon: raw.ribbon ?? 0, camp: simBool('camp',false)
       }),
       level, ribbon: raw.ribbon ?? 0, nature: getNature(raw.nature),
       skillLevel: skillLevelFor(raw,pokemon,level,evolve),
@@ -137,9 +157,9 @@ const toTeamMember = (uid, raw, level, evolve=true) => {
   };
 };
 const teamSettings = (name, berries) => ({
-  bedtime: parseTime('22:00'), wakeup: parseTime('06:00'), camp: false, includeCooking: true,
-  stockpiledIngredients: emptyIngredientInventoryFloat(), potSize: MIN_POT_SIZE,
-  island: {...DEFAULT_ISLAND, name, berries: berries.map(getBerry), areaBonus: 0}
+  bedtime: simTime('bedtime','22:00'), wakeup: simTime('wakeup','06:00'), camp: simBool('camp',false), includeCooking: simBool('includeCooking',true),
+  stockpiledIngredients: simulation.stockpiledIngredients || emptyIngredientInventoryFloat(), potSize: simNumber('potSize',MIN_POT_SIZE),
+  island: {...DEFAULT_ISLAND, name, berries: berries.map(getBerry), areaBonus: areaBonusFor(name)}
 });
 const teamResult = (members, name, berries, iterations) => {
   const result = calculateTeam({settings: teamSettings(name, berries), members,
@@ -155,7 +175,7 @@ const teamResult = (members, name, berries, iterations) => {
     team_help_support: member.advanced.teamSupport.helps
   }));
   const cookingTypes=['curry','salad','dessert'];
-  const cooking=result.cooking?cookingTypes.reduce((sum,type)=>sum+result.cooking[type].weeklyStrength/7,0)/cookingTypes.length:0;
+  const cooking=result.cooking && simBool('includeCooking',true) ? cookingTypes.reduce((sum,type)=>sum+result.cooking[type].weeklyStrength/7,0)/cookingTypes.length:0;
   return {total: rows.reduce((sum, row) => sum + row.energy, 0)+cooking,
     cooking, recipe_level:recipeLevel, members: rows};
 };
@@ -167,10 +187,11 @@ const optimizeTeam = (instances, name, berries, mode) => {
     additive:production.expected}});
   if (!candidates.length) return null;
   const size = Math.min(5, candidates.length), searchIterations = input.teamSearchIterations ?? 80;
-  let selected = [...candidates].sort((a,b) => b.additive-a.additive).slice(0,size);
+  const ranked=[...candidates].sort((a,b) => b.additive-a.additive);
   const score = team => teamResult(team.map(x=>x.member), name, berries, searchIterations).total;
-  let bestScore = score(selected), improved = true;
-  while (improved) {
+  const improve = initial => {
+    let selected=initial, bestScore=score(selected), improved=true;
+    while (improved) {
     improved = false;
     let bestTeam = selected;
     const outside = candidates.filter(x => !selected.includes(x));
@@ -179,20 +200,36 @@ const optimizeTeam = (instances, name, berries, mode) => {
       const trialScore = score(trial);
       if (trialScore > bestScore * 1.002) { bestScore=trialScore; bestTeam=trial; improved=true; }
     }
-    selected = bestTeam;
-  }
+      selected = bestTeam;
+    }
+    return {selected,bestScore};
+  };
+  // Multiple deterministic starting points reduce local-optimum errors while
+  // retaining bounded local execution for a full Pokémon box.
+  const pool=ranked.slice(0,Math.min(ranked.length,simNumber('teamCandidateLimit',18)));
+  const starts=[ranked.slice(0,size)];
+  for(let offset=1; offset<Math.min(pool.length-size+1, simNumber('teamSearchStarts',8)); offset++) starts.push(pool.slice(offset,offset+size));
+  let {selected,bestScore}=improve(starts[0]);
+  for (const start of starts.slice(1)) { const trial=improve(start); if(trial.bestScore>bestScore) ({selected,bestScore}=trial); }
   const iterations = input.teamIterations ?? 500;
   const rawFinal = teamResult(selected.map(x=>x.member), name, berries, iterations);
   const ingredientByUid=Object.fromEntries(selected.map(x=>[x.uid,x.ingredient]));
   const final={...rawFinal,members:rawFinal.members.map(x=>({...x,ingredient:ingredientByUid[x.uid]||0}))};
-  const soloTotal = selected.reduce((sum,x) => sum + teamResult([x.member],name,berries,iterations).total,0);
+  // Cooking is a team-level result, and a one-member team still cooks, so
+  // summing five solo totals would count five separate pots and make the
+  // synergy difference structurally negative. Compare member production only.
+  const soloTotal = selected.reduce((sum,x) => {
+    const solo = teamResult([x.member],name,berries,iterations);
+    return sum + solo.total - solo.cooking;
+  },0);
   const marginal = Object.fromEntries(selected.map((x) => [x.uid,
     final.total-teamResult(selected.filter(y=>y!==x).map(y=>y.member),name,berries,iterations).total]));
   return {
-    island:name, mode, total_energy:Math.round(final.total), synergy_gain:Math.round(final.total-soloTotal),
+    island:name, mode, total_energy:Math.round(final.total),
+    synergy_gain:Math.round(final.total-final.cooking-soloTotal),
     provisional: selected.some(x=>!instances.find(y=>y.uid===x.uid)?.verified),
     cooking:Math.round(final.cooking),recipe_level:recipeLevel,
-    optimizer:'team-swap-v3-cooking-and-skills', cooking_included:true, recipe_bonus_included:true,
+    optimizer:'multi-start-local-search-v4', optimality:'heuristic', cooking_included:simBool('includeCooking',true), recipe_bonus_included:simBool('includeCooking',true),
     members: final.members.sort((a,b)=>marginal[b.uid]-marginal[a.uid]).map(row => ({
       ...Object.fromEntries(Object.entries(row).map(([k,v])=>[k, k==='uid'?v:Math.round(v)])),
       marginal:Math.round(marginal[row.uid]),

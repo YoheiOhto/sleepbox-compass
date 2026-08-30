@@ -11,6 +11,11 @@ from .localization import normalize_individual
 
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".heic", ".webp"}
 VIDEO_SUFFIXES = {".mov", ".mp4", ".m4v"}
+# A value read by exact containment in the closed game vocabulary scores .96
+# (see ocr._best_match); anything lower came from a fuzzy or alias match and is
+# worth a human look. The previous .995 was unreachable for Vision output, so
+# every single individual was reported as low confidence.
+LOW_CONFIDENCE_BELOW = .96
 
 
 def discover_inputs(inbox: Path) -> List[Path]:
@@ -71,7 +76,18 @@ def ingest_path(path: Path, frames_dir: Path, ocr_command: Optional[str] = None,
             def report(message: str, prefix=prefix) -> None:
                 on_progress(f"{prefix}: {message}")
 
-            scanned = scan(source, interval, report if on_progress else None)
+            try:
+                # Ingredient-SP candidates are resolved once after every source
+                # has been recognized. Resolving here made a 201-image import
+                # start the Node engine 201 times despite its batched API.
+                scanned = scan(source, interval, report if on_progress else None,
+                               resolve_sp=False)
+            except Exception as exc:
+                # One corrupt image or transient Vision failure must not discard
+                # every successfully readable image in the same inbox.
+                if on_progress:
+                    on_progress(f"{prefix}: 失敗（{exc}）")
+                continue
             for item in scanned:
                 item.setdefault("ocr_sources", []).append(source.name)
             result.extend(scanned)
@@ -89,6 +105,11 @@ def ingest_path(path: Path, frames_dir: Path, ocr_command: Optional[str] = None,
                 result.append(item)
         if on_progress:
             on_progress(f"{prefix}: 完了")
+    if vision:
+        from .ocr import resolve_ingredients_by_sp, resolve_species_variant_by_sp
+        resolve_species_variant_by_sp(result)
+        result = resolve_ingredients_by_sp(result)
+
     # The same individual can appear in a production video and a later nature
     # video. SP + species joins those complementary captures without image
     # matching or uploading private frames.
@@ -124,7 +145,11 @@ def ingest_path(path: Path, frames_dir: Path, ocr_command: Optional[str] = None,
     unique = {}
     for item in result:
         key = json.dumps({k: item.get(k) for k in
-                          ("species", "nature", "ingredients", "subskills", "main_skill", "skill_level")},
+                          # A matching build can occur on more than one
+                          # individual. SP is visible in every detail header
+                          # and is the stable per-capture discriminator used
+                          # above when complementary screenshots are joined.
+                          ("species", "sp", "nature", "ingredients", "subskills", "main_skill", "skill_level")},
                          ensure_ascii=False, sort_keys=True)
         unique[key] = item
     return list(unique.values())
@@ -132,12 +157,16 @@ def ingest_path(path: Path, frames_dir: Path, ocr_command: Optional[str] = None,
 
 def audit(items: Iterable[Dict[str, Any]], path: Path) -> Dict[str, int]:
     rows = list(items)
-    low = [x for x in rows if float(x.get("confidence", 0)) < .995]
+    low = [x for x in rows if float(x.get("confidence", 0)) < LOW_CONFIDENCE_BELOW]
     unverified = [x for x in rows if not x.get("verified")]
     lines = ["# 取り込み監査レポート", "", f"- 総個体数: {len(rows)}",
              f"- 低信頼: {len(low)}", f"- 未検証: {len(unverified)}", "",
              "未検証個体は博士へ送る候補になりません。", ""]
-    for item in low or unverified:
+    # Both groups need review, and they only partly overlap: listing `low or
+    # unverified` hid every unverified individual as soon as one low-confidence
+    # individual existed.
+    flagged = list(low) + [x for x in unverified if not any(x is y for y in low)]
+    for item in flagged:
         missing = "、".join(item.get("ocr_missing", []))
         suffix = f"（不足: {missing}）" if missing else ""
         lines.append(f"- BOX {item.get('box_index', '-')} / {item.get('species_ja', item.get('species'))}: 要確認{suffix}")
@@ -150,14 +179,16 @@ def render_review(items: Iterable[Dict[str, Any]], path: Path) -> None:
     data = json.dumps(list(items), ensure_ascii=False).replace("</", "<\\/")
     from .localization import names
     nature_data = json.dumps(names()["natures"], ensure_ascii=False).replace("</", "<\\/")
+    subskill_data = json.dumps(names()["subskills"], ensure_ascii=False).replace("</", "<\\/")
     page = f'''<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <title>取り込みレビュー</title><style>body{{font-family:sans-serif;max-width:760px;margin:auto;padding:20px;background:#f4f7f3;color:#183026}}article{{background:white;padding:16px;margin:12px 0;border-radius:14px}}label{{display:grid;gap:4px;margin:8px 0}}input,textarea,button{{font:inherit;padding:10px}}textarea{{min-height:130px}}button{{background:#267553;color:white;border:0;border-radius:10px}}</style>
 <h1>取り込みレビュー</h1><p>低信頼・未検証の個体を確認してください。画像や内容は外部送信されません。</p><main></main><button id="save">修正JSONを保存</button>
-<script>const rows={data},NATURES={nature_data},main=document.querySelector('main');const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}}[c]));
+<script>const rows={data},NATURES={nature_data},SUBSKILLS={subskill_data},main=document.querySelector('main');const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}}[c]));
 const ingredientFields=(x,i)=>(x.ingredient_options||[]).map((slot,j)=>`<label>Lv.${{slot.level}} 食材<select data-i="${{i}}" data-slot="${{j}}"><option value="">画像を見て選択</option>${{slot.choices.map(c=>`<option value="${{esc(JSON.stringify(c.slice(0,2)))}}" ${{x.ingredients?.[j]?.[0]===c[0]?'selected':''}}>${{esc(c[2])}} ×${{c[1]}}</option>`).join('')}}</select></label>`).join('');
+const subskillFields=(x,i)=>(x.subskills_ambiguous_rows||[]).map((row,j)=>`<label>Lv.${{row.unlock||'?'}} サブスキル（文字サイズ要確認）<select data-i="${{i}}" data-subskill="${{j}}">${{Object.entries(SUBSKILLS).map(([v,n])=>`<option value="${{esc(v)}}" ${{row.value===v?'selected':''}}>${{esc(n)}}</option>`).join('')}}</select></label>`).join('');
 const natureOptions=x=>Object.entries(NATURES).map(([v,n])=>`<option value="${{v}}" ${{x.nature===v?'selected':''}}>${{esc(n)}}</option>`).join('');
-main.innerHTML=rows.map((x,i)=>`<article><strong>BOX ${{x.box_index??'-'}} · ${{esc(x.species_ja||x.species)}} · きのみ ${{esc(x.berry_ja||x.berry||'-')}}</strong><p>${{x.ocr_missing?.length?`要確認: ${{x.ocr_missing.map(esc).join('、')}}`:'主要項目を取得済み'}}${{x.ocr_sources?.length?` · ${{x.ocr_sources.length}}本の動画をSPで統合`:''}}</p><label>ニックネーム<input data-i="${{i}}" data-k="display_name" value="${{esc(x.display_name||'')}}"></label><label>現在レベル<input type="number" min="1" max="100" data-i="${{i}}" data-k="level" value="${{x.level??''}}"></label><label>画面のSP<input type="number" data-i="${{i}}" data-k="sp" value="${{x.sp??''}}"></label><label>性格<select data-i="${{i}}" data-k="nature">${{natureOptions(x)}}</select></label><label>メインスキルLv<input type="number" min="1" max="7" data-i="${{i}}" data-k="skill_level" value="${{x.skill_level??1}}"></label>${{ingredientFields(x,i)}}<label><span><input type="checkbox" data-i="${{i}}" data-k="verified"> 内容を動画と照合済みにする</span></label><details><summary>抽出JSONを確認・編集</summary><label>抽出JSON<textarea data-i="${{i}}">${{esc(JSON.stringify(x,null,2))}}</textarea></label></details></article>`).join('');
-document.querySelector('#save').onclick=()=>{{document.querySelectorAll('textarea').forEach(t=>rows[+t.dataset.i]=JSON.parse(t.value));document.querySelectorAll('[data-slot]').forEach(s=>{{if(s.value){{const i=+s.dataset.i,j=+s.dataset.slot;rows[i].ingredients??=[];rows[i].ingredients[j]=JSON.parse(s.value)}}}});document.querySelectorAll('[data-k]').forEach(n=>{{const x=rows[+n.dataset.i],k=n.dataset.k;if(k==='verified'||k==='review_confirmed')x[k]=n.checked;else if(k==='level'||k==='sp'||k==='skill_level')x[k]=Number(n.value);else x[k]=n.value}});const b=new Blob([JSON.stringify({{individuals:rows}},null,2)],{{type:'application/json'}}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='reviewed_individuals.json';a.click();URL.revokeObjectURL(a.href)}};</script></html>'''
+main.innerHTML=rows.map((x,i)=>`<article><strong>BOX ${{x.box_index??'-'}} · ${{esc(x.species_ja||x.species)}} · きのみ ${{esc(x.berry_ja||x.berry||'-')}}</strong><p>${{x.ocr_missing?.length?`要確認: ${{x.ocr_missing.map(esc).join('、')}}`:'主要項目を取得済み'}}${{x.ocr_sources?.length?` · ${{x.ocr_sources.length}}本の動画をSPで統合`:''}}</p><label>ニックネーム<input data-i="${{i}}" data-k="display_name" value="${{esc(x.display_name||'')}}"></label><label>現在レベル<input type="number" min="1" max="100" data-i="${{i}}" data-k="level" value="${{x.level??''}}"></label><label>画面のSP<input type="number" data-i="${{i}}" data-k="sp" value="${{x.sp??''}}"></label><label>性格<select data-i="${{i}}" data-k="nature">${{natureOptions(x)}}</select></label><label>メインスキルLv<input type="number" min="1" max="7" data-i="${{i}}" data-k="skill_level" value="${{x.skill_level??1}}"></label>${{ingredientFields(x,i)}}${{subskillFields(x,i)}}<label><span><input type="checkbox" data-i="${{i}}" data-k="verified"> 内容を動画と照合済みにする</span></label><details><summary>抽出JSONを確認・編集</summary><label>抽出JSON<textarea data-i="${{i}}">${{esc(JSON.stringify(x,null,2))}}</textarea></label></details></article>`).join('');
+document.querySelector('#save').onclick=()=>{{document.querySelectorAll('textarea').forEach(t=>rows[+t.dataset.i]=JSON.parse(t.value));document.querySelectorAll('[data-slot]').forEach(s=>{{if(s.value){{const i=+s.dataset.i,j=+s.dataset.slot;rows[i].ingredients??=[];rows[i].ingredients[j]=JSON.parse(s.value)}}}});document.querySelectorAll('[data-subskill]').forEach(s=>{{const x=rows[+s.dataset.i],marker=x.subskills_ambiguous_rows?.[+s.dataset.subskill];if(marker){{const row=x.subskills?.find(v=>v[1]===marker.unlock)||x.subskills?.find(v=>v[0]===marker.value);if(row)row[0]=s.value;marker.value=s.value}}}});document.querySelectorAll('[data-k]').forEach(n=>{{const x=rows[+n.dataset.i],k=n.dataset.k;if(k==='verified'||k==='review_confirmed')x[k]=n.checked;else if(k==='level'||k==='sp'||k==='skill_level')x[k]=Number(n.value);else x[k]=n.value}});const b=new Blob([JSON.stringify({{individuals:rows}},null,2)],{{type:'application/json'}}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='reviewed_individuals.json';a.click();URL.revokeObjectURL(a.href)}};</script></html>'''
     page = page.replace('data-k="verified"> 内容を動画と照合済みにする',
                         'data-k="review_confirmed"> ボックス画面と照合済み（以後「!」を表示しない）')
     path.parent.mkdir(parents=True, exist_ok=True)

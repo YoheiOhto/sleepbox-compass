@@ -1,19 +1,28 @@
+import contextlib
+import io
 import json
 import sqlite3
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from pokesleep_box.cli import build_parser
-from pokesleep_box.core import absolute_role_scores, build_team_plans, canonical_uid, connect, decide, import_individuals, load_dashboard
+from pokesleep_box.core import (absolute_role_scores, build_team_plans, canonical_uid, connect,
+                                decide, export_backup, import_individuals, load_dashboard, record_observation,
+                                restore_backup, save_cooking_plan, save_team, set_ingredient_inventory,
+                                set_never_send, species_friendships, upsert_species_friendship)
 from pokesleep_box.render import render_site
 from pokesleep_box.localization import names, normalize_individual, to_english, to_japanese
 from pokesleep_box.ingest import audit, ingest_path, render_review
 from pokesleep_box.analytics import analyze, individual_label
-from pokesleep_box.ocr import (enrich_with_species_data, ingredient_amount_row, merge_frames,
+from pokesleep_box.ocr import (_best_match, enrich_with_species_data, ingredient_amount_row,
+                               merge_frames, parse_frame, parse_dex_friendship,
+                               resolve_ingredients_by_sp, resolve_species_variant_by_sp,
                                write_vision_vocabulary)
 from pokesleep_box.server import build_simulation_payload
 from pokesleep_box.engine import individual_to_engine
+from pokesleep_box.planning import catches_for_target, resource_plan
 
 
 ROOT = Path(__file__).parents[1]
@@ -33,6 +42,49 @@ class CoreTests(unittest.TestCase):
         a = dict(self.items[0])
         b = dict(a, level=80, box_index=99)
         self.assertEqual(canonical_uid(a), canonical_uid(b))
+
+    def test_capture_probability_and_seed_budget_are_explicit(self):
+        self.assertEqual(catches_for_target(.5, .875), 3)
+        plan = resource_plan([{"gain": 5, "uid": "sub"}], [{"gain": 9, "uid": "main"}],
+                             {"subSkillSeeds": 1, "mainSkillSeeds": 0})
+        self.assertEqual([x["uid"] for x in plan], ["sub"])
+
+    def test_portable_backup_excludes_captures_and_restores_box(self):
+        import_individuals(self.db, [self.items[0]])
+        path = Path(self.tmp.name) / "backup.json"
+        export_backup(self.db, path)
+        self.assertNotIn('"capture"', path.read_text())
+        self.db.execute("DELETE FROM decision")
+        self.db.execute("DELETE FROM evaluation")
+        self.db.execute("DELETE FROM individual")
+        restore_backup(self.db, path)
+        self.assertEqual(self.db.execute("SELECT count(*) FROM individual").fetchone()[0], 1)
+
+    def test_saved_team_and_production_observation_are_local_db_records(self):
+        import_individuals(self.db, self.items)
+        uids = [row[0] for row in self.db.execute("SELECT uid FROM individual")]
+        # A small test box cannot contain five unique members, so verify the
+        # safety check as well as observation persistence.
+        with self.assertRaises(ValueError):
+            save_team(self.db, "今週", uids)
+        record_observation(self.db, "2026-08-30", "シアンの砂浜", 12345, 12000, "テスト")
+        self.assertEqual(self.db.execute("SELECT energy FROM production_observation").fetchone()[0], 12345)
+
+    def test_dex_friendship_and_never_send_protection_are_persisted(self):
+        import_individuals(self.db, self.items)
+        row = self.db.execute("SELECT uid FROM individual LIMIT 1").fetchone()
+        set_never_send(self.db, row["uid"], True, ["色違い", "思い出"])
+        self.assertEqual(decide(self.db)["protected"], 1)
+        upsert_species_friendship(self.db, "BULBASAUR", 12, "bronze")
+        self.assertEqual(species_friendships(self.db)[0]["friendship_level"], 12)
+        parsed = parse_dex_friendship([{"text": "フシギダネ なかよしレベル Lv. 12 ブロンズ"}])
+        self.assertEqual((parsed["species"], parsed["badge"]), ("BULBASAUR", "bronze"))
+
+    def test_inventory_and_cooking_plan_are_local(self):
+        set_ingredient_inventory(self.db, {"Honey": 30, "Apple": 12})
+        save_cooking_plan(self.db, "今週", "はちみつカレー", {"Honey": 7, "Apple": 8}, 3, active=True)
+        row = self.db.execute("SELECT requirements_json,active FROM cooking_plan").fetchone()
+        self.assertEqual((json.loads(row["requirements_json"]), row["active"]), ({"Honey": 7, "Apple": 8}, 1))
 
     def test_custom_team_payload_requires_five_unique_box_members(self):
         items = [dict(self.items[i % len(self.items)], display_name=f"member-{i}",
@@ -91,6 +143,21 @@ class CoreTests(unittest.TestCase):
         item = dict(self.items[0], verified=False)
         import_individuals(self.db, [item])
         self.assertEqual(decide(self.db)["protected"], 1)
+
+    def test_evaluate_skips_unknown_and_empty_ingredient_rows(self):
+        from unittest.mock import patch
+        import_individuals(self.db, [dict(self.items[0], ingredients=[]), self.items[1]])
+        captured = {}
+
+        def fake_engine(payload, command, on_progress=None):
+            captured["instances"] = payload["instances"]
+            return {"results": []}
+
+        with patch("pokesleep_box.engine.run_engine", side_effect=fake_engine):
+            from pokesleep_box.engine import evaluate
+            evaluate(self.db)
+        self.assertTrue(captured["instances"])
+        self.assertTrue(all(x["instance"]["ingredients"] for x in captured["instances"]))
 
     def test_archived_individual_is_hidden_and_not_decided(self):
         import_individuals(self.db, [self.items[0]])
@@ -159,6 +226,8 @@ class CoreTests(unittest.TestCase):
         page = (out / "index.html").read_text()
         self.assertIn("現在のボックス", page)
         self.assertIn("openPokemonDetail", page)
+        self.assertIn("博士に送る（一覧から消す）", page)
+        self.assertIn("/api/archive-individual", page)
         self.assertIn("サブスキル", page)
         self.assertIn("取込#", page)
         self.assertIn("食材ゲットS", page)
@@ -261,16 +330,46 @@ class CoreTests(unittest.TestCase):
                  "あまいミツ x5 Lv.30", "ほっこりポテト x6 Lv.60",
                  "食材ゲットS Lv.1", "Lv.10 げんき回復ボーナス",
                  "Lv.25 きのみの数S", "Lv.50 食材確率アップM",
-                 "Lv.75 おてつだいスピードS", "Lv.100 リサーチEXPボーナス", "おっとり"]
+                 "Lv.70 おてつだいスピードS", "Lv.80 リサーチEXPボーナス", "おっとり"]
         frame = {"frame": 0, "seconds": 0,
                  "observations": [{"text": text, "confidence": .9} for text in lines]}
         row = merge_frames([frame])[0]
         self.assertEqual((row["species"], row["nature"], row["berry"]),
                          ("BULBASAUR", "Mild", "DURIN"))
         self.assertEqual(row["ingredients"], [["Honey", 2], ["Honey", 5], ["Potato", 6]])
-        self.assertEqual([x[1] for x in row["subskills"]], [10, 25, 50, 75, 100])
+        self.assertEqual([x[1] for x in row["subskills"]], [10, 25, 50, 70, 80])
         self.assertEqual((row["level"], row["sp"], row["main_skill"]),
                          (15, 513, "Ingredient Magnet S"))
+
+    def test_known_near_miss_in_species_header_is_recovered(self):
+        frame = {"frame": 0, "seconds": 0, "observations": [
+            {"text": text, "confidence": .9}
+            for text in ("SP 558", "Lv.13 ワーノコ", "まじめ", "エナジーチャージS Lv.1")
+        ]}
+        row = parse_frame(frame)
+        self.assertEqual(row["species"], "TOTODILE")
+
+    def test_sp_header_split_across_ocr_observations_is_read(self):
+        frame = {"frame": 0, "seconds": 0, "observations": [
+            {"text": text, "confidence": .9}
+            for text in ("SP.", "473", "Lv.14 ムンナ", "てれや", "ゆめのかけらゲットS Lv.1")
+        ]}
+        self.assertEqual(parse_frame(frame)["sp"], 473)
+
+    def test_sp_final_three_read_as_hiragana_is_recovered(self):
+        frame = {"frame": 0, "observations": [
+            {"text": "SP 63ろ", "confidence": .9},
+            {"text": "Lv.17 ゴローン", "confidence": .9},
+        ]}
+        self.assertEqual(parse_frame(frame)["sp"], 633)
+
+    def test_named_rescan_replaces_unknown_with_the_same_sp(self):
+        unknown = dict(self.items[0], uid="unknown-513", species="UNKNOWN", sp=513)
+        import_individuals(self.db, [unknown])
+        recovered = dict(self.items[0], species="BULBASAUR", sp=513)
+        import_individuals(self.db, [recovered])
+        self.assertEqual(self.db.execute("SELECT count(*) FROM individual").fetchone()[0], 1)
+        self.assertEqual(self.db.execute("SELECT species FROM individual").fetchone()[0], "BULBASAUR")
 
     def test_species_metadata_fills_berry_and_constrains_ingredients(self):
         row = {"species": "BULBASAUR", "ingredients": [], "ingredient_amounts": [2, 4, 6],
@@ -361,12 +460,12 @@ class CoreTests(unittest.TestCase):
             {"frame": 2, "observations": [
                 {"text": "ゼニガメ", "confidence": .9},
                 {"text": "Lv.50 食材確率アップM", "confidence": .9},
-                {"text": "Lv.75 おてつだいスピードS", "confidence": .9},
-                {"text": "Lv.100 リサーチEXPボーナス", "confidence": .9},
+                {"text": "Lv.70 おてつだいスピードS", "confidence": .9},
+                {"text": "Lv.80 リサーチEXPボーナス", "confidence": .9},
             ]},
         ]
         row = merge_frames(frames)[0]
-        self.assertEqual([x[1] for x in row["subskills"]], [10, 25, 50, 75, 100])
+        self.assertEqual([x[1] for x in row["subskills"]], [10, 25, 50, 70, 80])
         self.assertNotIn("subskills", row["ocr_missing"])
 
     def test_ingredient_amounts_survive_a_shifted_capture(self):
@@ -541,6 +640,315 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(view["sleep_types"][0]["priority"][0]["species"], "ピチュー")
         self.assertEqual(view["sleep_types"][0]["priority"][0]["evolves_to"], "ライチュウ")
         self.assertEqual(view["sleep_types"][1]["priority"][0]["species"], "ヒノアラシ")
+
+    def detail_screen(self, name, level, sp, subskills, nature="まじめ"):
+        """A detail screenshot the way Vision actually reports it.
+
+        The header level and the species name arrive as separate observations,
+        the ingredient Lv.30/Lv.60 badges repeat the same "Lv.n" text in the
+        right half of the header band, each subskill's unlock badge sits just
+        above its name, and the nature panel below 詳細ステータス carries stat
+        labels that look like subskill names.
+        """
+        rows = [{"text": f"SP {sp}", "confidence": .9, "x": .245, "y": .905},
+                {"text": f"LV.{level}", "confidence": .9, "x": .211, "y": .879},
+                {"text": name, "confidence": .9, "x": .311, "y": .879},
+                {"text": "LV.30", "confidence": .9, "x": .645, "y": .882},
+                {"text": "LV. 60", "confidence": .9, "x": .805, "y": .882},
+                {"text": "エナジーチャージS", "confidence": .9, "x": .255, "y": .570},
+                {"text": "詳細ステータス", "confidence": .9, "x": .085, "y": .208},
+                {"text": "せいかく", "confidence": .9, "x": .097, "y": .160},
+                {"text": nature, "confidence": .9, "x": .195, "y": .134},
+                {"text": "おてつだいスピード", "confidence": .9, "x": .519, "y": .150}]
+        for index, (text, unlock) in enumerate(subskills):
+            column, row = index % 2, index // 2
+            x, y = (.150, .600)[column], (.440, .368, .293)[row]
+            rows.append({"text": text, "confidence": .9, "x": x, "y": y})
+            if unlock:
+                rows.append({"text": f"h Lv.{unlock}", "confidence": .9,
+                             "x": x - .06, "y": y + .026})
+        return {"frame": 0, "seconds": 0, "observations": rows}
+
+    def test_species_name_never_resolves_to_a_shorter_name_inside_it(self):
+        # 26 species names end in another species' name, so matching by plain
+        # containment read コラッタ as ラッタ and ブラッキー as ラッキー -- a
+        # different Pokemon entirely, at full confidence.
+        for japanese, expected in (("コラッタ", "RATTATA"), ("ラッタ", "RATICATE"),
+                                   ("レアコイル", "MAGNETON"), ("コイル", "MAGNEMITE"),
+                                   ("ブラッキー", "UMBREON"), ("ラッキー", "CHANSEY"),
+                                   ("ゴースト", "HAUNTER"), ("ゴース", "GASTLY"),
+                                   ("デカヌチャン", "TINKATON"), ("カヌチャン", "TINKATINK")):
+            with self.subTest(japanese=japanese):
+                self.assertEqual(to_english("species", japanese), expected)
+                self.assertEqual(parse_frame({"observations": [
+                    {"text": japanese, "confidence": .9}]})["species"], expected)
+
+    def test_header_level_is_read_from_layout_when_the_name_is_a_near_miss(self):
+        # Vision splits the header, and the alias table recovers the species
+        # from text that never contains its canonical spelling, so the level
+        # cannot be anchored on the species name.
+        split = self.detail_screen("ムンナ", 14, 473, [("ゆめのかけらボーナス", 10)])
+        near_miss = self.detail_screen("ワーノコ", 13, 558, [("睡眠EXPボーナス", 10)])
+
+        self.assertEqual(parse_frame(split)["level"], 14)
+        self.assertEqual(parse_frame(near_miss)["species"], "TOTODILE")
+        self.assertEqual(parse_frame(near_miss)["level"], 13)
+
+    def test_ingredient_slot_badges_are_never_read_as_the_current_level(self):
+        frame = self.detail_screen("ムンナ", 14, 473, [("ゆめのかけらボーナス", 10)])
+
+        self.assertEqual(parse_frame(frame)["level"], 14)
+
+    def test_subskill_unlocks_come_from_the_badge_above_each_row(self):
+        # Only the last three badges are readable; the first two rows keep their
+        # slots from the unclaimed unlock levels rather than shifting upward.
+        frame = self.detail_screen("ムンナ", 30, 473, [
+            ("最大所持数アップS", 0), ("げんき回復ボーナス", 0), ("睡眠EXPボーナス", 50),
+            ("リサーチEXPボーナス", 70), ("食材確率アップS", 80)])
+
+        row = merge_frames([frame])[0]
+
+        self.assertEqual([x[1] for x in row["subskills"]], [10, 25, 50, 70, 80])
+        self.assertEqual(row["subskills"][2][0], "Sleep EXP Bonus")
+        self.assertEqual(row["subskills"][4][0], "Ingredient Finder S")
+
+    def test_nature_stat_label_is_never_read_as_a_subskill(self):
+        # 「おてつだいスピード」 in the nature panel is one character away from
+        # the subskill 「おてつだいスピードS」 and would take one of five slots.
+        frame = self.detail_screen("ムンナ", 14, 473, [("ゆめのかけらボーナス", 10)])
+
+        row = merge_frames([frame])[0]
+
+        self.assertEqual([x[0] for x in row["subskills"]], ["Dream Shard Bonus"])
+
+    def test_a_dropped_size_letter_makes_the_subskill_row_reviewable(self):
+        frame = self.detail_screen("ムンナ", 14, 473, [("最大所持数アップ", 10)])
+
+        row = merge_frames([frame])[0]
+        self.assertIn("subskills", row["ocr_missing"])
+        self.assertEqual(row["subskills_ambiguous_rows"][0]["unlock"], 10)
+
+    def test_size_letter_read_as_katakana_still_resolves(self):
+        frame = self.detail_screen("ムンナ", 14, 473, [("最大所持数アップレ", 10)])
+
+        self.assertEqual(merge_frames([frame])[0]["subskills"][0][0], "Inventory Up L")
+
+    def test_a_later_ingredient_slot_resolves_even_when_an_earlier_one_is_ambiguous(self):
+        row = {"species": "TOTODILE", "ingredients": [], "ingredient_amounts": [1, 2, 3],
+               "ocr_missing": ["ingredients"]}
+        metadata = {"TOTODILE": {"berry": "ORAN", "ingredients": [
+            {"level": 1, "choices": [["Sausage", 1]]},
+            {"level": 30, "choices": [["Sausage", 2], ["Oil", 2]]},
+            {"level": 60, "choices": [["Sausage", 4], ["Oil", 3]]},
+        ]}}
+
+        result = enrich_with_species_data([row], pokemon_data=metadata)[0]
+
+        # Amount 3 identifies Lv60 as Oil even though the Lv30 slot stays
+        # ambiguous; the Lv30 slot keeps a provisional first choice.
+        self.assertEqual(result["ingredients"], [["Sausage", 1], ["Sausage", 2], ["Oil", 3]])
+        self.assertIn("ingredients", result["ocr_missing"])
+
+    def test_ambiguous_ingredients_are_resolved_by_one_batched_sp_check(self):
+        row = {"species": "TOTODILE", "level": 20, "nature": "Hardy", "sp": 558,
+               "main_skill": "Charge Strength S", "skill_level": 1, "subskills": [],
+               "ingredients": [["Sausage", 1], ["Sausage", 2]],
+               "ingredient_options": [
+                   {"level": 1, "choices": [["Sausage", 1, "マメミート"]]},
+                   {"level": 30, "choices": [["Sausage", 2, "マメミート"],
+                                               ["Oil", 2, "ピュアなオイル"]]},
+               ], "ocr_missing": ["ingredients"]}
+        calls = []
+
+        def fake_engine(payload, command):
+            calls.append((payload, command))
+            return {"results": [
+                {"uid": candidate["uid"], "match": candidate["instance"]["ingredients"][1][0] == "Oil",
+                 "diff": 0 if candidate["instance"]["ingredients"][1][0] == "Oil" else 7}
+                for candidate in payload["instances"]]}
+
+        result = resolve_ingredients_by_sp([row], "test-engine", fake_engine)[0]
+
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(len(calls[0][0]["instances"]), 2)
+        self.assertEqual(result["ingredients"], [["Sausage", 1], ["Oil", 2]])
+        self.assertNotIn("ingredients", result["ocr_missing"])
+        self.assertEqual(result["ingredients_resolved_by"], "sp_exact")
+
+    def test_sp_resolution_keeps_review_when_more_than_one_candidate_matches(self):
+        row = {"species": "TOTODILE", "level": 20, "nature": "Hardy", "sp": 558,
+               "main_skill": "Charge Strength S", "skill_level": 1, "subskills": [],
+               "ingredient_options": [{"level": 1, "choices": [["Sausage", 1], ["Oil", 1]]}],
+               "ocr_missing": ["ingredients"]}
+
+        def fake_engine(payload, command):
+            return {"results": [{"uid": x["uid"], "match": True, "diff": 0}
+                                for x in payload["instances"]]}
+
+        resolve_ingredients_by_sp([row], runner=fake_engine)
+        self.assertIn("ingredients", row["ocr_missing"])
+        self.assertNotIn("ingredients_resolved_by", row)
+
+    def test_sp_resolution_keeps_the_shared_active_prefix(self):
+        row = {"species": "TOTODILE", "level": 30, "nature": "Hardy", "sp": 558,
+               "main_skill": "Charge Strength S", "skill_level": 1, "subskills": [],
+               "ingredients": [["Sausage", 1], ["Sausage", 2], ["Sausage", 4]],
+               "ingredient_options": [
+                   {"level": 1, "choices": [["Sausage", 1]]},
+                   {"level": 30, "choices": [["Sausage", 2], ["Oil", 2]]},
+                   {"level": 60, "choices": [["Sausage", 4], ["Oil", 3]]}],
+               "ocr_missing": ["ingredients"]}
+
+        def fake_engine(payload, command):
+            return {"results": [{"uid": x["uid"],
+                                  "match": x["instance"]["ingredients"][1][0] == "Oil",
+                                  "diff": 0 if x["instance"]["ingredients"][1][0] == "Oil" else 1}
+                                 for x in payload["instances"]]}
+
+        resolve_ingredients_by_sp([row], runner=fake_engine)
+
+        self.assertEqual(row["ingredients"], [["Sausage", 1], ["Oil", 2], ["Sausage", 4]])
+        self.assertEqual(row["ingredient_slots_resolved_by_sp"], [0, 1])
+        self.assertIn("ingredients", row["ocr_missing"])
+        self.assertNotIn("ingredients_resolved_by", row)
+
+    def test_vision_ingest_skips_one_failed_image_and_batches_sp_resolution(self):
+        inbox = Path(self.tmp.name) / "inbox"
+        inbox.mkdir()
+        for name in ("bad.png", "good.png"):
+            (inbox / name).write_bytes(b"sample")
+        good = {"species": "BULBASAUR", "sp": 513, "ocr_missing": ["ingredients"]}
+        progress = []
+        with (patch("pokesleep_box.ocr.scan",
+                    side_effect=[RuntimeError("nilError"), [good]]) as scan_mock,
+              patch("pokesleep_box.ocr.resolve_ingredients_by_sp",
+                    side_effect=lambda rows: rows) as resolve_mock,
+              patch("pokesleep_box.ocr.resolve_species_variant_by_sp",
+                    side_effect=lambda rows: rows) as variant_mock):
+            rows = ingest_path(inbox, Path(self.tmp.name) / "frames", vision=True,
+                               on_progress=progress.append)
+
+        self.assertEqual(rows, [good])
+        self.assertEqual(scan_mock.call_count, 2)
+        self.assertEqual(resolve_mock.call_count, 1)
+        self.assertEqual(variant_mock.call_count, 1)
+        self.assertTrue(any("bad.png: 失敗" in message for message in progress))
+
+    def test_text_identical_species_variant_is_resolved_by_sp(self):
+        row = {"species": "WOOPER", "level": 14, "nature": "Docile", "sp": 416,
+               "main_skill": "Charge Energy S", "skill_level": 1, "subskills": [],
+               "ingredients": [["Mushroom", 2]], "ocr_missing": ["ingredients"]}
+        metadata = {
+            "WOOPER": {"berry": "ORAN", "ingredients": [
+                {"level": 1, "choices": [["Mushroom", 2]]}]},
+            "WOOPER_PALDEAN": {"berry": "CHESTO", "ingredients": [
+                {"level": 1, "choices": [["Cacao", 2]]}]}}
+
+        def fake_engine(payload, command):
+            return {"results": [{"uid": x["uid"],
+                                  "match": x["instance"]["species"] == "WOOPER_PALDEAN",
+                                  "diff": 0 if x["instance"]["species"] == "WOOPER_PALDEAN" else 20}
+                                 for x in payload["instances"]]}
+
+        resolve_species_variant_by_sp([row], pokemon_data=metadata, runner=fake_engine)
+
+        self.assertEqual(row["species"], "WOOPER_PALDEAN")
+        self.assertEqual(row["species_resolved_by"], "sp_exact")
+        self.assertEqual(row["ingredients"], [["Cacao", 2]])
+
+    def test_contained_vocabulary_names_always_resolve_to_the_longest_name(self):
+        table = names()
+        for category in ("species", "natures", "mainskills", "berries", "ingredients", "subskills"):
+            values = table[category]
+            for expected, long_name in values.items():
+                compact_long = long_name.replace(" ", "")
+                contained = [short for key, short in values.items()
+                             if key != expected and short.replace(" ", "") in compact_long]
+                if contained:
+                    with self.subTest(category=category, name=long_name):
+                        match, ambiguous = _best_match([long_name], category, .72)
+                        self.assertEqual(match[0], expected)
+                        self.assertFalse(ambiguous)
+
+    def test_area_bonus_is_applied_once_to_each_kind_of_forecast(self):
+        settings = {"areaBonusByIsland": {"シアンの砂浜": 50}}
+        items = [dict(self.items[0], uid="solo", verified=True, energy_scores={
+            "シアンの砂浜": {"current": {"expected": 1000, "berry": 1000}}})]
+        # The engine already applies the island's area bonus to a team plan, so
+        # only the additive single-instance score may be scaled here.
+        plans = [{"island": "シアンの砂浜", "mode": "current", "total_energy": 1800,
+                  "cooking": 0, "synergy_gain": 500, "provisional": False,
+                  "members": [{"uid": "solo", "energy": 1800, "berry": 1800,
+                               "ingredient": 0, "direct_skill": 0, "marginal": 1800}]}]
+
+        additive = analyze(items, settings)
+        team_aware = analyze(items, settings, team_plans=plans)
+
+        cyan = next(x for x in additive["forecasts"] if x["island"] == "シアンの砂浜")
+        self.assertEqual(cyan["modes"]["current"]["daily"]["expected"], 1500)
+        cyan = next(x for x in team_aware["forecasts"] if x["island"] == "シアンの砂浜")
+        self.assertEqual(cyan["modes"]["current"]["daily"]["expected"], 1800)
+        self.assertEqual(cyan["modes"]["current"]["synergy_gain"], 500)
+
+    def test_capture_board_survives_a_benchmark_without_usable_energy(self):
+        benchmarks = [{"species": "PIKACHU", "species_ja": "ピカチュウ", "specialty": "berry",
+                       "berry": "ORAN", "base_species": "PICHU", "base_species_ja": "ピチュー",
+                       "base_species_en": "Pichu",
+                       "island_scores": {"シアンの砂浜": {"60": {"expected": 0}}}}]
+        owned = [{"uid": "u1", "species": "RAICHU", "final_evolution": "RAICHU", "verified": True,
+                  "absolute_score": 40.0,
+                  "energy_scores": {"シアンの砂浜": {"60": {"expected": 10}}}}]
+        encounters = {"fields": {"シアンの砂浜": {"うとうと": ["Pichu"]}}}
+
+        result = analyze(owned, {}, benchmarks, encounters=encounters)
+
+        self.assertIn("by_island", result["capture"])
+
+    def test_the_most_recent_evaluation_wins_over_an_older_engine_run(self):
+        import_individuals(self.db, [dict(self.items[0], scores={
+            "50": {"berry": 10.0}, "60": {"berry": 10.0},
+            "70": {"berry": 10.0}, "80": {"berry": 10.0}})])
+        uid = self.db.execute("SELECT uid FROM individual").fetchone()["uid"]
+        for anchor in (50, 60, 70, 80):
+            # A second engine version stores its own row for the same cell,
+            # because engine_version is part of evaluation's primary key.
+            self.db.execute("INSERT OR REPLACE INTO evaluation VALUES (?,?,?,?,?,?,?,?,?)",
+                            (uid, anchor, "berry", 99999.0, None, None, "engine@new", "v2",
+                             "2099-01-01T00:00:00+00:00"))
+        self.db.commit()
+
+        row = next(x for x in load_dashboard(self.db) if x["uid"] == uid)
+
+        self.assertEqual(row["evaluations"][50]["berry"], 99999.0)
+
+    def test_audit_lists_unverified_individuals_next_to_low_confidence_ones(self):
+        path = Path(self.tmp.name) / "audit.md"
+
+        audit([{"confidence": .5, "verified": True, "species": "A", "box_index": 1},
+               {"confidence": 1.0, "verified": False, "species": "B", "box_index": 2}], path)
+
+        self.assertIn("BOX 2 / B", path.read_text(encoding="utf-8"))
+
+    def test_restore_accepts_a_backup_written_before_a_table_existed(self):
+        path = Path(self.tmp.name) / "old-backup.json"
+        path.write_text(json.dumps({"format": "sleepbox-compass-backup-v1",
+                                    "tables": {"individual": []}}), encoding="utf-8")
+
+        restore_backup(self.db, path)
+
+        self.assertEqual(self.db.execute("SELECT count(*) FROM individual").fetchone()[0], 0)
+
+    def test_rendered_page_carries_the_saved_review_confirmation(self):
+        import_individuals(self.db, [dict(self.items[0], review_confirmed=True)])
+        out = Path(self.tmp.name) / "site"
+
+        render_site(load_dashboard(self.db), out)
+
+        self.assertIn('"review_confirmed": true', (out / "index.html").read_text(encoding="utf-8"))
+
+    def test_frame_interval_must_advance_the_video_clock(self):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            build_parser().parse_args(["scan", "--interval", "0"])
 
 
 if __name__ == "__main__":

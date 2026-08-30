@@ -5,7 +5,7 @@ import json
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 ROLES = ("berry", "ingredient", "skill")
 ANCHORS = (50, 60, 70, 80)
@@ -35,6 +35,169 @@ INGREDIENT_BASE_ENERGY = {
 
 def now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+# `evaluation`'s primary key includes the engine version and valuation hash, so
+# an imported score and an engine score for the same (uid, anchor, role) live in
+# separate rows. Reading them in unspecified order let a stale run silently
+# shadow the current one, so every reader sorts oldest-first and lets the most
+# recent evaluation win.
+EVALUATION_QUERY = """SELECT uid,anchor_level,role,score FROM evaluation
+                      ORDER BY evaluated_at,engine_version,valuation_hash"""
+
+
+def latest_evaluations(db: sqlite3.Connection) -> Dict[str, Dict[int, Dict[str, float]]]:
+    """Return {uid: {anchor: {role: score}}} using the newest score per cell."""
+    result: Dict[str, Dict[int, Dict[str, float]]] = {}
+    for row in db.execute(EVALUATION_QUERY):
+        result.setdefault(row["uid"], {}).setdefault(row["anchor_level"], {})[row["role"]] = row["score"]
+    return result
+
+
+def saved_teams(db: sqlite3.Connection) -> List[Dict[str, Any]]:
+    return [dict(row) | {"uids": json.loads(row["uids_json"]),
+                         "scenario": json.loads(row["scenario_json"])}
+            for row in db.execute("SELECT * FROM saved_team ORDER BY updated_at DESC")]
+
+
+def save_team(db: sqlite3.Connection, name: str, uids: Sequence[str],
+              scenario: Mapping[str, Any] = {}) -> None:
+    if not name.strip() or len(uids) != 5 or len(set(uids)) != 5:
+        raise ValueError("チーム名と異なる5匹が必要です")
+    timestamp = now()
+    db.execute("""INSERT INTO saved_team(name,uids_json,scenario_json,created_at,updated_at)
+                  VALUES(?,?,?,?,?) ON CONFLICT(name) DO UPDATE SET
+                  uids_json=excluded.uids_json,scenario_json=excluded.scenario_json,
+                  updated_at=excluded.updated_at""",
+               (name.strip(), json.dumps(list(uids), ensure_ascii=False),
+                json.dumps(dict(scenario), ensure_ascii=False), timestamp, timestamp))
+    db.commit()
+
+
+def observations(db: sqlite3.Connection) -> List[Dict[str, Any]]:
+    return [dict(row) for row in db.execute(
+        "SELECT * FROM production_observation ORDER BY observed_on DESC,id DESC")]
+
+
+def record_observation(db: sqlite3.Connection, observed_on: str, island: str, energy: int,
+                       predicted_energy: Optional[int] = None, notes: str = "") -> None:
+    if not observed_on or not island or energy < 0:
+        raise ValueError("日付・フィールド・0以上のエナジーが必要です")
+    db.execute("""INSERT INTO production_observation
+                  (observed_on,island,energy,predicted_energy,notes,created_at)
+                  VALUES(?,?,?,?,?,?)""",
+               (observed_on, island, energy, predicted_energy, notes[:500], now()))
+    db.commit()
+
+
+def upsert_species_friendship(db: sqlite3.Connection, species: str, friendship_level: int,
+                              badge: str = "none", gold_slots: Sequence[bool] = (True, True, True),
+                              source: str = "manual") -> None:
+    if friendship_level < 0 or badge not in {"none", "bronze", "silver", "gold"}:
+        raise ValueError("フレンドレベルまたはバッジが不正です")
+    slots = tuple(bool(x) for x in gold_slots)
+    if len(slots) != 3:
+        raise ValueError("金固定は3枠分指定してください")
+    db.execute("""INSERT INTO species_friendship VALUES(?,?,?,?,?,?,?,?)
+                  ON CONFLICT(species) DO UPDATE SET friendship_level=excluded.friendship_level,
+                  badge=excluded.badge,gold_slot_1=excluded.gold_slot_1,
+                  gold_slot_2=excluded.gold_slot_2,gold_slot_3=excluded.gold_slot_3,
+                  source=excluded.source,updated_at=excluded.updated_at""",
+               (species, friendship_level, badge, *[int(x) for x in slots], source, now()))
+    db.commit()
+
+
+def species_friendships(db: sqlite3.Connection) -> List[Dict[str, Any]]:
+    return [dict(row) for row in db.execute("SELECT * FROM species_friendship ORDER BY species")]
+
+
+def set_never_send(db: sqlite3.Connection, uid: str, enabled: bool, tags: Sequence[str] = ()) -> None:
+    if db.execute("SELECT 1 FROM individual WHERE uid=?", (uid,)).fetchone() is None:
+        raise ValueError("個体が見つかりません")
+    clean_tags = sorted({str(x).strip()[:40] for x in tags if str(x).strip()})
+    db.execute("UPDATE individual SET never_send=?,user_tags_json=? WHERE uid=?",
+               (int(enabled), json.dumps(clean_tags, ensure_ascii=False), uid))
+    db.commit()
+
+
+def set_ingredient_inventory(db: sqlite3.Connection, quantities: Mapping[str, Any]) -> None:
+    with db:
+        for ingredient, quantity in quantities.items():
+            value = int(quantity)
+            if value < 0:
+                raise ValueError("食材在庫は0以上で指定してください")
+            db.execute("""INSERT INTO ingredient_inventory VALUES(?,?,?)
+                          ON CONFLICT(ingredient) DO UPDATE SET quantity=excluded.quantity,
+                          updated_at=excluded.updated_at""", (ingredient, value, now()))
+
+
+def ingredient_inventory(db: sqlite3.Connection) -> Dict[str, int]:
+    return {row["ingredient"]: row["quantity"] for row in
+            db.execute("SELECT ingredient,quantity FROM ingredient_inventory")}
+
+
+def save_cooking_plan(db: sqlite3.Connection, name: str, recipe_name: str,
+                     requirements: Mapping[str, Any], meals_per_day: int = 3,
+                     team_id: Optional[int] = None, active: bool = False) -> None:
+    required = {str(k): int(v) for k, v in requirements.items() if int(v) > 0}
+    if not name.strip() or not recipe_name.strip() or not required or not 1 <= meals_per_day <= 3:
+        raise ValueError("計画名・料理名・必要食材・食数を確認してください")
+    with db:
+        if active:
+            db.execute("UPDATE cooking_plan SET active=0")
+        db.execute("""INSERT INTO cooking_plan(name,team_id,recipe_name,meals_per_day,requirements_json,active,updated_at)
+                      VALUES(?,?,?,?,?,?,?) ON CONFLICT(name) DO UPDATE SET team_id=excluded.team_id,
+                      recipe_name=excluded.recipe_name,meals_per_day=excluded.meals_per_day,
+                      requirements_json=excluded.requirements_json,active=excluded.active,updated_at=excluded.updated_at""",
+                   (name.strip(), team_id, recipe_name.strip(), meals_per_day,
+                    json.dumps(required, ensure_ascii=False), int(active), now()))
+
+
+def cooking_plans(db: sqlite3.Connection) -> List[Dict[str, Any]]:
+    result = []
+    for row in db.execute("SELECT * FROM cooking_plan ORDER BY active DESC,updated_at DESC"):
+        plan = dict(row)
+        plan["requirements"] = json.loads(plan.pop("requirements_json"))
+        plan["daily_requirements"] = {name: amount * plan["meals_per_day"]
+                                      for name, amount in plan["requirements"].items()}
+        plan["weekly_requirements"] = {name: amount * 7
+                                       for name, amount in plan["daily_requirements"].items()}
+        result.append(plan)
+    return result
+
+
+def export_backup(db: sqlite3.Connection, output: Path) -> Path:
+    """Portable JSON backup; it deliberately excludes captures and image paths."""
+    tables = ("individual", "evaluation", "decision", "saved_team", "production_observation",
+              "species_friendship", "ingredient_inventory", "cooking_plan")
+    payload = {"format": "sleepbox-compass-backup-v1", "exported_at": now(),
+               "tables": {table: [dict(row) for row in db.execute(f"SELECT * FROM {table}")]
+                          for table in tables}}
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return output
+
+
+def restore_backup(db: sqlite3.Connection, source: Path) -> None:
+    """Replace local planning data only after an explicit CLI --replace flag."""
+    payload = json.loads(source.read_text(encoding="utf-8"))
+    if payload.get("format") != "sleepbox-compass-backup-v1":
+        raise ValueError("Sleepbox Compassのバックアップ形式ではありません")
+    tables = ("individual", "evaluation", "decision", "saved_team", "production_observation",
+              "species_friendship", "ingredient_inventory", "cooking_plan")
+    rows = payload.get("tables", {})
+    if not isinstance(rows, dict) or any(not isinstance(rows.get(t, []), list) for t in tables):
+        raise ValueError("バックアップのテーブル構造が不正です")
+    with db:
+        for table in reversed(tables):
+            db.execute(f"DELETE FROM {table}")
+        for table in tables:
+            # A backup written before a table existed simply omits it, which the
+            # structure check above already tolerates; read it as empty instead
+            # of aborting the whole restore.
+            for row in rows.get(table, []):
+                columns, values = list(row), list(row.values())
+                db.execute(f"INSERT INTO {table} ({','.join(columns)}) VALUES ({','.join('?' for _ in columns)})", values)
 
 
 def canonical_uid(item: Mapping[str, Any]) -> str:
@@ -71,6 +234,12 @@ def connect(path: Path) -> sqlite3.Connection:
         db.execute("ALTER TABLE individual ADD COLUMN archived INTEGER NOT NULL DEFAULT 0")
     if "final_evolution" not in columns:
         db.execute("ALTER TABLE individual ADD COLUMN final_evolution TEXT")
+    if "ribbon" not in columns:
+        db.execute("ALTER TABLE individual ADD COLUMN ribbon INTEGER NOT NULL DEFAULT 0")
+    if "never_send" not in columns:
+        db.execute("ALTER TABLE individual ADD COLUMN never_send INTEGER NOT NULL DEFAULT 0")
+    if "user_tags_json" not in columns:
+        db.execute("ALTER TABLE individual ADD COLUMN user_tags_json TEXT NOT NULL DEFAULT '[]'")
     db.commit()
     return db
 
@@ -90,6 +259,15 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
             if len(matches) == 1:
                 existing = matches[0]
                 uid = existing["uid"]
+            elif item["species"] != "UNKNOWN":
+                # A prior OCR may have missed only the header name while
+                # retaining its SP.  Recover that placeholder rather than
+                # adding a second record for the same captured individual.
+                unknown = db.execute("SELECT * FROM individual WHERE species='UNKNOWN' AND sp=?",
+                                     (item["sp"],)).fetchall()
+                if len(unknown) == 1:
+                    existing = unknown[0]
+                    uid = existing["uid"]
         # A later capture may intentionally show only nature/subskills. Never
         # replace previously reviewed fields with OCR placeholders or partial
         # ingredient lists from that complementary video.
@@ -135,8 +313,8 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
         db.execute(
             """INSERT INTO individual
             (uid,species,display_name,level,nature,pokemon_type,berry,energy_scores_json,island_scores_json,ingredients_json,subskills_json,
-             main_skill,skill_level,sp,box_index,first_seen,last_seen,confidence,verified,review_confirmed)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+             main_skill,skill_level,sp,box_index,first_seen,last_seen,confidence,verified,review_confirmed,ribbon)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(uid) DO UPDATE SET species=excluded.species,display_name=excluded.display_name,
               level=excluded.level,nature=excluded.nature,pokemon_type=excluded.pokemon_type,
               berry=excluded.berry,
@@ -145,6 +323,7 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
               subskills_json=excluded.subskills_json,main_skill=excluded.main_skill,
               skill_level=excluded.skill_level,sp=excluded.sp,box_index=excluded.box_index,
               last_seen=excluded.last_seen,confidence=excluded.confidence,
+              ribbon=excluded.ribbon,
               review_confirmed=MAX(individual.review_confirmed,excluded.review_confirmed),
               verified=MAX(individual.review_confirmed,excluded.verified,excluded.review_confirmed)""",
             (uid, item["species"], item.get("display_name"), item.get("level"),
@@ -155,7 +334,8 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
              json.dumps(item["ingredients"], ensure_ascii=False),
              json.dumps(item["subskills"], ensure_ascii=False), item["main_skill"],
              item["skill_level"], item.get("sp"), item.get("box_index"),
-             timestamp, timestamp, item.get("confidence", 0.0), verified, review_confirmed),
+             timestamp, timestamp, item.get("confidence", 0.0), verified, review_confirmed,
+             int(item.get("ribbon", existing["ribbon"] if existing else 0) or 0)),
         )
         for anchor_text, scores in item.get("scores", {}).items():
             for role, score in scores.items():
@@ -174,8 +354,8 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
 def decide(db: sqlite3.Connection, keep_top_n: int = 2,
            protected_uids: Sequence[str] = (), low_score_threshold: float = 30.0) -> Dict[str, int]:
     people = db.execute("SELECT * FROM individual WHERE archived=0 ORDER BY species, box_index").fetchall()
-    scores = {(r["uid"], r["anchor_level"], r["role"]): r["score"] for r in
-              db.execute("SELECT uid,anchor_level,role,score FROM evaluation")}
+    scores = {(r["uid"], r["anchor_level"], r["role"]): r["score"]
+              for r in db.execute(EVALUATION_QUERY)}
     by_species: Dict[str, List[sqlite3.Row]] = {}
     for person in people:
         by_species.setdefault(person["species"], []).append(person)
@@ -184,12 +364,14 @@ def decide(db: sqlite3.Connection, keep_top_n: int = 2,
     for species, group in by_species.items():
         for person in group:
             uid = person["uid"]
-            if uid in protected_uids:
+            if person["never_send"]:
+                verdict, reason = "protected", "「送らない」タグで保護されています"
+            elif uid in protected_uids:
                 verdict, reason = "protected", "保護リストで指定されています"
             elif not person["verified"]:
                 verdict, reason = "protected", "検証が完了していないため判定対象外です"
             elif any((uid, a, r) not in scores for a in ANCHORS for r in ROLES):
-                verdict, reason = "protected", "Lv60/Lv80の全ロール評価が未完了です"
+                verdict, reason = "protected", "Lv50/60/70/80の全ロール評価が未完了です"
             else:
                 def peak_role_score(candidate_uid: str) -> Tuple[str, float]:
                     evaluations = {
@@ -200,9 +382,14 @@ def decide(db: sqlite3.Connection, keep_top_n: int = 2,
                     return max(role_scores.items(), key=lambda item: item[1])
 
                 best_role, best_role_score = peak_role_score(uid)
+                # Compare only candidates with a complete score grid.  A
+                # protected/incomplete sibling is still shown in the box, but
+                # must not crash or influence the keep/send ranking.
                 better = sum(
                     peak_role_score(other["uid"])[1] > best_role_score
-                    for other in group if other["uid"] != uid
+                    for other in group
+                    if other["uid"] != uid
+                    and all((other["uid"], a, r) in scores for a in ANCHORS for r in ROLES)
                 )
                 if better >= keep_top_n:
                     verdict = "send"
@@ -225,9 +412,7 @@ def load_dashboard(db: sqlite3.Connection) -> List[Dict[str, Any]]:
     rows = db.execute("""SELECT i.*,d.verdict,d.reason FROM individual i
                          LEFT JOIN decision d ON d.uid=i.uid
                          WHERE i.archived=0 ORDER BY i.box_index""").fetchall()
-    evaluations: Dict[str, Dict[int, Dict[str, float]]] = {}
-    for row in db.execute("SELECT uid,anchor_level,role,score FROM evaluation"):
-        evaluations.setdefault(row["uid"], {}).setdefault(row["anchor_level"], {})[row["role"]] = row["score"]
+    evaluations = latest_evaluations(db)
     result = []
     for row in rows:
         item_scores = evaluations.get(row["uid"], {})

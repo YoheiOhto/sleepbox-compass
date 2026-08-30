@@ -21,7 +21,10 @@ CREATE TABLE IF NOT EXISTS individual (
   verify_mode TEXT CHECK(verify_mode IN ('strict','tolerant','skipped','failed')),
   repaired INTEGER NOT NULL DEFAULT 0,
   archived INTEGER NOT NULL DEFAULT 0,
-  final_evolution TEXT
+  final_evolution TEXT,
+  ribbon INTEGER NOT NULL DEFAULT 0,
+  never_send INTEGER NOT NULL DEFAULT 0,
+  user_tags_json TEXT NOT NULL DEFAULT '[]'
 );
 
 CREATE TABLE IF NOT EXISTS evaluation (
@@ -37,4 +40,35 @@ CREATE TABLE IF NOT EXISTS decision (
   uid TEXT PRIMARY KEY REFERENCES individual(uid),
   verdict TEXT NOT NULL CHECK(verdict IN ('keep','send','protected')),
   reason TEXT NOT NULL, decided_at TEXT NOT NULL
+);
+
+-- All user-created planning data stays in the same local SQLite database.
+CREATE TABLE IF NOT EXISTS saved_team (
+  id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, uids_json TEXT NOT NULL,
+  scenario_json TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS production_observation (
+  id INTEGER PRIMARY KEY, observed_on TEXT NOT NULL, island TEXT NOT NULL,
+  energy INTEGER NOT NULL, predicted_energy INTEGER, notes TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS species_friendship (
+  species TEXT PRIMARY KEY, friendship_level INTEGER NOT NULL,
+  badge TEXT NOT NULL CHECK(badge IN ('none','bronze','silver','gold')),
+  gold_slot_1 INTEGER NOT NULL DEFAULT 1,
+  gold_slot_2 INTEGER NOT NULL DEFAULT 1,
+  gold_slot_3 INTEGER NOT NULL DEFAULT 1,
+  source TEXT NOT NULL DEFAULT 'manual', updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ingredient_inventory (
+  ingredient TEXT PRIMARY KEY, quantity INTEGER NOT NULL CHECK(quantity >= 0), updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS cooking_plan (
+  id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, team_id INTEGER REFERENCES saved_team(id),
+  recipe_name TEXT NOT NULL, meals_per_day INTEGER NOT NULL CHECK(meals_per_day BETWEEN 1 AND 3),
+  requirements_json TEXT NOT NULL, active INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL
 );

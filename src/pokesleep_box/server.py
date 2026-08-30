@@ -7,7 +7,9 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from .analytics import ISLANDS, analyze
-from .core import connect, decide, load_dashboard
+from .core import (connect, decide, load_dashboard, observations, record_observation,
+                   cooking_plans, ingredient_inventory, save_cooking_plan, save_team, saved_teams,
+                   set_ingredient_inventory, set_never_send, species_friendships, upsert_species_friendship)
 from .engine import (SUBSKILL_UPGRADES, evaluate, evaluate_main_seed_upgrades,
                      evaluate_seed_upgrades, individual_to_engine, run_engine)
 from .render import render_site
@@ -19,8 +21,12 @@ def build_simulation_payload(db, request: Mapping[str, Any]) -> dict[str, Any]:
     mode = str(request.get("mode", "current"))
     if not isinstance(uids, list) or len(uids) != 5 or len(set(uids)) != 5:
         raise ValueError("異なる5匹を選んでください")
-    if island not in ISLANDS:
-        raise ValueError("固定島を選んでください")
+    requested_berries = request.get("berries")
+    if island not in ISLANDS and not (island and isinstance(requested_berries, list)):
+        raise ValueError("フィールドまたは好みのきのみを指定してください")
+    berries = list(ISLANDS[island]) if island in ISLANDS else requested_berries
+    if not isinstance(berries, list) or len(berries) != 3:
+        raise ValueError("好みのきのみを3種類指定してください")
     if mode not in {"current", "50", "60", "70", "80"}:
         raise ValueError("育成段階が不正です")
     marks = ",".join("?" for _ in uids)
@@ -30,7 +36,7 @@ def build_simulation_payload(db, request: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("選択した個体がボックスにありません")
     return {
         "mode": "custom-team", "teamMode": mode,
-        "island": {"name": island, "berries": list(ISLANDS[island])},
+        "island": {"name": island, "berries": berries},
         "iterations": 500, "teamSearchIterations": 80, "teamIterations": 500,
         "instances": [{"uid": uid, "instance": individual_to_engine(dict(by_uid[uid]))}
                       for uid in uids],
@@ -94,20 +100,25 @@ def serve(db_path: Path, site: Path, host: str = "127.0.0.1", port: int = 8000,
                 return
             if self.path == "/api/recalculate":
                 try:
+                    settings_path = Path("config/settings.local.json")
+                    settings = json.loads(settings_path.read_text()) if settings_path.exists() else {}
                     request_db = connect(db_path)
                     try:
-                        count = evaluate(request_db, engine)
+                        count = evaluate(request_db, engine, simulation=settings)
                         decisions = decide(request_db)
                         seed_plans = evaluate_seed_upgrades(request_db, engine)
                         main_seed_plans = evaluate_main_seed_upgrades(request_db, engine)
                         dashboard = load_dashboard(request_db)
+                        saved = saved_teams(request_db)
+                        observed = observations(request_db)
+                        friendships = species_friendships(request_db)
+                        inventory = ingredient_inventory(request_db)
+                        cooking = cooking_plans(request_db)
                     finally:
                         request_db.close()
-                    settings_path = Path("config/settings.local.json")
                     benchmark_path = Path("data/private/species_benchmarks.json")
                     encounter_path = Path("data/seed_encounters.json")
                     team_path = Path("data/private/team_plans.json")
-                    settings = json.loads(settings_path.read_text()) if settings_path.exists() else {}
                     benchmarks = (json.loads(benchmark_path.read_text()).get("benchmarks", [])
                                   if benchmark_path.exists() else [])
                     encounters = (json.loads(encounter_path.read_text())
@@ -124,7 +135,9 @@ def serve(db_path: Path, site: Path, host: str = "127.0.0.1", port: int = 8000,
                     render_site(dashboard, site, teams,
                                 analyze(dashboard, settings, benchmarks, team_plans=teams,
                                         encounters=encounters),
-                                seed_plans=seed_plans, main_seed_plans=main_seed_plans)
+                                seed_plans=seed_plans, main_seed_plans=main_seed_plans, saved=saved,
+                                observed=observed, settings=settings, friendships=friendships,
+                                inventory=inventory, cooking=cooking)
                     body = json.dumps({"evaluations": count, "decisions": decisions},
                                       ensure_ascii=False).encode()
                     self.send_response(200)
@@ -137,7 +150,7 @@ def serve(db_path: Path, site: Path, host: str = "127.0.0.1", port: int = 8000,
                 self.end_headers()
                 self.wfile.write(body)
                 return
-            if self.path in ("/api/update-training", "/api/archive-individual"):
+            if self.path in ("/api/update-training", "/api/archive-individual", "/api/set-never-send"):
                 try:
                     length = int(self.headers.get("Content-Length", "0"))
                     payload = json.loads(self.rfile.read(length) or b"{}")
@@ -148,7 +161,9 @@ def serve(db_path: Path, site: Path, host: str = "127.0.0.1", port: int = 8000,
                             "SELECT * FROM individual WHERE uid=? AND archived=0", (uid,)).fetchone()
                         if not row:
                             raise ValueError("個体が見つかりません")
-                        if self.path == "/api/archive-individual":
+                        if self.path == "/api/set-never-send":
+                            set_never_send(request_db, uid, bool(payload.get("enabled")), payload.get("tags", []))
+                        elif self.path == "/api/archive-individual":
                             request_db.execute("UPDATE individual SET archived=1 WHERE uid=?", (uid,))
                         else:
                             level, skill_level = int(payload.get("level", 0)), int(payload.get("skill_level", 0))
@@ -175,6 +190,46 @@ def serve(db_path: Path, site: Path, host: str = "127.0.0.1", port: int = 8000,
                     body = json.dumps({"saved": True}, ensure_ascii=False).encode()
                     self.send_response(200)
                 except (ValueError, json.JSONDecodeError) as exc:
+                    body = json.dumps({"error": str(exc)}, ensure_ascii=False).encode()
+                    self.send_response(400)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
+            if self.path in ("/api/save-team", "/api/record-observation", "/api/species-friendship",
+                             "/api/ingredient-inventory", "/api/cooking-plan"):
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    payload = json.loads(self.rfile.read(length) or b"{}")
+                    request_db = connect(db_path)
+                    try:
+                        if self.path == "/api/save-team":
+                            save_team(request_db, str(payload.get("name", "")), payload.get("uids", []),
+                                      payload.get("scenario", {}))
+                        elif self.path == "/api/record-observation":
+                            predicted = payload.get("predicted_energy")
+                            record_observation(request_db, str(payload.get("observed_on", "")),
+                                               str(payload.get("island", "")), int(payload.get("energy", -1)),
+                                               int(predicted) if predicted is not None else None,
+                                               str(payload.get("notes", "")))
+                        elif self.path == "/api/species-friendship":
+                            upsert_species_friendship(request_db, str(payload.get("species", "")),
+                                                      int(payload.get("friendship_level", -1)),
+                                                      str(payload.get("badge", "none")),
+                                                      payload.get("gold_slots", (True, True, True)), "manual")
+                        elif self.path == "/api/ingredient-inventory":
+                            set_ingredient_inventory(request_db, payload.get("quantities", {}))
+                        else:
+                            save_cooking_plan(request_db, str(payload.get("name", "")),
+                                             str(payload.get("recipe_name", "")), payload.get("requirements", {}),
+                                             int(payload.get("meals_per_day", 3)), payload.get("team_id"),
+                                             bool(payload.get("active")))
+                    finally:
+                        request_db.close()
+                    body = b'{"saved":true}'
+                    self.send_response(200)
+                except (ValueError, TypeError, json.JSONDecodeError) as exc:
                     body = json.dumps({"error": str(exc)}, ensure_ascii=False).encode()
                     self.send_response(400)
                 self.send_header("Content-Type", "application/json; charset=utf-8")

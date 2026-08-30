@@ -5,13 +5,25 @@ import json
 import sys
 from pathlib import Path
 
-from .core import build_team_plans, compare_species_tiers, connect, decide, import_individuals, load_dashboard
+from .core import (build_team_plans, compare_species_tiers, connect, cooking_plans, decide, export_backup,
+                   import_individuals, ingredient_inventory, load_dashboard, observations, restore_backup,
+                   saved_teams, save_cooking_plan, set_ingredient_inventory, species_friendships,
+                   upsert_species_friendship)
 from .analytics import analyze
 from .engine import (EngineUnavailable, evaluate, evaluate_main_seed_upgrades,
                      evaluate_seed_upgrades, run_engine, species_scores, verify)
 from .ingest import audit, ingest_path, render_review
 from .localization import names
+from .planning import catches_for_target, resource_plan
 from .render import render_site
+
+
+def positive_seconds(value: str) -> float:
+    """Reject a frame interval that would never advance the video clock."""
+    seconds = float(value)
+    if not seconds > 0:
+        raise argparse.ArgumentTypeError("フレーム間隔は0より大きい秒数で指定してください")
+    return seconds
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -24,8 +36,31 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--db", type=Path, default=Path("data/box.sqlite"))
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("init-db")
+    backup = commands.add_parser("backup")
+    backup.add_argument("--out", type=Path, default=Path("data/private/sleepbox-backup.json"))
+    restore = commands.add_parser("restore")
+    restore.add_argument("path", type=Path)
+    restore.add_argument("--replace", action="store_true", help="現在のローカルDBの計画データを置換する")
+    dex = commands.add_parser("import-dex")
+    dex.add_argument("path", type=Path, help="friendships配列を持つ、図鑑から確認したJSON")
+    dex_scan = commands.add_parser("scan-dex")
+    dex_scan.add_argument("path", type=Path, help="寝顔図鑑のスクリーンショット")
+    inventory = commands.add_parser("set-inventory")
+    inventory.add_argument("path", type=Path, help="食材名: 個数 のJSON")
+    cooking = commands.add_parser("save-cooking-plan")
+    cooking.add_argument("path", type=Path, help="料理計画JSON")
+    odds = commands.add_parser("capture-odds")
+    odds.add_argument("--per-catch", type=float, required=True, help="より良い個体を得る1捕獲あたりの確率（0〜1）")
+    odds.add_argument("--target", type=float, default=.9, help="到達したい累積確率（0〜1）")
+    resources = commands.add_parser("resource-plan")
+    resources.add_argument("--settings", type=Path, default=Path("config/settings.local.json"))
+    resources.add_argument("--seed-plans", type=Path, default=Path("data/private/seed_plans.json"))
+    resources.add_argument("--main-seed-plans", type=Path, default=Path("data/private/main_seed_plans.json"))
     imp = commands.add_parser("import-json")
     imp.add_argument("path", type=Path)
+    review = commands.add_parser("review")
+    review.add_argument("--out", type=Path, default=Path("frames/review.html"),
+                        help="現在DBに登録されている個体の確認ページ")
     dec = commands.add_parser("decide")
     dec.add_argument("--keep-top-n", type=int, default=2)
     render = commands.add_parser("render")
@@ -58,7 +93,8 @@ def build_parser() -> argparse.ArgumentParser:
         scan.add_argument("--audit", type=Path, default=Path("audit_report.md"))
         scan.add_argument("--review", type=Path, default=Path("frames/review.html"))
         scan.add_argument("--ocr", choices=("vision", "sidecar"), default="vision")
-        scan.add_argument("--interval", type=float, default=.8, help="動画OCRのフレーム間隔（秒）")
+        scan.add_argument("--interval", type=positive_seconds, default=.8,
+                          help="動画OCRのフレーム間隔（秒）")
         scan.add_argument("--ocr-command", help="画像パスを受け取り抽出JSONを標準出力するローカルコマンド")
     ver = commands.add_parser("verify")
     ver.add_argument("--engine", default="engine/bin/pokesleep-engine")
@@ -66,6 +102,7 @@ def build_parser() -> argparse.ArgumentParser:
     ev = commands.add_parser("evaluate")
     ev.add_argument("--engine", default="engine/bin/pokesleep-engine")
     ev.add_argument("--teams-out", type=Path, default=Path("data/private/team_plans.json"))
+    ev.add_argument("--settings", type=Path, default=Path("config/settings.local.json"))
     seed_ev = commands.add_parser("seed-evaluate")
     seed_ev.add_argument("--engine", default="engine/bin/pokesleep-engine")
     seed_ev.add_argument("--out", type=Path, default=Path("data/private/seed_plans.json"))
@@ -92,6 +129,57 @@ def main() -> None:
     db = connect(args.db)
     if args.command == "init-db":
         print(args.db)
+    elif args.command == "backup":
+        print(export_backup(db, args.out))
+    elif args.command == "restore":
+        if not args.replace:
+            parser.error("復元は既存の計画データを置換します。--replace を明示してください")
+        restore_backup(db, args.path)
+        print(args.db)
+    elif args.command == "review":
+        rows = []
+        for item in load_dashboard(db):
+            row = dict(item)
+            row["ingredients"] = json.loads(row.get("ingredients_json") or "[]")
+            row["subskills"] = json.loads(row.get("subskills_json") or "[]")
+            # OCRの元フレームをDBに持たないため、未確定の項目は既存の
+            # 検証状態から表示する。JSONを保存して再取込すると確定できる。
+            row["ocr_missing"] = [] if row.get("review_confirmed") else ["内容の照合"]
+            rows.append(row)
+        render_review(rows, args.out)
+        print(args.out)
+    elif args.command == "import-dex":
+        payload = json.loads(args.path.read_text(encoding="utf-8"))
+        rows = payload if isinstance(payload, list) else payload.get("friendships", [])
+        for row in rows:
+            upsert_species_friendship(db, row["species"], int(row["friendship_level"]),
+                                      row.get("badge", "none"), row.get("gold_slots", (True, True, True)),
+                                      row.get("source", "manual"))
+        print(json.dumps({"imported": len(rows)}, ensure_ascii=False))
+    elif args.command == "scan-dex":
+        from .ocr import parse_dex_friendship, recognize_path
+        frames = recognize_path(args.path)
+        rows = [value for frame in frames
+                if (value := parse_dex_friendship(frame.get("observations", [])))]
+        print(json.dumps({"friendships": rows}, ensure_ascii=False, indent=2))
+    elif args.command == "set-inventory":
+        set_ingredient_inventory(db, json.loads(args.path.read_text(encoding="utf-8")))
+        print(json.dumps(ingredient_inventory(db), ensure_ascii=False))
+    elif args.command == "save-cooking-plan":
+        row = json.loads(args.path.read_text(encoding="utf-8"))
+        save_cooking_plan(db, row["name"], row["recipe_name"], row["requirements"],
+                         int(row.get("meals_per_day", 3)), row.get("team_id"), bool(row.get("active")))
+        print(json.dumps({"plans": cooking_plans(db)}, ensure_ascii=False))
+    elif args.command == "capture-odds":
+        print(json.dumps({"catches": catches_for_target(args.per_catch, args.target),
+                          "per_catch": args.per_catch, "target": args.target}, ensure_ascii=False))
+    elif args.command == "resource-plan":
+        settings = json.loads(args.settings.read_text()) if args.settings.exists() else {}
+        sub = json.loads(args.seed_plans.read_text()).get("plans", []) if args.seed_plans.exists() else []
+        main = (json.loads(args.main_seed_plans.read_text()).get("plans", [])
+                if args.main_seed_plans.exists() else [])
+        print(json.dumps({"plans": resource_plan(sub, main, settings.get("resources", {})),
+                          "unmodeled": ["candy", "dreamShards"]}, ensure_ascii=False, indent=2))
     elif args.command == "import-json":
         payload = json.loads(args.path.read_text(encoding="utf-8"))
         print(json.dumps({"imported": import_individuals(db, payload["individuals"])}, ensure_ascii=False))
@@ -111,7 +199,8 @@ def main() -> None:
                            if args.main_seed_plans.exists() else [])
         render_site(dashboard, args.out, teams, analyze(dashboard, settings, benchmarks,
                    team_plans=teams, encounters=encounters),
-                   tier_rows, seed_plans, main_seed_plans)
+                   tier_rows, seed_plans, main_seed_plans, saved_teams(db), observations(db), settings,
+                   species_friendships(db), ingredient_inventory(db), cooking_plans(db))
         print(args.out / "index.html")
     elif args.command == "serve":
         from .server import serve
@@ -149,7 +238,8 @@ def main() -> None:
         def report_progress(message: str) -> None:
             print(message, file=sys.stderr, flush=True)
         try:
-            print(json.dumps({"evaluations": evaluate(db, args.engine, args.teams_out,
+            settings = json.loads(args.settings.read_text()) if args.settings.exists() else {}
+            print(json.dumps({"evaluations": evaluate(db, args.engine, args.teams_out, settings,
                                                        on_progress=report_progress),
                               "teams": str(args.teams_out)}, ensure_ascii=False))
         except EngineUnavailable as exc:

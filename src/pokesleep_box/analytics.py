@@ -77,25 +77,29 @@ def analyze(items: Sequence[Mapping[str, Any]], settings: Mapping[str, Any] = {}
             team_plan = next((p for p in team_plans if p.get("island") == island
                               and str(p.get("mode")) == mode and "total_energy" in p), None)
             if team_plan:
+                # The engine receives this island's area bonus in its own team
+                # settings, so its totals already include it. `factor` only
+                # applies to the single-instance scores of the additive branch
+                # below, which the engine reports without any area bonus.
                 members_by_uid = {x["uid"]: x for x in items}
                 for member in team_plan.get("members", []):
                     membership.setdefault(member["uid"], set()).add(island)
-                total = float(team_plan["total_energy"]) * factor
-                berry = sum(float(x.get("berry", 0)) for x in team_plan.get("members", [])) * factor
-                ingredient = sum(float(x.get("ingredient", 0)) for x in team_plan.get("members", [])) * factor
-                skill = sum(float(x.get("direct_skill", 0)) for x in team_plan.get("members", [])) * factor
-                cooking = float(team_plan.get("cooking", 0) or 0) * factor
+                total = float(team_plan["total_energy"])
+                berry = sum(float(x.get("berry", 0)) for x in team_plan.get("members", []))
+                ingredient = sum(float(x.get("ingredient", 0)) for x in team_plan.get("members", []))
+                skill = sum(float(x.get("direct_skill", 0)) for x in team_plan.get("members", []))
+                cooking = float(team_plan.get("cooking", 0) or 0)
                 totals = {"expected": round(total), "low": round(total), "high": round(total),
                           "berry": round(berry), "ingredient": round(ingredient), "skill": round(skill),
                           "cooking": round(cooking)}
                 modes[mode] = {"daily": totals, "weekly": {k: v * 7 for k, v in totals.items()},
                                "provisional": bool(team_plan.get("provisional")), "team_aware": True,
-                               "synergy_gain": round(float(team_plan.get("synergy_gain", 0)) * factor),
+                               "synergy_gain": round(float(team_plan.get("synergy_gain", 0))),
                                "members": [{"uid": m["uid"],
                                             "name": (individual_label(members_by_uid[m["uid"]])
                                                      if m["uid"] in members_by_uid else m["uid"]),
-                                            "energy": round(float(m.get("energy", 0)) * factor),
-                                            "marginal": round(float(m.get("marginal", 0)) * factor),
+                                            "energy": round(float(m.get("energy", 0))),
+                                            "marginal": round(float(m.get("marginal", 0))),
                                             "recovery": m.get("recovery", 0),
                                             "team_help_support": m.get("team_help_support", 0),
                                             "subskills": m.get("subskills", [])}
@@ -265,7 +269,10 @@ def capture_recommendations(items, forecasts, benchmarks, encounters={}):
             slot_owned = best_owned_in_slot(row, island)
             owned_daily = (_item_metric(slot_owned, island, "60")["expected"]
                            if slot_owned else 0)
-            if owned_daily >= daily * .9:
+            # `daily` can round to 0 when the benchmark's Lv60 simulation is
+            # degenerate; without owning anything in the slot, or without an
+            # ideal value to compare against, there is no ratio to report.
+            if slot_owned and daily and owned_daily >= daily * .9:
                 skipped.append({**base, "own_score": slot_owned.get("absolute_score"),
                                 "reason": f"手持ちの同じ役割×タイプが理想値の{round(owned_daily/daily*100)}%"})
                 continue
@@ -321,7 +328,7 @@ def capture_recommendations(items, forecasts, benchmarks, encounters={}):
                     slot_owned = best_owned_in_slot(candidate, target_field)
                     owned_daily = (_item_metric(slot_owned, target_field, "60")["expected"]
                                    if slot_owned else 0)
-                    if owned_daily >= daily * .9:
+                    if slot_owned and daily and owned_daily >= daily * .9:
                         reject_reason = f"手持ちの同枠戦力が理想値の{round(owned_daily/daily*100)}%"
                         continue
                     row = {"species": base_name, "species_key": base_key,
