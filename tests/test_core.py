@@ -58,9 +58,9 @@ class CoreTests(unittest.TestCase):
         result = decide(self.db, keep_top_n=2)
         self.assertEqual(result, {"keep": 2, "send": 1, "protected": 0})
         sent = self.db.execute("SELECT reason FROM decision WHERE verdict='send'").fetchone()
-        self.assertIn("最も尖った役割", sent["reason"])
+        self.assertIn("全ロール", sent["reason"])
 
-    def test_decision_ranks_each_individual_by_its_peak_future_role(self):
+    def test_decision_preserves_a_specialist_not_dominated_on_every_axis(self):
         items = []
         for index, (nature, berry, ingredient, skill) in enumerate(
                 (("Mild", 1200, 100, 100),
@@ -77,13 +77,29 @@ class CoreTests(unittest.TestCase):
 
         result = decide(self.db, keep_top_n=2)
 
+        self.assertEqual(result, {"keep": 3, "send": 0, "protected": 0})
+
+    def test_decision_sends_only_when_two_candidates_dominate_every_axis(self):
+        items = []
+        for index, score in enumerate((300, 200, 100), 1):
+            item = dict(self.items[0], display_name=f"all-round-{index}", box_index=index,
+                        nature=("Mild", "Calm", "Sassy")[index - 1], sp=700 + index)
+            item["scores"] = {
+                str(anchor): {role: score for role in ("berry", "ingredient", "skill")}
+                for anchor in (60, 80)
+            }
+            items.append(item)
+        import_individuals(self.db, items)
+
+        result = decide(self.db, keep_top_n=2)
+
         self.assertEqual(result, {"keep": 2, "send": 1, "protected": 0})
         sent = self.db.execute(
             "SELECT i.display_name,d.reason FROM decision d JOIN individual i ON i.uid=d.uid "
             "WHERE d.verdict='send'"
         ).fetchone()
-        self.assertEqual(sent["display_name"], "peak-3")
-        self.assertIn("skill", sent["reason"])
+        self.assertEqual(sent["display_name"], "all-round-3")
+        self.assertIn("全ロール", sent["reason"])
 
     def test_unverified_is_never_sent(self):
         item = dict(self.items[0], verified=False)
@@ -106,7 +122,7 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(result, {"keep": 1, "send": 0, "protected": 0})
         decision = self.db.execute("SELECT verdict,reason FROM decision").fetchone()
         self.assertEqual(decision["verdict"], "keep")
-        self.assertIn("最も尖った役割", decision["reason"])
+        self.assertIn("支配されません", decision["reason"])
 
     def test_rescan_preserves_verification_only_when_core_is_unchanged(self):
         original = dict(self.items[0], verified=True, sp=513)
@@ -197,14 +213,14 @@ class CoreTests(unittest.TestCase):
 
     def test_absolute_score_uses_fixed_reference(self):
         references = {level: {role: 1000 for role in ("berry", "ingredient", "skill")}
-                      for level in (50, 60, 70, 80)}
+                      for level in (60, 80)}
         evaluations = {level: {role: 500 for role in ("berry", "ingredient", "skill")}
-                       for level in (50, 60, 70, 80)}
+                       for level in (60, 80)}
         self.assertEqual(absolute_role_scores(evaluations, references),
                          {"berry": 50.0, "ingredient": 50.0, "skill": 50.0})
 
     def test_missing_anchor_has_no_absolute_score(self):
-        evaluations = {level: {"berry": 250} for level in (50, 60, 80)}
+        evaluations = {60: {"berry": 250}}
         self.assertEqual(absolute_role_scores(evaluations)["berry"], 0.0)
 
     def test_team_optimizer_selects_highest_unique_members(self):
