@@ -43,6 +43,7 @@ def main() -> None:
     demo.add_argument("--out", type=Path, default=Path("site"))
     demo.add_argument("--benchmarks", type=Path, default=Path("data/example_species_benchmarks.json"))
     demo.add_argument("--encounters", type=Path, default=Path("data/seed_encounters.json"))
+    demo.add_argument("--tier-compare", type=Path, default=Path("data/species_tier_compare.json"))
     for command_name in ("ingest", "scan"):
         scan = commands.add_parser(command_name)
         scan.add_argument("path", type=Path, nargs="?", default=Path("inbox"))
@@ -110,8 +111,10 @@ def main() -> None:
         dashboard = load_dashboard(db)
         benchmarks = json.loads(args.benchmarks.read_text()).get("benchmarks", []) if args.benchmarks.exists() else []
         encounters = json.loads(args.encounters.read_text()) if args.encounters.exists() else {}
+        tier_rows = (json.loads(args.tier_compare.read_text()).get("rows", [])
+                     if args.tier_compare.exists() else [])
         render_site(dashboard, args.out, build_team_plans(dashboard),
-                    analyze(dashboard, {}, benchmarks, encounters=encounters))
+                    analyze(dashboard, {}, benchmarks, encounters=encounters), tier_rows)
         print(args.out / "index.html")
     elif args.command in ("ingest", "scan"):
         def report_progress(message: str) -> None:
