@@ -3,6 +3,7 @@ import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from pokesleep_box.core import absolute_role_scores, build_team_plans, canonical_uid, connect, decide, import_individuals, load_dashboard
 from pokesleep_box.render import render_site
@@ -11,7 +12,7 @@ from pokesleep_box.ingest import audit, ingest_path, render_review
 from pokesleep_box.analytics import analyze, individual_label
 from pokesleep_box.ocr import enrich_with_species_data, merge_frames
 from pokesleep_box.server import build_simulation_payload
-from pokesleep_box.engine import individual_to_engine
+from pokesleep_box.engine import evaluate_main_seed_upgrades, individual_to_engine
 
 
 ROOT = Path(__file__).parents[1]
@@ -46,6 +47,40 @@ class CoreTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "異なる5匹"):
             build_simulation_payload(
                 self.db, {"uids": [uids[0]] * 5, "island": "シアンの砂浜"})
+
+    def test_custom_team_payload_rejects_archived_member(self):
+        items = [dict(self.items[i % len(self.items)], display_name=f"member-{i}",
+                      box_index=i + 1, sp=1000 + i)
+                 for i in range(5)]
+        import_individuals(self.db, items)
+        uids = [row["uid"] for row in self.db.execute(
+            "SELECT uid FROM individual ORDER BY box_index")]
+        self.db.execute("UPDATE individual SET archived=1 WHERE uid=?", (uids[0],))
+        self.db.commit()
+
+        with self.assertRaisesRegex(ValueError, "ボックスにありません"):
+            build_simulation_payload(
+                self.db, {"uids": uids, "island": "シアンの砂浜", "mode": "60"})
+
+    def test_main_seed_upgrade_excludes_zero_gain(self):
+        item = dict(self.items[0], verified=True)
+        import_individuals(self.db, [item])
+        uid = self.db.execute("SELECT uid FROM individual").fetchone()["uid"]
+        self.db.execute("INSERT INTO decision VALUES (?,?,?,?)", (uid, "keep", "test", "now"))
+        for anchor, score in ((60, 4000), (80, 7000)):
+            for role in ("berry", "ingredient", "skill"):
+                self.db.execute(
+                    "INSERT INTO evaluation VALUES (?,?,?,?,?,?,?,?,?)",
+                    (uid, anchor, role, score, None, None, "test", "test", "now"))
+        self.db.commit()
+        response = {"results": [{
+            "uid": uid, "mainSkillMaxLevel": 7,
+            "scores": {"60": {role: 4000 for role in ("berry", "ingredient", "skill")},
+                       "80": {role: 7000 for role in ("berry", "ingredient", "skill")}},
+        }]}
+
+        with patch("pokesleep_box.engine.run_engine", return_value=response):
+            self.assertEqual(evaluate_main_seed_upgrades(self.db), [])
 
     def test_engine_normalizes_legacy_soft_potato_name(self):
         row = {"species": "BULBASAUR", "level": 50, "nature": "Mild",
@@ -202,6 +237,10 @@ class CoreTests(unittest.TestCase):
         self.assertNotIn('data-tab="pokemon"', page)
         self.assertIn("box-search", page)
         self.assertIn("データ・計算状態", page)
+        self.assertIn("育成・汎用性・目標分析", page)
+        self.assertIn("期待値（予測幅は未算出）", page)
+        self.assertIn("食材 ${fmt(d.ingredient)}", page)
+        self.assertIn("料理 ${fmt(d.cooking)}", page)
         self.assertIn("team-goal", page)
         self.assertIn("総合Tier表", page)
         self.assertIn("このアプリでの評価方法", page)
@@ -405,6 +444,7 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(current["daily"]["cooking"], 400)
         self.assertEqual(current["synergy_gain"], 500)
         self.assertTrue(current["team_aware"])
+        self.assertFalse(current["range_available"])
 
     def test_capture_recommendation_prefers_unowned_species_for_weak_island(self):
         benchmark = {"species": "RAICHU", "island_scores": {

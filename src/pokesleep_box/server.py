@@ -24,7 +24,9 @@ def build_simulation_payload(db, request: Mapping[str, Any]) -> dict[str, Any]:
     if mode not in {"current", "50", "60", "70", "80"}:
         raise ValueError("育成段階が不正です")
     marks = ",".join("?" for _ in uids)
-    rows = db.execute(f"SELECT * FROM individual WHERE uid IN ({marks})", uids).fetchall()
+    rows = db.execute(
+        f"SELECT * FROM individual WHERE archived=0 AND uid IN ({marks})", uids
+    ).fetchall()
     by_uid = {row["uid"]: row for row in rows}
     if len(by_uid) != 5:
         raise ValueError("選択した個体がボックスにありません")

@@ -220,7 +220,7 @@ def evaluate_main_seed_upgrades(db, command: str = "engine/bin/pokesleep-engine"
         gain = round(score - base_score, 1)
         row = by_uid[result["uid"]]
         max_level = int(result.get("mainSkillMaxLevel") or 0)
-        if row["skill_level"] < max_level and score > 80.0:
+        if row["skill_level"] < max_level and score > 80.0 and gain > 0:
             plans.append({"uid": result["uid"], "box_index": row["box_index"],
                           "from_level": row["skill_level"], "to_level": row["skill_level"] + 1,
                           "max_level": max_level,

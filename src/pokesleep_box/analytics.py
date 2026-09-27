@@ -90,6 +90,7 @@ def analyze(items: Sequence[Mapping[str, Any]], settings: Mapping[str, Any] = {}
                           "cooking": round(cooking)}
                 modes[mode] = {"daily": totals, "weekly": {k: v * 7 for k, v in totals.items()},
                                "provisional": bool(team_plan.get("provisional")), "team_aware": True,
+                               "range_available": False,
                                "synergy_gain": round(float(team_plan.get("synergy_gain", 0)) * factor),
                                "members": [{"uid": m["uid"],
                                             "name": (individual_label(members_by_uid[m["uid"]])
@@ -114,6 +115,7 @@ def analyze(items: Sequence[Mapping[str, Any]], settings: Mapping[str, Any] = {}
                           for key in ("expected", "low", "high", "berry", "ingredient", "skill")}
                 modes[mode] = {"daily": totals, "weekly": {k: v * 7 for k, v in totals.items()},
                                "provisional": any(not x[1].get("verified") for x in selected),
+                               "range_available": True,
                                "members": [{"uid": x[1]["uid"],
                                             "name": individual_label(x[1]),
                                             "energy": round(x[0] * factor)} for x in selected]}
