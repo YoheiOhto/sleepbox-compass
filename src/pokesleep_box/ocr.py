@@ -108,7 +108,7 @@ def parse_frame(frame: Mapping[str, Any]) -> Dict[str, Any]:
     if result.get("species"):
         species_ja = re.escape(to_japanese("species", result["species"]))
         patterns = (
-            rf"(?:SP|RP)\s*[:：]?\s*[0-9,]{{3,6}}[\s\S]{{0,45}}?(?:Lv\.?|レベル)\s*(\d{{1,3}})[^\n]{{0,16}}{species_ja}",
+            rf"(?:SP|RP)\s*[:：]?\s*[0-9,]{{3,6}}[\s\S]{{0,45}}?(?:Lv\.?|レベル)\s*(\d{{1,3}})[\s\S]{{0,30}}?{species_ja}",
             rf"{species_ja}[\s\S]{{0,45}}?(?:Lv\.?|レベル)\s*(\d{{1,3}})[\s\S]{{0,35}}?(?:SP|RP)\s*[:：]?\s*[0-9,]{{3,6}}",
             rf"(?:Lv\.?|レベル)\s*(\d{{1,3}})[\s\S]{{0,35}}?(?:SP|RP)\s*[:：]?\s*[0-9,]{{3,6}}[\s\S]{{0,35}}?{species_ja}",
         )

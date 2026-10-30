@@ -74,6 +74,14 @@ def ingest_path(path: Path, frames_dir: Path, ocr_command: Optional[str] = None,
             scanned = scan(source, interval, report if on_progress else None)
             for item in scanned:
                 item.setdefault("ocr_sources", []).append(source.name)
+                if source.suffix.lower() in IMAGE_SUFFIXES:
+                    # Two helpers can legitimately have the same species and
+                    # build. Keep still captures distinct while making a
+                    # repeated import of the same screenshot idempotent.
+                    capture_hash = hashlib.sha256(source.read_bytes()).hexdigest()
+                    item.setdefault("capture_sha256", capture_hash)
+                    item.setdefault("uid", f"capture-{capture_hash[:20]}")
+                    item["_still_capture"] = True
             result.extend(scanned)
             if on_progress:
                 on_progress(f"{prefix}: 完了（{len(scanned)}件抽出）")
@@ -94,7 +102,8 @@ def ingest_path(path: Path, frames_dir: Path, ocr_command: Optional[str] = None,
     # matching or uploading private frames.
     joined = {}
     for item in result:
-        key = ((item.get("species"), item.get("sp")) if item.get("sp") is not None
+        key = (("still", item.get("capture_sha256")) if item.get("_still_capture")
+               else (item.get("species"), item.get("sp")) if item.get("sp") is not None
                else (item.get("species"), item.get("box_index"), item.get("ocr_seconds")))
         if key not in joined:
             joined[key] = item
@@ -116,9 +125,11 @@ def ingest_path(path: Path, frames_dir: Path, ocr_command: Optional[str] = None,
     # Stable core fields deduplicate adjacent/video frames without unsafe image phash.
     unique = {}
     for item in result:
-        key = json.dumps({k: item.get(k) for k in
-                          ("species", "nature", "ingredients", "subskills", "main_skill", "skill_level")},
-                         ensure_ascii=False, sort_keys=True)
+        key = (item.get("capture_sha256") if item.get("_still_capture") else
+               json.dumps({k: item.get(k) for k in
+                           ("species", "nature", "ingredients", "subskills", "main_skill", "skill_level")},
+                          ensure_ascii=False, sort_keys=True))
+        item.pop("_still_capture", None)
         unique[key] = item
     return list(unique.values())
 
