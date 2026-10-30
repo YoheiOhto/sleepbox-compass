@@ -3,6 +3,7 @@ import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from pokesleep_box.core import absolute_role_scores, build_team_plans, canonical_uid, connect, decide, import_individuals, load_dashboard
 from pokesleep_box.render import render_site
@@ -282,6 +283,19 @@ class CoreTests(unittest.TestCase):
         render_review(rows, review)
         self.assertIn("取り込みレビュー", review.read_text())
 
+    def test_vision_stills_with_identical_builds_remain_distinct(self):
+        inbox = Path(self.tmp.name) / "inbox"
+        inbox.mkdir()
+        (inbox / "one.jpg").write_bytes(b"first capture")
+        (inbox / "two.jpg").write_bytes(b"second capture")
+        item = dict(self.items[0])
+        with patch("pokesleep_box.ocr.scan", side_effect=lambda *args, **kwargs: [dict(item)]):
+            rows = ingest_path(inbox, Path(self.tmp.name) / "frames", vision=True)
+        self.assertEqual(len(rows), 2)
+        self.assertNotEqual(rows[0]["uid"], rows[1]["uid"])
+        import_individuals(self.db, rows)
+        self.assertEqual(self.db.execute("SELECT count(*) FROM individual").fetchone()[0], 2)
+
     def test_japanese_vision_observations_are_parsed(self):
         lines = ["フシギダネ", "Lv.15 SP 513", "きのみ ドリ", "あまいミツ x2",
                  "あまいミツ x5 Lv.30", "ほっこりポテト x6 Lv.60",
@@ -297,6 +311,15 @@ class CoreTests(unittest.TestCase):
         self.assertEqual([x[1] for x in row["subskills"]], [10, 25, 50, 75, 100])
         self.assertEqual((row["level"], row["sp"], row["main_skill"]),
                          (15, 513, "Ingredient Magnet S"))
+
+    def test_level_is_parsed_when_header_ocr_is_split_across_lines(self):
+        frame = {"frame": 0, "seconds": 0, "observations": [
+            {"text": "SP 503", "confidence": 1},
+            {"text": "Lv. 15", "confidence": 1},
+            {"text": "ポッチャマ", "confidence": 1},
+            {"text": "しんちょう", "confidence": 1},
+        ]}
+        self.assertEqual(merge_frames([frame])[0]["level"], 15)
 
     def test_species_metadata_fills_berry_and_constrains_ingredients(self):
         row = {"species": "BULBASAUR", "ingredients": [], "ingredient_amounts": [2, 4, 6],
