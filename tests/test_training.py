@@ -179,3 +179,17 @@ class TrainingCostTests(unittest.TestCase):
         self.assertEqual(high["best"]["target"], 50)
         self.assertGreater(high["cost"]["dream_shards"], 0)
         self.assertIsNone(result["entries"][2]["best"]["gain_per_10k_shards"])
+
+
+class TrainingSkipsSendTests(unittest.TestCase):
+    def test_individuals_to_send_are_not_training_candidates(self):
+        from pokesleep_box.core import attach_training_costs
+        training = {"entries": [{"uid": uid, "options": [{"island": "A", "target": 50,
+                                                          "gain_per_week": 1000}]}
+                                for uid in ("keep", "send")]}
+        items = [{"uid": "keep", "species": "PIKACHU", "nature": "Bashful", "level": 10,
+                  "verdict": "keep"},
+                 {"uid": "send", "species": "PIKACHU", "nature": "Bashful", "level": 10,
+                  "verdict": "send"}]
+        result = attach_training_costs(training, items)
+        self.assertEqual([e["uid"] for e in result["entries"]], ["keep"])
