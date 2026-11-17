@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from .core import (build_team_plans, connect, decide, decide_options, import_individuals, load_archived, load_dashboard,
                    merge_exact_duplicates,
-                   plans_for_box,
+                   plans_for_box, training_for_box,
                    record_synced_sources, synced_sources)
 from .paths import PrivatePaths
 
@@ -132,7 +132,8 @@ def import_reviewed(db: sqlite3.Connection, path: Path, engine: str,
 def render_private(db: sqlite3.Connection, out: Path, settings: Dict[str, Any],
                    benchmarks: Path, teams: Path, seed_plans: Path, main_seed_plans: Path,
                    encounters: Path = Path("data/seed_encounters.json"),
-                   tier_compare: Path = Path("data/species_tier_compare.json")) -> Path:
+                   tier_compare: Path = Path("data/species_tier_compare.json"),
+                   training: Optional[Path] = None) -> Path:
     """Render the site from the DB and the optional private plan files."""
     from .analytics import analyze
     from .render import render_site
@@ -154,7 +155,8 @@ def render_private(db: sqlite3.Connection, out: Path, settings: Dict[str, Any],
                         team_plans=team_plans, encounters=read(encounters, None, {})),
                 read(tier_compare, "rows", []), plans_for_box(read(seed_plans, "plans", []), active),
                 plans_for_box(read(main_seed_plans, "plans", []), active),
-                archived=load_archived(db))
+                archived=load_archived(db),
+                training=training_for_box(read(training, None, {}) if training else {}, active))
     return out / "index.html"
 
 
@@ -174,7 +176,7 @@ def run_sync(source: Path, paths: PrivatePaths, settings: Optional[Dict[str, Any
     same steps too (see ``repair.flagged_items``), and evaluate -> decide ->
     render always run.
     """
-    from .engine import EngineUnavailable, evaluate
+    from .engine import EngineUnavailable, evaluate, evaluate_training
     from .ingest import audit, render_review
     from .repair import (confirm_partials, flagged_items, icon_downgrades, repair_mismatches,
                          scanned_images)
@@ -293,6 +295,13 @@ def run_sync(source: Path, paths: PrivatePaths, settings: Optional[Dict[str, Any
                 except EngineUnavailable as exc:
                     engine_ok = False
                     summary["messages"].append(f"計算エンジンを使えないため、評価を省略しました: {exc}")
+            if engine_ok:
+                summary["steps"].append("training")
+                try:
+                    evaluate_training(db, paths.engine, paths.team_plans, paths.training_plans,
+                                      on_progress=on_progress)
+                except EngineUnavailable as exc:
+                    summary["messages"].append(f"育成効果の計算を省略しました: {exc}")
             summary["steps"].append("decide")
             decide(db, **decide_options(settings))
         if done or recheck:
@@ -313,7 +322,8 @@ def run_sync(source: Path, paths: PrivatePaths, settings: Optional[Dict[str, Any
         summary["steps"].append("render")
         summary["site"] = str(render_private(db, paths.site, settings, paths.benchmarks,
                                              paths.team_plans, paths.seed_plans,
-                                             paths.main_seed_plans))
+                                             paths.main_seed_plans,
+                                             training=paths.training_plans))
         summary["engine"] = engine_ok
     finally:
         db.close()

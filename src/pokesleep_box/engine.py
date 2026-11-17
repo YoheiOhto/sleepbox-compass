@@ -175,6 +175,187 @@ def reusable_team_plans(team_out: Path, version: str, inputs: Mapping[str, Any])
     return members <= set(new)
 
 
+# Target levels for the training-gain step (part of the 育成 tab).
+TRAINING_TARGETS = (50, 60)
+# Candidates per island and target level that get a team simulation: the
+# best by solo energy at that level (`energy_scores`), plus every member of
+# the island's current team. A 240-individual box (about 220 candidates)
+# takes about one minute on Apple Silicon without the cap; the cap bounds
+# larger boxes.
+TRAINING_POOL = 120
+# Team-energy simulation length for the final comparison and for screening
+# which member to replace (see `trainingGain` in engine/src/cli.mjs).
+TRAINING_ITERATIONS = 300
+TRAINING_SCREEN_ITERATIONS = 60
+
+# Role-gap rules. Labels explain a gain; the simulated gain stays the ranking.
+ENERGY_SKILLS = {"Energy For Everyone S", "Energizing Cheer S"}
+HELP_SKILLS = {"Extra Helpful S", "Helper Boost"}
+# A team "lacks" favorite berries when fewer members than this carry one.
+FAVORITE_BERRY_MIN = 2
+ROLE_LABELS = ("元気回復", "おてつだい支援", "好物きのみ", "食材", "スキル枠")
+
+
+def member_roles(profile: Mapping[str, Any], favorites: Iterable[str]) -> List[str]:
+    """Roles one team member fills, from its engine profile.
+
+    - 元気回復: a team energy-recovery main skill (Energy For Everyone S,
+      Energizing Cheer S).
+    - おてつだい支援: a team help-support main skill (Extra Helpful S,
+      Helper Boost) or an unlocked Helping Bonus subskill.
+    - 好物きのみ: its berry is one of the island's favorite berries.
+    - 食材: an ingredient (or all-round) specialist.
+    - スキル枠: a skill (or all-round) specialist.
+    """
+    roles = []
+    if profile.get("main_skill") in ENERGY_SKILLS:
+        roles.append("元気回復")
+    if profile.get("main_skill") in HELP_SKILLS or "Helping Bonus" in (profile.get("subskills") or []):
+        roles.append("おてつだい支援")
+    if profile.get("berry") in set(favorites):
+        roles.append("好物きのみ")
+    if profile.get("specialty") in ("ingredient", "all"):
+        roles.append("食材")
+    if profile.get("specialty") in ("skill", "all"):
+        roles.append("スキル枠")
+    return roles
+
+
+def team_gaps(profiles: Iterable[Mapping[str, Any]], favorites: Iterable[str]) -> List[str]:
+    """Roles no member fills (好物きのみ: fewer than FAVORITE_BERRY_MIN members)."""
+    favorites = list(favorites)
+    filled = [role for profile in profiles for role in member_roles(profile, favorites)]
+    return [role for role in ROLE_LABELS
+            if filled.count(role) < (FAVORITE_BERRY_MIN if role == "好物きのみ" else 1)]
+
+
+def training_payload(db, team_plans: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
+    """Build the `training-gain` request from the box and the stored team plans.
+
+    Uses each island's best current team (mode ``current``). Candidates are
+    verified, non-archived individuals below the target level; per island and
+    target only the TRAINING_POOL best by solo energy at that level, plus the
+    team's own members, are simulated. Returns None when no island has a team.
+    """
+    from .analytics import ISLANDS
+
+    rows = {row["uid"]: dict(row) for row in db.execute(
+        "SELECT * FROM individual WHERE archived=0 AND species!='UNKNOWN' ORDER BY box_index")}
+    teams = {}
+    for plan in team_plans.get("plans", []):
+        members = [m.get("uid") for m in plan.get("members", [])]
+        if (str(plan.get("mode")) == "current" and plan.get("island") in ISLANDS
+                and members and all(uid in rows for uid in members)):
+            teams[plan["island"]] = members
+    if not teams:
+        return None
+    candidates: Dict[str, Dict[str, List[str]]] = {}
+    for island, team in teams.items():
+        candidates[island] = {}
+        for target in TRAINING_TARGETS:
+            def solo(row: Mapping[str, Any]) -> float:
+                scores = json.loads(row.get("energy_scores_json") or "{}")
+                return float(((scores.get(island) or {}).get(str(target)) or {}).get("expected") or 0)
+            eligible = [row for row in rows.values() if row["verified"]
+                        and int(row["level"] or 0) < target]
+            ranked = sorted(eligible, key=lambda row: (-solo(row), row["box_index"] or 0, row["uid"]))
+            pool = [row["uid"] for row in ranked[:TRAINING_POOL]]
+            pool += [row["uid"] for row in eligible if row["uid"] in team and row["uid"] not in pool]
+            candidates[island][str(target)] = pool
+    used = set(uid for team in teams.values() for uid in team) | {
+        uid for by_target in candidates.values() for uids in by_target.values() for uid in uids}
+    return {"mode": "training-gain",
+            "islands": {name: list(berries) for name, berries in ISLANDS.items() if name in teams},
+            "teams": teams, "candidates": candidates,
+            "iterations": TRAINING_ITERATIONS, "screenIterations": TRAINING_SCREEN_ITERATIONS,
+            "instances": [{"uid": uid, "instance": individual_to_engine(rows[uid])}
+                          for uid in rows if uid in used]}
+
+
+def summarize_training(response: Mapping[str, Any], rows: Mapping[str, Mapping[str, Any]]
+                       ) -> Dict[str, Any]:
+    """Turn a `training-gain` response into per-island gaps and ranked entries.
+
+    Each entry is one individual with its best gain over islands and target
+    levels (``best``), every positive option (``options``) and the role labels
+    it would add there (``roles``: roles it fills that the team without the
+    replaced member lacks; ``provides``: every role it fills). Gains are team
+    energy per day as simulated (``gain_per_day``) and times seven
+    (``gain_per_week``). ``cost`` is left as None for the cost module to
+    fill; ordering by gain per cost will then use it.
+    """
+    from .analytics import ISLANDS
+
+    islands, options = [], {}
+    for island in response.get("islands", []):
+        favorites = ISLANDS.get(island["island"], ())
+        profiles = island.get("team_profiles") or {}
+        islands.append({"island": island["island"], "baseline": island.get("baseline"),
+                        "team": island.get("team", []),
+                        "gaps": team_gaps(profiles.values(), favorites)})
+        for result in island.get("results", []):
+            if (result.get("gain") or 0) <= 0:
+                continue
+            others = [profile for uid, profile in profiles.items() if uid != result.get("replaced")]
+            gaps = team_gaps(others, favorites)
+            provides = member_roles(result.get("profile") or {}, favorites)
+            options.setdefault(result["uid"], []).append({
+                "island": island["island"], "target": result["target"],
+                "gain_per_day": result["gain"], "gain_per_week": result["gain"] * 7,
+                "team_total": result.get("total"), "replaced": result.get("replaced"),
+                "roles": [role for role in provides if role in gaps], "provides": provides})
+    entries = []
+    for uid, choices in options.items():
+        choices.sort(key=lambda x: (-x["gain_per_day"], x["target"], x["island"]))
+        row = rows.get(uid) or {}
+        best = choices[0]
+        entries.append({"uid": uid, "box_index": row.get("box_index"), "level": row.get("level"),
+                        "best": best, "options": choices, "roles": best["roles"],
+                        "provides": best["provides"],
+                        # Filled later by the cost module (candies / dream shards).
+                        "cost": None})
+    entries.sort(key=lambda x: (-x["best"]["gain_per_day"], x["box_index"] or 0, x["uid"]))
+    return {"islands": islands, "entries": entries}
+
+
+def evaluate_training(db, command: str = "engine/bin/pokesleep-engine",
+                      team_plans: Path = Path("data/private/team_plans.json"),
+                      out: Path = Path("data/private/training_plans.json"),
+                      on_progress: Optional[Callable[[str], None]] = None) -> Optional[Dict[str, Any]]:
+    """Compute and store training gains; reuse the stored result when inputs match.
+
+    Returns the stored document, or None when there are no team plans yet.
+    """
+    try:
+        plans = json.loads(team_plans.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    payload = training_payload(db, plans)
+    if payload is None:
+        return None
+    inputs = team_inputs(payload)
+    try:
+        previous = json.loads(out.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        previous = None
+    # Exact reuse: same team-plan engine, same request settings (teams,
+    # candidate lists, iterations) and identical data for every individual.
+    if (previous and previous.get("engineVersion") == plans.get("engineVersion")
+            and previous.get("inputs") == inputs):
+        if on_progress:
+            on_progress("training-gain: 前回の育成効果を使います（入力の変更なし）")
+        return previous
+    response = run_engine(payload, command, on_progress)
+    rows = {row["uid"]: dict(row) for row in db.execute(
+        "SELECT uid,box_index,level FROM individual WHERE archived=0")}
+    document = {"engineVersion": response.get("engineVersion", plans.get("engineVersion")),
+                "inputs": inputs, "targets": list(TRAINING_TARGETS),
+                **summarize_training(response, rows)}
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return document
+
+
 def species_scores(command: str = "engine/bin/pokesleep-engine",
                    on_progress: Optional[Callable[[str], None]] = None) -> Dict[str, Dict[str, Any]]:
     """Score each final-evolution species' own ideal individual on the same

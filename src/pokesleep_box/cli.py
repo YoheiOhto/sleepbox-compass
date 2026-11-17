@@ -11,7 +11,7 @@ from .core import (archive_individuals, build_team_plans, compare_species_tiers,
                    import_individuals, load_archived, load_dashboard, resolve_uids,
                    unarchive_individuals)
 from .analytics import analyze
-from .engine import (EngineUnavailable, evaluate, evaluate_main_seed_upgrades,
+from .engine import (EngineUnavailable, evaluate, evaluate_main_seed_upgrades, evaluate_training,
                      evaluate_seed_upgrades, run_engine, species_scores, verify)
 from .ingest import audit, render_review
 from .localization import names
@@ -59,6 +59,7 @@ def main() -> None:
     render.add_argument("--tier-compare", type=Path, default=Path("data/species_tier_compare.json"))
     render.add_argument("--seed-plans", type=Path, default=P.seed_plans)
     render.add_argument("--main-seed-plans", type=Path, default=P.main_seed_plans)
+    render.add_argument("--training", type=Path, default=P.training_plans)
     serve_cmd = commands.add_parser("serve")
     serve_cmd.add_argument("--site", type=Path, default=P.site)
     serve_cmd.add_argument("--host", default="127.0.0.1")
@@ -92,6 +93,11 @@ def main() -> None:
     ev = commands.add_parser("evaluate")
     ev.add_argument("--engine", default=P.engine)
     ev.add_argument("--teams-out", type=Path, default=P.team_plans)
+    training_ev = commands.add_parser("training-evaluate",
+                                      help="育成したときのチームの伸び（島ごと・Lv50/60）を計算する")
+    training_ev.add_argument("--engine", default=P.engine)
+    training_ev.add_argument("--teams", type=Path, default=P.team_plans)
+    training_ev.add_argument("--out", type=Path, default=P.training_plans)
     seed_ev = commands.add_parser("seed-evaluate")
     seed_ev.add_argument("--engine", default=P.engine)
     seed_ev.add_argument("--out", type=Path, default=P.seed_plans)
@@ -171,7 +177,7 @@ def main() -> None:
     elif args.command == "render":
         print(render_private(db, args.out, load_settings(args.settings), args.benchmarks,
                              args.teams, args.seed_plans, args.main_seed_plans,
-                             args.encounters, args.tier_compare))
+                             args.encounters, args.tier_compare, args.training))
     elif args.command == "serve":
         from .server import serve
         serve(args.db, args.site, args.host, args.port, args.engine)
@@ -223,6 +229,15 @@ def main() -> None:
                               "teams": str(args.teams_out)}, ensure_ascii=False))
         except EngineUnavailable as exc:
             parser.error(str(exc))
+    elif args.command == "training-evaluate":
+        try:
+            document = evaluate_training(db, args.engine, args.teams, args.out,
+                                         on_progress=lambda m: print(m, file=sys.stderr, flush=True))
+        except EngineUnavailable as exc:
+            parser.error(str(exc))
+        if document is None:
+            parser.error(f"{args.teams} にチーム編成がありません。先に evaluate を実行してください")
+        print(json.dumps({"entries": len(document["entries"]), "out": str(args.out)}, ensure_ascii=False))
     elif args.command == "benchmark":
         from .analytics import ISLANDS
         try:

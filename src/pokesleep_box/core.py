@@ -633,6 +633,31 @@ def plans_for_box(plans: Sequence[Mapping[str, Any]], uids: Iterable[str]) -> Li
     return kept
 
 
+def training_for_box(training: Mapping[str, Any], uids: Iterable[str]) -> Dict[str, Any]:
+    """Keep stored training gains that still apply to the box.
+
+    An island whose team lost a member is dropped with every option that
+    swaps into it, since the gain was measured against that team; the next
+    recalculation rebuilds them. Entries left without options are dropped.
+    """
+    active = set(uids)
+    islands = [dict(island) for island in training.get("islands", [])
+               if all(uid in active for uid in island.get("team", []))]
+    valid = {island["island"] for island in islands}
+    entries = []
+    for entry in training.get("entries", []):
+        if entry.get("uid") not in active:
+            continue
+        options = [option for option in entry.get("options", []) if option.get("island") in valid]
+        if not options:
+            continue
+        best = options[0]
+        entries.append({**entry, "options": options, "best": best,
+                        "roles": best.get("roles", []), "provides": best.get("provides", [])})
+    entries.sort(key=lambda x: (-x["best"].get("gain_per_day", 0), x.get("box_index") or 0, x["uid"]))
+    return {"targets": training.get("targets", []), "islands": islands, "entries": entries}
+
+
 def build_team_plans(items: Sequence[Mapping[str, Any]], team_size: int = 5) -> List[Dict[str, Any]]:
     """Select the exact best additive team for each island and training anchor.
 
