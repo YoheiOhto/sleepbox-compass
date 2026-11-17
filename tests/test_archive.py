@@ -84,13 +84,13 @@ class ArchiveCoreTests(unittest.TestCase):
         self.assertTrue({"archived", "archived_at"} <= columns)
 
     def test_archived_rows_are_excluded_from_dashboard_decisions_and_teams(self):
-        decide(self.db, keep_top_n=2)
+        decide(self.db, keep_top_n=2, compare="all", low_score_threshold=0)
         verdicts = {r["uid"]: r["verdict"] for r in self.db.execute("SELECT * FROM decision")}
         # Each of the three weakest is dominated by at least two stronger rivals.
         self.assertEqual(verdicts[self.uids[2]], "send")
         self.assertEqual(verdicts[self.uids[3]], "keep")
         archive_individuals(self.db, [self.uids[4], self.uids[3]])
-        decide(self.db, keep_top_n=2)
+        decide(self.db, keep_top_n=2, compare="all", low_score_threshold=0)
         dashboard = load_dashboard(self.db)
         self.assertEqual({x["uid"] for x in dashboard}, set(self.uids[:3]))
         verdicts = {x["uid"]: x["verdict"] for x in dashboard}

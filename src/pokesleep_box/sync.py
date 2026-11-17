@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from .core import (build_team_plans, connect, decide, import_individuals, load_archived, load_dashboard,
+from .core import (build_team_plans, connect, decide, decide_options, import_individuals, load_archived, load_dashboard,
                    plans_for_box,
                    record_synced_sources, synced_sources)
 from .paths import PrivatePaths
@@ -221,7 +221,7 @@ def run_sync(source: Path, paths: PrivatePaths, settings: Optional[Dict[str, Any
                     engine_ok = False
                     summary["messages"].append(f"計算エンジンを使えないため、評価を省略しました: {exc}")
             summary["steps"].append("decide")
-            decide(db, int(settings.get("keepTopNPerSpecies", 2)))
+            decide(db, **decide_options(settings))
         if done or recheck:
             # Audit and review only this sync's captures (and, with --recheck,
             # the rechecked rows); with nothing new the previous report and

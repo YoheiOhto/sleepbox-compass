@@ -10,7 +10,7 @@ Pokémon Sleepの手持ちを、Lv60とLv80の両方で評価し、育成候補�
 ## 特徴
 
 - 個体IDは、変化しない種・性格・食材・サブスキル・メインスキルから生成
-- きのみ・食材・スキルの全ロールについてLv60/Lv80の両方で複数の同種個体に支配された場合だけ送る候補
+- 博士に送る候補は、得意な役割（きのみ・食材・スキル）でLv60/Lv80とも同種に上回られた個体と、最高評価が50点未満の個体（設定で変更可。未検証の個体は送る候補にしない）
 - 全最終進化種の理想個体上位10%を100点基準にした0〜100の総合絶対評価（手持ち母集団に依存しない）
 - 未検証・スコア不足の個体は必ず `protected`
 - 個人データ、スクリーンショット、動画、SQLite、ローカル設定はGit管理外
@@ -140,7 +140,7 @@ cp config/settings.example.json config/settings.local.json
 pokesleep-box init-db
 pokesleep-box import-json data/private/my-box.json
 pokesleep-box evaluate
-pokesleep-box decide --keep-top-n 2
+pokesleep-box decide
 pokesleep-box render --out site/private
 ```
 
@@ -243,9 +243,15 @@ macOS Visionを使えない環境では`--ocr sidecar --ocr-command /path/to/ext
 pokesleep-box verify
 pokesleep-box evaluate
 pokesleep-box benchmark
-pokesleep-box decide --keep-top-n 2
+pokesleep-box decide
 pokesleep-box render
 ```
+
+`decide`の基準は`config/settings.local.json`で変えられます。`keepTopNPerSpecies`（既定1: 同種で
+この数以上に得意な役割で上回られたら送る候補）、`sendBelowScore`（既定50: 最高評価がこの点数未満なら
+送る候補、0で無効）、`compareRoles`（既定`best`: 得意な役割だけで比べる、`all`: 全ロールで比べる以前の
+慎重な基準）です。コマンドでは`--keep-top-n`、`--send-below`、`--compare`で一時的に変えられます。
+未検証の個体は、どの設定でも送る候補になりません。
 
 `verify`は表示SPとの一致を確認します。許容差一致の個体も監査対象のままとし、
 厳密一致していない個体は`protected`から外しません。

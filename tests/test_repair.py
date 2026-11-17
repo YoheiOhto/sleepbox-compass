@@ -208,7 +208,7 @@ class RecheckTests(unittest.TestCase):
         with patch("pokesleep_box.ingest.ingest_path", return_value=[]), \
                 patch("pokesleep_box.engine.run_engine", side_effect=level_engine({uid: {14}})), \
                 patch("pokesleep_box.engine.evaluate", side_effect=lambda *a, **k: calls.append("evaluate")), \
-                patch("pokesleep_box.sync.decide", side_effect=lambda *a: calls.append("decide")), \
+                patch("pokesleep_box.sync.decide", side_effect=lambda *a, **kw: calls.append("decide")), \
                 patch("pokesleep_box.sync.render_private",
                       side_effect=lambda db, out, *a, **k: out / "index.html"), \
                 patch("pokesleep_box.repair.reread", side_effect=lambda *a: rereads.append(a)):
