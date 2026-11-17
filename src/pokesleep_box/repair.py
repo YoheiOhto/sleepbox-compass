@@ -239,7 +239,7 @@ def row_item(row: Mapping[str, Any]) -> Dict[str, Any]:
 
 def flagged_items(db: sqlite3.Connection, source: Path, vlm_cache: Optional[Path],
                   fallback_model: Optional[str], frames: Path) -> Dict[str, Any]:
-    """Collect the SP-mismatched rows for `sync --recheck`.
+    """Collect the SP-mismatched and never-checked rows for `sync --recheck`.
 
     Returns ``items`` (one per row; see ``row_item``) and ``images`` (stored
     uid -> still image for rows eligible for a re-read). A still row
@@ -250,8 +250,12 @@ def flagged_items(db: sqlite3.Connection, source: Path, vlm_cache: Optional[Path
     stored field values always win. Only captures read by a Qwen model other
     than ``fallback_model`` are eligible for a re-read.
     """
+    # SP mismatches, plus rows that were never SP-checked (e.g. imported before
+    # the automatic check existed); `check_items` checks them first and only
+    # the mismatches go on to repair.
     rows = db.execute("""SELECT * FROM individual WHERE archived=0 AND review_confirmed=0
-                         AND sp_flag LIKE 'SP不一致%' ORDER BY box_index, uid""").fetchall()
+                         AND verified=0 AND (sp_flag LIKE 'SP不一致%' OR sp_computed IS NULL)
+                         ORDER BY box_index, uid""").fetchall()
     sources = {row["sha256"][:20]: row for row in db.execute("SELECT * FROM scan_source")}
     items, images = [], {}
     for row in rows:
