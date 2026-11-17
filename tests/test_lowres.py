@@ -111,7 +111,7 @@ class SyncLowResolutionTests(test_sync.SyncTests):
         on_source_done(path / "large.png", "hash-2", 1)
         on_source_done(path / "clip.mov", "hash-3", 0)
         return [scanned("a", ocr_sources=["small_c.png"]),
-                scanned("b", ocr_sources=["large.png"])]
+                scanned("b", ocr_sources=["large.png"], level=20, sp=700)]
 
     def test_low_resolution_is_warned_but_still_read(self):
         write_png(self.paths.inbox / "small_c.png", 359, 780)
