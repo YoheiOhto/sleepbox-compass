@@ -352,6 +352,32 @@ PYTHONPATH=src python3 -m pokesleep_box.cli --db data/box.sqlite render --out si
 上位10%水準です。外部Tier表は種族の一般評価を知る参考情報として分離し、手持ち個体の評価や
 島別編成順位には直接加点しません。
 
+### 育成コスト（アメとゆめのかけら）
+
+`pokesleep_box.costs.training_cost(種族, 性格, 現在Lv, 目標Lv)`は、アメだけで目標レベルまで
+上げるときに必要なアメの数・ゆめのかけら・EXPを返します。種族はDBと同じ英語の大文字キー
+（`DRAGONITE`など）、性格は英語名（`Timid`）か日本語名（`おくびょう`）で渡します。
+
+```python
+from pokesleep_box.costs import training_cost
+training_cost("DRAGONITE", "Bashful", 1, 30)
+# {"candies": 468, "dream_shards": 36138, "exp": 17988, "exp_type": 900, ...}
+```
+
+- 対象はゲームVer.3.6.0（レベル上限70）です。アメ1個のEXPはLv25未満40、Lv25〜29は35、Lv30以上25です。
+- EXPが上がる性格（おくびょう・せっかち・ようき・むじゃき）と下がる性格（ゆうかん・のんき・
+  れいせい・なまいき）で、アメ1個のEXPが変わります。
+- ミニリュウ・ヨーギラス・タツベイの系統は必要EXPが1.5倍、ライコウ・エンテイ・スイクン・
+  ラティアス・ラティオス・クレセリア・ミュウツーは1.8倍、ミュウ・ダークライは2.2倍です。
+- `mini_boost=True`でミニアメブースト（EXP2倍、かけら4倍）を全てのアメに使う場合を計算します。
+  1日50個の上限と、通常のアメブーストは扱いません。
+
+限界: 今のレベル内ですでに得たEXPは分からないため0とみなし、必要量は多めに出ます。
+睡眠リサーチやおひるねで得るEXPは考えません。ばんのうアメは種族のアメに
+置き換わるだけなので、かけらの量は変わりません。Lv66以降の値とミュウツーの倍率は
+コミュニティの実測値で、確認できた情報源が少ないです。表と出典は
+[src/pokesleep_box/training_costs.json](src/pokesleep_box/training_costs.json)にあります。
+
 ## プライバシー
 
 次は `.gitignore` により公開されません。
