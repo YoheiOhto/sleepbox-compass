@@ -9,9 +9,9 @@ main skill name (it follows the species). So an exact SP match confirms only
 the unlocked part of a read; the locked part is confirmed only when the OCR
 read it cleanly. Policy chosen by the user: "解放済みのみ確定".
 
-Only an exact match below Lv56 (``verify_mode=strict``) can auto-verify; at
-Lv56 and above the engine's SP is approximate, so even an exact match leaves
-the individual unverified.
+An exact match auto-verifies at every level (user decision 2026-11-17). The
+engine's `verify` mode still names matches below ``strictBelowLevel`` "strict";
+the default here (101) makes every level strict, so only diff 0 matches.
 
 Rows a human edited on the review page (or imported with `import-json`) but
 did not tick 「照合済み」 (``review_confirmed``) go through the same rule. The
@@ -77,6 +77,10 @@ def _locked_ingredient_slots_clean(row: Mapping[str, Any], item: Mapping[str, An
                list(confident[index][:2]) == list(stored[index][:2]) for index in locked)
 
 
+# Above the maximum level (100): an exact SP match counts at every level.
+STRICT_BELOW_LEVEL = 101
+
+
 def assess(row: Mapping[str, Any], item: Mapping[str, Any],
            result: Optional[Mapping[str, Any]]) -> Dict[str, Any]:
     """Apply the SP rule to one stored individual and the scan item behind it.
@@ -95,7 +99,7 @@ def assess(row: Mapping[str, Any], item: Mapping[str, Any],
                 "flag": f"SP不一致（画面 {row['sp']} / 計算 {result.get('computedSp')}）"}
     if result.get("mode") != "strict":
         return {"status": UNCHECKED, "review_fields": missing,
-                "flag": "Lv56以上はSPの計算が近似のため自動確定しません"}
+                "flag": "SPが厳密に一致しないため自動確定しません"}
     level = int(row["level"])
     remaining: List[str] = []
     if "nature" in missing and row["nature"] in NEUTRAL_NATURES:
@@ -113,7 +117,7 @@ def assess(row: Mapping[str, Any], item: Mapping[str, Any],
 
 
 def check_items(db: sqlite3.Connection, items: Sequence[Dict[str, Any]], command: str,
-                tolerance: int = 0, strict_below_level: int = 56,
+                tolerance: int = 0, strict_below_level: int = STRICT_BELOW_LEVEL,
                 on_progress: Optional[Callable[[str], None]] = None) -> Dict[str, int]:
     """SP-check only the individuals stored from ``items`` and annotate them.
 

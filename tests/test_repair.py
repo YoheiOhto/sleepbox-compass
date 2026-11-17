@@ -113,13 +113,12 @@ class LevelRepairTests(unittest.TestCase):
         self.assertEqual(len(self.calls), 0)  # nothing computable, no level-repair call
         self.assertEqual(stats["level_repaired"], 0)
 
-    def test_level_56_and_above_is_repaired_but_not_auto_verified(self):
+    def test_level_56_and_above_is_repaired_and_auto_verified(self):
         item = scanned("a", level=60)
         self.run_repair([item], {"capture-a": {58}})
         row = self.row("capture-a")
-        self.assertEqual((row["level"], row["repaired"], row["verified"]), (58, 1, 0))
-        self.assertEqual(item["sp_check"], "unchecked")
-        self.assertIn("Lv56以上", row["sp_flag"])
+        self.assertEqual((row["level"], row["repaired"], row["verified"]), (58, 1, 1))
+        self.assertEqual(item["sp_check"], "match")
 
     def test_escalation_rereads_remaining_still_images_with_fallback(self):
         still, video = scanned("a"), scanned("b", nature="Mild")
@@ -201,7 +200,7 @@ class RecheckTests(unittest.TestCase):
                                        "mlx-community/Qwen3.5-4B-4bit",
                                        self.paths.frames)["images"], {})
 
-    def test_never_checked_rows_are_rechecked_but_checked_rows_are_not(self):
+    def test_every_unverified_row_is_rechecked_but_verified_rows_are_not(self):
         flagged_uid, _ = self.store("one.png", b"one")
         unchecked_uid, _ = self.store("two.png", b"two", nature="Mild")
         checked_uid, _ = self.store("three.png", b"three", nature="Lonely")
@@ -215,7 +214,7 @@ class RecheckTests(unittest.TestCase):
         found = flagged_items(self.db, self.paths.inbox, self.paths.vlm_cache,
                               FALLBACK_VLM_MODEL, self.paths.frames)
         self.assertEqual(sorted(item["stored_uid"] for item in found["items"]),
-                         sorted([flagged_uid, unchecked_uid]))
+                         sorted([flagged_uid, unchecked_uid, checked_uid]))
 
     def test_sync_recheck_repairs_stored_rows_then_evaluates(self):
         uid, path = self.store("one.png", b"one")
