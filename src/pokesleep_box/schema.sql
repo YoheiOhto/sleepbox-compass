@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS individual (
   review_confirmed INTEGER NOT NULL DEFAULT 0,
   sp_computed INTEGER, sp_diff INTEGER,
   verify_mode TEXT CHECK(verify_mode IN ('strict','tolerant','skipped','failed')),
+  -- 1 when `sync` corrected the read level from the SP (see repair.py).
   repaired INTEGER NOT NULL DEFAULT 0,
   archived INTEGER NOT NULL DEFAULT 0,
   archived_at TEXT,
@@ -35,7 +36,9 @@ CREATE TABLE IF NOT EXISTS individual (
   -- 1 when `sync` verified the row from an exact SP match (not a human review).
   auto_verified INTEGER NOT NULL DEFAULT 0,
   -- Why the last SP check left the row unverified, e.g. an SP mismatch.
-  sp_flag TEXT
+  sp_flag TEXT,
+  -- How `sync` corrected the read, e.g. 「Lv 16→14（SPで補正）」.
+  repair_note TEXT
 );
 
 CREATE TABLE IF NOT EXISTS evaluation (

@@ -16,6 +16,8 @@ from .core import (build_team_plans, connect, decide, import_individuals, load_a
 from .paths import PrivatePaths
 
 DEFAULT_VLM_MODEL = "mlx-community/Qwen3.5-4B-4bit"
+# Larger model for re-reading still images whose SP does not match.
+FALLBACK_VLM_MODEL = "mlx-community/Qwen3.5-9B-8bit"
 REVIEWED_READER = "reviewed-json"
 
 Progress = Callable[[str], None]
@@ -129,10 +131,19 @@ def render_private(db: sqlite3.Connection, out: Path, settings: Dict[str, Any],
 def run_sync(source: Path, paths: PrivatePaths, settings: Optional[Dict[str, Any]] = None,
              force: bool = False, ocr: str = "auto", vlm_model: str = DEFAULT_VLM_MODEL,
              interval: float = .8, reviewed: Optional[Path] = None,
+             fallback_vlm_model: Optional[str] = FALLBACK_VLM_MODEL, recheck: bool = False,
              on_progress: Progress = stderr_progress) -> Dict[str, Any]:
-    """Run scan -> SP check -> evaluate -> decide -> render and return a summary."""
+    """Run scan -> SP check -> repair -> evaluate -> decide -> render and return a summary.
+
+    SP mismatches go through ``repair.repair_mismatches``: level repair, then
+    a re-read of this run's Qwen-read still images with ``fallback_vlm_model``
+    (``None`` disables the re-read). With ``recheck``, every SP-mismatched
+    row already stored goes through the same repair too (see
+    ``repair.flagged_items``), and evaluate -> decide -> render always run.
+    """
     from .engine import EngineUnavailable, evaluate
     from .ingest import audit, render_review
+    from .repair import flagged_items, repair_mismatches, scanned_images
     from .spcheck import MATCH, MISMATCH, check_items, review_order
 
     settings = settings or {}
@@ -165,8 +176,19 @@ def run_sync(source: Path, paths: PrivatePaths, settings: Optional[Dict[str, Any
         summary.update(new_sources=len(done),
                        new_individuals=len(touched - before),
                        updated_individuals=len(touched & before))
-        changed = bool(done) or bool(summary.get("reviewed_imported"))
+        changed = bool(done) or bool(summary.get("reviewed_imported")) or recheck
         engine_ok = True
+        images: Dict[str, Path] = {}
+        if (scanned["qwen"] is not None and fallback_vlm_model
+                and fallback_vlm_model != vlm_model):
+            images = scanned_images(items, source)
+        if recheck:
+            # Stored mismatches not already handled with this run's captures.
+            flagged = flagged_items(db, source, paths.vlm_cache, fallback_vlm_model, paths.frames)
+            seen = {item.get("stored_uid") for item in items}
+            items = items + [item for item in flagged["items"] if item["stored_uid"] not in seen]
+            images.update({uid: path for uid, path in flagged["images"].items() if uid not in seen})
+            summary["rechecked"] = len(flagged["items"])
         if not changed and not force:
             summary["messages"].append(
                 "新しい画像・動画がないため、SP確認・評価・判定を省略しました（--forceで実行）")
@@ -175,6 +197,18 @@ def run_sync(source: Path, paths: PrivatePaths, settings: Optional[Dict[str, Any
                 summary["steps"].append("sp-check")
                 try:
                     summary["sp"] = check_items(db, items, paths.engine, on_progress=on_progress)
+                    summary["steps"].append("repair")
+                    fallback = None
+                    if images and fallback_vlm_model:
+                        def fallback() -> Any:
+                            from .vlm import QwenReader
+                            on_progress(f"読み直し用のモデル: {fallback_vlm_model}")
+                            return QwenReader(fallback_vlm_model, paths.vlm_cache)
+                    repair = repair_mismatches(db, items, paths.engine, images, fallback,
+                                               paths.frames, on_progress)
+                    summary["repair"] = repair
+                    if repair.get("note"):
+                        summary["messages"].append(repair["note"])
                 except EngineUnavailable as exc:
                     engine_ok = False
                     summary["messages"].append(
@@ -188,9 +222,10 @@ def run_sync(source: Path, paths: PrivatePaths, settings: Optional[Dict[str, Any
                     summary["messages"].append(f"計算エンジンを使えないため、評価を省略しました: {exc}")
             summary["steps"].append("decide")
             decide(db, int(settings.get("keepTopNPerSpecies", 2)))
-        if done:
-            # Audit and review only this sync's captures; with nothing new the
-            # previous report and review page are kept.
+        if done or recheck:
+            # Audit and review only this sync's captures (and, with --recheck,
+            # the rechecked rows); with nothing new the previous report and
+            # review page are kept.
             ordered = review_order(items)
             paths.audit.parent.mkdir(parents=True, exist_ok=True)
             audit(ordered, paths.audit)
@@ -221,6 +256,11 @@ def format_summary(summary: Dict[str, Any], review: Path) -> str:
                  f"更新した個体（撮り直し）: {summary['updated_individuals']}匹")
     mismatch = summary.get("sp_mismatch", 0)
     other = summary.get("needs_review", 0) - mismatch
+    if summary.get("rechecked") is not None:
+        lines.append(f"- 再確認した登録済みのSP不一致: {summary['rechecked']}匹")
+    if summary.get("repair"):
+        from .repair import count_summary
+        lines.append(f"- {count_summary(summary['repair'])}")
     lines.append(f"- SP一致: {summary.get('sp_match', 0)} / SP不一致: {mismatch} / 要確認: {other}")
     if summary.get("review"):
         lines.append(f"- レビュー: {summary['review']}")

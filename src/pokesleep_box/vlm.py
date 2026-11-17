@@ -261,15 +261,10 @@ def merge_reads(reads: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
             names_seen = [f["subskills"][index][0] for f in frames
                           if len(f.get("subskills") or []) > index and f["subskills"][index]]
             name, agreement = _vote(names_seen)
-            unlocks = [f["subskills"][index][1] for f in frames
-                       if len(f.get("subskills") or []) > index and f["subskills"][index]
-                       and f["subskills"][index][0] == name]
-            unlock, _ = _vote(unlocks)
-            # The first slot never shows a badge; a read value there is a
-            # badge from a neighbouring slot.
-            if index == 0 or not unlock:
-                unlock = SLOT_UNLOCKS[index]
-            slots.append([name, unlock] if name else None)
+            # The unlock level is fixed by the slot position (game rule since
+            # Ver.3.6.0); read badges are ignored because small screenshots
+            # misread them (e.g. Lv.80 read as 60).
+            slots.append([name, SLOT_UNLOCKS[index]] if name else None)
             slot_agreement.append(agreement)
         complete_subskills = all(slots)
         if complete_subskills:
