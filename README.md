@@ -43,23 +43,84 @@ python3 -m http.server 8000 --directory site
 
 計算ブリッジを使う場合はNode.js 20以上、動画を使う場合はffmpegも必要です。
 
-ブラウザで `http://localhost:8000` を開きます。実データは次のように処理します。
+ブラウザで `http://localhost:8000` を開きます。
+
+## いつもの使い方（`sync`）
+
+自分のボックスは、次の4手順だけで更新できます。
+
+1. ポケモンの詳細画面のスクリーンショットや画面収録を`inbox/`へ置く
+2. `pokesleep-box sync` を実行する
+3. 「レビューが必要な個体」が出たら`frames/review.html`を開き、直して保存する
+4. 保存した`reviewed_individuals.json`を`pokesleep-box import-json reviewed_individuals.json`で取り込む
+
+```sh
+pokesleep-box sync                 # inbox/ の新しい画像・動画だけを処理
+pokesleep-box import-json reviewed_individuals.json
+pokesleep-box sync --force         # 取り込んだ修正で評価・判定・サイトを作り直す
+python3 -m http.server 8000 --directory site/private
+```
+
+`sync`は次の順に動きます。
+
+1. 取り込み: `inbox/`のうち、まだ取り込んでいない画像・動画だけを読みます（`scan --ocr auto`と同じく、
+   mlx-vlmがあればQwen、なければVision）。撮り直した個体は新しい個体ではなく更新として扱います。
+2. SP確認: 今回取り込んだ・更新した個体だけ、画面のSPと計算エンジンのSPを比べます（下記）。
+3. 評価（`evaluate`）、4. 判定（`decide`）、5. 非公開サイトの生成（`site/private/`）。
+
+新しい画像・動画がないときは、SP確認・評価・判定を省き、そのことを表示します（`--force`で実行）。
+計算エンジンを使えないときは、SP確認と評価を省いてメッセージを出し、判定とサイト生成は行います。
+最後に、新しい画像・動画の数、新しい個体と更新した個体の数、SP一致・SP不一致・要確認の数、
+レビュー画面とサイトの場所、次にすることを表示します。
+
+手順3〜4は`pokesleep-box sync --reviewed reviewed_individuals.json`でもまとめて実行できます。
+このときは修正JSONを取り込んでから評価・判定・サイト生成まで進みます。同じ内容のJSONは
+SHA-256で記録し、二度目は取り込みません。`sync`がJSONを自動で探して取り込むことはありません。
+
+### SPによる自動確定（解放済みのみ確定）
+
+SPはNeroli's Labの式で、種族・現在レベル・性格・メインスキルLv・現在レベルで解放済みの
+サブスキル・解放済みの食材枠（Lv1/30/60）から決まります。まだ解放されていないサブスキルや
+食材枠、メインスキル名はSPに影響しません。そこで`sync`は次のように扱います。
+
+- 画面のSPと計算SPが完全一致（`verify_mode=strict`、Lv55以下）: 解放済みの部分は確定です。
+  未解放のサブスキル・食材枠もOCRがはっきり読めていれば（`ocr_missing`に入っていない、食材は個数か
+  アイコンで決まり推測ではない）、その個体を自動で検証済みにします（`auto_verified=1`。人の確認
+  `review_confirmed`とは区別します）。はっきりしない未解放部分が残るときは未検証のままで、レビュー画面と
+  監査レポートにはその項目だけを出します。SPで区別できない読み取り（効果のない性格どうし、
+  スキルレベルアップS/Mや同じ係数のボーナス系サブスキル）が`ocr_missing`にあるときも同じです。
+- SP不一致: 未検証のまま「SP不一致（画面 X / 計算 Y）」を付け、レビュー画面と監査レポートの先頭に出します。
+- 画面のSPがない、計算エンジンを使えない、Lv56以上（計算が近似）: これまでどおり未検証です。
+- 人が確認した個体（`review_confirmed`）は変更しません。未検証の個体は博士へ送る候補になりません。
+
+### 出力先
+
+`sync`の出力はすべてGit管理外の場所で、`src/pokesleep_box/paths.py`の1か所で決めています。
+`config/settings.local.json`の`"paths"`で変更できます（公開用の`site/`は指定できません）。
+
+| 内容 | 既定の場所 |
+| --- | --- |
+| 取り込む画像・動画 | `inbox/` |
+| DB | `data/box.sqlite` |
+| 抽出フレーム・監査レポート・レビュー画面 | `frames/`、`frames/audit_report.md`、`frames/review.html` |
+| 編成計画・Qwenキャッシュ | `data/private/team_plans.json`、`data/private/vlm_cache/` |
+| 非公開サイト | `site/private/index.html` |
+
+```json
+{"paths": {"db": "data/box.sqlite", "site": "site/private"}}
+```
+
+### 個別のコマンド
+
+JSONから取り込む場合や、手順を分けて実行したい場合は個別のコマンドも使えます。
 
 ```sh
 cp config/settings.example.json config/settings.local.json
 pokesleep-box init-db
 pokesleep-box import-json data/private/my-box.json
+pokesleep-box evaluate
 pokesleep-box decide --keep-top-n 2
-pokesleep-box render
-```
-
-実データのページは、公開デモの`site/`と分けてGit管理外の`site/private/`へ生成できます。
-
-```sh
-pokesleep-box --db data/box.sqlite decide
-pokesleep-box --db data/box.sqlite evaluate
-pokesleep-box --db data/box.sqlite render --out site/private
-python3 -m http.server 8000 --directory site/private
+pokesleep-box render --out site/private
 ```
 
 日本語JSONもそのまま取り込めます。macOSでは、ポケモンの詳細画面を撮った画像または
@@ -71,13 +132,8 @@ python3 -m http.server 8000 --directory site/private
 pokesleep-box make-ocr-demo
 pokesleep-box --db data/demo-ocr.sqlite scan inbox/ocr-demo.png
 
-# 自分の画像・動画を読み込む（inbox/の中身はGit管理外）
+# 取り込みだけを行う（SP確認・評価・サイト生成まで行うなら sync）
 pokesleep-box scan inbox
-
-# frames/review.htmlで画像と照合し、「照合済み」にチェックして保存
-pokesleep-box import-json reviewed_individuals.json
-pokesleep-box decide --keep-top-n 2
-pokesleep-box render
 ```
 
 認識結果は安全のため最初は必ず未検証になり、確認前の個体を博士へ送る候補にはしません。
@@ -131,7 +187,7 @@ Qwenの読み取り結果は画像ごとに`data/private/vlm_cache/`へ保存さ
 
 macOS Visionを使えない環境では`--ocr sidecar --ocr-command /path/to/extractor`で従来の
 ローカル抽出器を利用できます（sidecar方式の動画抽出にはffmpegが必要です）。取り込み後の
-`audit_report.md`、`frames/review.html`、OCR画像、DBはすべてGit管理外です。
+`frames/audit_report.md`、`frames/review.html`、OCR画像、DBはすべてGit管理外です。
 
 ## 計算と検証
 

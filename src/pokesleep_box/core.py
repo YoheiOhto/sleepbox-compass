@@ -71,6 +71,10 @@ def connect(path: Path) -> sqlite3.Connection:
         db.execute("ALTER TABLE individual ADD COLUMN archived INTEGER NOT NULL DEFAULT 0")
     if "final_evolution" not in columns:
         db.execute("ALTER TABLE individual ADD COLUMN final_evolution TEXT")
+    if "auto_verified" not in columns:
+        db.execute("ALTER TABLE individual ADD COLUMN auto_verified INTEGER NOT NULL DEFAULT 0")
+    if "sp_flag" not in columns:
+        db.execute("ALTER TABLE individual ADD COLUMN sp_flag TEXT")
     migrate_subskill_unlocks(db)
     db.commit()
     return db
@@ -222,7 +226,8 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
     call are never matched again, so identical-build helpers captured together
     stay distinct. When ``items`` are dicts, a merged item's ``uid`` is
     replaced by the stored uid and ``recaptured`` is set; an unresolved
-    identical-build match sets ``possible_duplicates``.
+    identical-build match sets ``possible_duplicates``. Dict items also get
+    ``stored_uid``, the uid of the row they were written to.
     """
     from .localization import normalize_individual
 
@@ -276,6 +281,8 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
             if not item.get("display_name"):
                 item["display_name"] = existing["display_name"]
         uid = uid or canonical_uid(item)
+        if isinstance(raw_item, dict):
+            raw_item["stored_uid"] = uid
         same_core = bool(existing and all((
             existing["species"] == item["species"],
             existing["nature"] == item["nature"],
@@ -302,7 +309,10 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
               skill_level=excluded.skill_level,sp=excluded.sp,box_index=excluded.box_index,
               last_seen=excluded.last_seen,confidence=excluded.confidence,
               review_confirmed=MAX(individual.review_confirmed,excluded.review_confirmed),
-              verified=MAX(individual.review_confirmed,excluded.verified,excluded.review_confirmed)""",
+              verified=MAX(individual.review_confirmed,excluded.verified,excluded.review_confirmed),
+              auto_verified=CASE WHEN excluded.verified=1 AND excluded.review_confirmed=0
+                AND individual.review_confirmed=0 THEN individual.auto_verified ELSE 0 END,
+              sp_flag=NULL""",
             (uid, item["species"], item.get("display_name"), item.get("level"),
              item["nature"], item.get("pokemon_type"),
              item.get("berry"), json.dumps(item.get("production_scores", {}), ensure_ascii=False),

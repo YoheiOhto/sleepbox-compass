@@ -49,7 +49,8 @@ def serve(db_path: Path, site: Path, host: str = "127.0.0.1", port: int = 8000,
                     request_db = connect(db_path)
                     try:
                         cursor = request_db.execute(
-                            "UPDATE individual SET review_confirmed=1,verified=1 WHERE uid=?", (uid,))
+                            "UPDATE individual SET review_confirmed=1,verified=1,auto_verified=0,sp_flag=NULL "
+                            "WHERE uid=?", (uid,))
                         request_db.commit()
                     finally:
                         request_db.close()
@@ -76,7 +77,7 @@ def serve(db_path: Path, site: Path, host: str = "127.0.0.1", port: int = 8000,
                         # any prior automatic SP-match verification, since a
                         # user flag means the captured data itself is suspect.
                         cursor = request_db.execute(
-                            "UPDATE individual SET review_confirmed=0,verified=0 WHERE uid=?", (uid,))
+                            "UPDATE individual SET review_confirmed=0,verified=0,auto_verified=0 WHERE uid=?", (uid,))
                         request_db.commit()
                     finally:
                         request_db.close()
