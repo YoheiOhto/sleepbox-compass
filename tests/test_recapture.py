@@ -109,13 +109,31 @@ class RecaptureTests(unittest.TestCase):
                                            ingredients=[["Apple", 1], ["Apple", 2], ["Egg", 3]])])
         self.assertEqual(len(self.rows()), 3)
 
-    def test_identical_stills_in_one_batch_stay_distinct(self):
+    def test_identical_stills_in_one_batch_are_one_individual(self):
         import_individuals(self.db, [still("a"), still("b")])
+        self.assertEqual([row["uid"] for row in self.rows()], ["capture-a"])
+
+    def test_same_build_at_another_level_in_one_batch_stays_distinct(self):
+        import_individuals(self.db, [still("a"), still("b", level=20, sp=700)])
         self.assertEqual(len(self.rows()), 2)
+
+    def test_merge_exact_duplicates_cleans_stored_rows(self):
+        from pokesleep_box.core import merge_exact_duplicates
+        import_individuals(self.db, [still("a")])
+        columns = ("species,nature,ingredients_json,subskills_json,main_skill,skill_level,"
+                   "level,sp,first_seen,last_seen,confidence,review_confirmed")
+        for uid, verified in (("capture-b", 1), ("capture-c", 0)):
+            self.db.execute(f"INSERT INTO individual (uid,verified,{columns}) "
+                            f"SELECT ?,?,{columns} FROM individual WHERE uid='capture-a'",
+                            (uid, verified))
+        self.db.execute("UPDATE individual SET verified=0 WHERE uid='capture-a'")
+        merged = merge_exact_duplicates(self.db)
+        self.assertEqual(merged, [("capture-b", ["capture-a", "capture-c"])])
+        self.assertEqual([row["uid"] for row in self.rows()], ["capture-b"])
 
     def test_one_stored_row_is_not_claimed_twice_by_one_batch(self):
         import_individuals(self.db, [still("a")])
-        import_individuals(self.db, [still("b", level=15), still("c", level=15)])
+        import_individuals(self.db, [still("b", level=15), still("c", level=15, sp=600)])
         uids = [row["uid"] for row in self.rows()]
         self.assertEqual(uids, ["capture-a", "capture-c"])
 

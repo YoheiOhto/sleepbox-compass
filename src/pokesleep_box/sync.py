@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from .core import (build_team_plans, connect, decide, decide_options, import_individuals, load_archived, load_dashboard,
+                   merge_exact_duplicates,
                    plans_for_box,
                    record_synced_sources, synced_sources)
 from .paths import PrivatePaths
@@ -154,6 +155,13 @@ def run_sync(source: Path, paths: PrivatePaths, settings: Optional[Dict[str, Any
     db = connect(paths.db)
     summary: Dict[str, Any] = {"messages": [], "steps": []}
     try:
+        # Boxes built before repeated screenshots were merged on import.
+        merged = merge_exact_duplicates(db)
+        if merged:
+            removed = sum(len(uids) for _, uids in merged)
+            summary["duplicates_merged"] = removed
+            summary["messages"].append(
+                f"同じ個体を撮った画像の重複 {removed}件 を1匹にまとめました（{len(merged)}匹分）")
         before = {row["uid"] for row in db.execute("SELECT uid FROM individual")}
         if reviewed is not None:
             result = import_reviewed(db, reviewed, paths.engine, on_progress)
