@@ -5,12 +5,20 @@ import json
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional
+from typing import Any, Callable, Collection, Dict, Iterable, List, Optional
 
 from .localization import normalize_individual
 
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".heic", ".webp"}
 VIDEO_SUFFIXES = {".mov", ".mp4", ".m4v"}
+
+
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def discover_inputs(inbox: Path) -> List[Path]:
@@ -57,37 +65,59 @@ def sidecar_extract(frame: Path, ocr_command: Optional[str] = None) -> Optional[
 
 def ingest_path(path: Path, frames_dir: Path, ocr_command: Optional[str] = None,
                 vision: bool = False, interval: float = .8,
-                on_progress: Optional[Callable[[str], None]] = None) -> List[Dict[str, Any]]:
+                on_progress: Optional[Callable[[str], None]] = None,
+                qwen: Any = None, skip_hashes: Collection[str] = (),
+                on_source_done: Optional[Callable[[Path, str, int], None]] = None,
+                ) -> List[Dict[str, Any]]:
+    """Read captures into candidate individuals.
+
+    ``qwen`` is a ``vlm.QwenReader``. Sources whose SHA-256 is in
+    ``skip_hashes`` were already synced and are not read again, and
+    ``on_source_done`` is told about every source that was read.
+    """
     result = []
     sources = [path] if path.is_file() else discover_inputs(path)
     total_sources = len(sources)
     for source_index, source in enumerate(sources, start=1):
         prefix = f"[{source_index}/{total_sources}] {source.name}"
-        if vision:
-            from .ocr import scan
+        source_hash = file_sha256(source)
+        if source_hash in skip_hashes:
+            if on_progress:
+                on_progress(f"{prefix}: 取り込み済みのためスキップ")
+            continue
+        if vision or qwen is not None:
             if on_progress:
                 on_progress(f"{prefix}: 開始")
 
             def report(message: str, prefix=prefix) -> None:
                 on_progress(f"{prefix}: {message}")
 
-            scanned = scan(source, interval, report if on_progress else None)
+            if qwen is not None:
+                from .vlm import scan as vlm_scan
+                scanned = vlm_scan(source, qwen, frames_dir, interval,
+                                   report if on_progress else None)
+            else:
+                from .ocr import scan
+                scanned = scan(source, interval, report if on_progress else None)
             for item in scanned:
                 item.setdefault("ocr_sources", []).append(source.name)
                 if source.suffix.lower() in IMAGE_SUFFIXES:
                     # Two helpers can legitimately have the same species and
                     # build. Keep still captures distinct while making a
                     # repeated import of the same screenshot idempotent.
-                    capture_hash = hashlib.sha256(source.read_bytes()).hexdigest()
+                    capture_hash = source_hash
                     item.setdefault("capture_sha256", capture_hash)
                     item.setdefault("uid", f"capture-{capture_hash[:20]}")
                     item["_still_capture"] = True
             result.extend(scanned)
+            if on_source_done:
+                on_source_done(source, source_hash, len(scanned))
             if on_progress:
                 on_progress(f"{prefix}: 完了（{len(scanned)}件抽出）")
             continue
         if on_progress:
             on_progress(f"{prefix}: 開始")
+        before = len(result)
         for frame in extract_frames(source, frames_dir / source.stem):
             item = sidecar_extract(frame, ocr_command) or sidecar_extract(source, ocr_command)
             if item:
@@ -95,6 +125,8 @@ def ingest_path(path: Path, frames_dir: Path, ocr_command: Optional[str] = None,
                 item.setdefault("confidence", 1.0)
                 item.setdefault("verified", False)
                 result.append(item)
+        if on_source_done:
+            on_source_done(source, source_hash, len(result) - before)
         if on_progress:
             on_progress(f"{prefix}: 完了")
     # The same individual can appear in a production video and a later nature

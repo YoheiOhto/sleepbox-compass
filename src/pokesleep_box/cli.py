@@ -5,7 +5,8 @@ import json
 import sys
 from pathlib import Path
 
-from .core import build_team_plans, compare_species_tiers, connect, decide, import_individuals, load_dashboard
+from .core import (build_team_plans, compare_species_tiers, connect, decide, import_individuals,
+                   load_dashboard, record_synced_sources, synced_sources)
 from .analytics import analyze
 from .engine import (EngineUnavailable, evaluate, evaluate_main_seed_upgrades,
                      evaluate_seed_upgrades, run_engine, species_scores, verify)
@@ -50,7 +51,14 @@ def main() -> None:
         scan.add_argument("--frames", type=Path, default=Path("frames"))
         scan.add_argument("--audit", type=Path, default=Path("audit_report.md"))
         scan.add_argument("--review", type=Path, default=Path("frames/review.html"))
-        scan.add_argument("--ocr", choices=("vision", "sidecar"), default="vision")
+        scan.add_argument("--ocr", choices=("auto", "qwen", "vision", "sidecar"), default="auto",
+                          help="auto: mlx-vlmが入っていればqwen、なければvision")
+        scan.add_argument("--vlm-model", default="mlx-community/Qwen3.5-9B-8bit",
+                          help="Qwen OCRに使うローカルモデル（Hugging Face ID）")
+        scan.add_argument("--vlm-cache", type=Path, default=Path("data/private/vlm_cache"),
+                          help="Qwenの読み取り結果のキャッシュ（画像のSHA-256ごと）")
+        scan.add_argument("--rescan", action="store_true",
+                          help="取り込み済みの画像・動画も読み直す（通常は新しいものだけ）")
         scan.add_argument("--interval", type=float, default=.8, help="動画OCRのフレーム間隔（秒）")
         scan.add_argument("--ocr-command", help="画像パスを受け取り抽出JSONを標準出力するローカルコマンド")
     ver = commands.add_parser("verify")
@@ -119,14 +127,35 @@ def main() -> None:
     elif args.command in ("ingest", "scan"):
         def report_progress(message: str) -> None:
             print(message, file=sys.stderr, flush=True)
+        reader_name = args.ocr
+        if reader_name == "auto":
+            import importlib.util
+            reader_name = "qwen" if importlib.util.find_spec("mlx_vlm") else "vision"
+            report_progress(f"OCR: {reader_name}")
+        qwen = None
+        if reader_name == "qwen":
+            from .vlm import QwenReader
+            qwen = QwenReader(args.vlm_model, args.vlm_cache)
+            reader_name = f"qwen:{args.vlm_model}"
+        done = []
         items = ingest_path(args.path, args.frames, args.ocr_command,
-                            vision=args.ocr == "vision", interval=args.interval,
-                            on_progress=report_progress)
+                            vision=reader_name == "vision", interval=args.interval,
+                            on_progress=report_progress, qwen=qwen,
+                            skip_hashes=set() if args.rescan else synced_sources(db),
+                            on_source_done=lambda source, digest, count: done.append(
+                                (digest, source.name, reader_name, count)))
         imported = import_individuals(db, items)
-        report = audit(items, args.audit)
-        render_review(items, args.review)
-        print(json.dumps({"imported": imported, "audit": report,
-                          "review": str(args.review)}, ensure_ascii=False))
+        record_synced_sources(db, done)
+        summary = {"imported": imported, "new_sources": len(done)}
+        if done:
+            # Audit and review only the newly synced captures. With nothing new,
+            # keep the previous report and review page instead of blanking them.
+            summary["audit"] = audit(items, args.audit)
+            render_review(items, args.review)
+            summary["review"] = str(args.review)
+        if qwen is not None:
+            summary["vlm"] = {"reads": qwen.reads, "cache_hits": qwen.cache_hits}
+        print(json.dumps(summary, ensure_ascii=False))
     elif args.command == "verify":
         def report_progress(message: str) -> None:
             print(message, file=sys.stderr, flush=True)
