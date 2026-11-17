@@ -285,6 +285,18 @@ class IngredientIconTests(Base):
         self.assertEqual(item["ingredients"][2], ["Milk", 6])
         self.assertNotIn("ingredient_conflicts", item)
 
+    def test_only_one_source_decides_and_is_used(self):
+        # Icon only: the amount is unread or fits no legal option.
+        for amounts in ([1, 2, None], [1, 2, 7]):
+            item = icon_read(amounts, lambda item, options: [None, "Ginger", "Cacao"])
+            self.assertNotIn("ingredients", item["ocr_missing"])
+            self.assertEqual(item["ingredients"][2], ["Cacao", 4])
+            self.assertNotIn("ingredient_conflicts", item)
+        # Amount only: the icon match was not confident.
+        item = icon_read([1, 2, 5], lambda item, options: [None, None, None])
+        self.assertEqual(item["ingredients"][2], ["Egg", 5])
+        self.assertNotIn("ingredients", item["ocr_missing"])
+
     def test_icon_matching_unavailable_behaves_as_before(self):
         for matcher in (None, lambda item, options: []):
             item = icon_read([1, 2, 6], matcher)
