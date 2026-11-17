@@ -8,10 +8,11 @@ import platform
 import re
 import subprocess
 import threading
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
-from .localization import names, normalize_individual, to_japanese
+from .localization import SUBSKILL_UNLOCKS, base_main_skill, names, normalize_individual, to_japanese
 
 ROOT = Path(__file__).parents[2]
 VISION_SOURCE = ROOT / "engine/macos/vision_ocr.swift"
@@ -136,7 +137,7 @@ def parse_frame(frame: Mapping[str, Any]) -> Dict[str, Any]:
             badge = re.search(r"Lv\.?\s*(\d{1,3})", text, re.I)
             subskills.append([found[0], int(badge.group(1)) if badge else 0])
     if subskills:
-        defaults = [10, 25, 50, 75, 100]
+        defaults = SUBSKILL_UNLOCKS
         unique_subskills = []
         seen_subskills = set()
         for name, unlock in subskills:
@@ -298,7 +299,7 @@ def enrich_with_species_data(items: List[Dict[str, Any]],
             item["berry_ja"] = to_japanese("berries", metadata["berry"])
             item.setdefault("field_confidence", {})["berry"] = 1.0
         if metadata.get("main_skill") and not item.get("main_skill"):
-            item["main_skill"] = metadata["main_skill"]
+            item["main_skill"] = base_main_skill(metadata["main_skill"])
             item.setdefault("field_confidence", {})["main_skill"] = 1.0
         options = []
         for slot in metadata.get("ingredients", []):
@@ -392,6 +393,8 @@ def load_source_metadata() -> Dict[str, Any]:
             if any(x not in ingredient_defs for x in constants):
                 continue
             specialty_factor = 2 if constructor == "createIngredientSpecialist" else 1
+            specialty = {"createBerrySpecialist": "berry", "createIngredientSpecialist": "ingredient",
+                         "createSkillSpecialist": "skill"}[constructor]
             first_name, first_value = ingredient_defs[constants[0]]
             slots = []
             for level, factor, choices in ((1, 1, constants[:1]), (30, 2.25, constants[:2]),
@@ -403,14 +406,38 @@ def load_source_metadata() -> Dict[str, Any]:
                     values.append([ingredient_name, amount])
                 slots.append({"level": level, "choices": values})
             result[constant] = {"name": name, "berry": berry_match.group(1),
-                                "ingredients": slots, "pokedex_number": pokedex_number}
+                                "ingredients": slots, "pokedex_number": pokedex_number,
+                                "specialty": specialty}
             progressed = True
         if not progressed:
             break
         pending = next_pending
     return {value["name"]: {"berry": value["berry"], "ingredients": value["ingredients"],
-                            "pokedex_number": value.get("pokedex_number")}
+                            "pokedex_number": value.get("pokedex_number"),
+                            "specialty": value.get("specialty")}
             for value in result.values()}
+
+
+@lru_cache(maxsize=1)
+def species_metadata(engine: str = "engine/bin/pokesleep-engine") -> Dict[str, Any]:
+    """Species rules (berry, ingredient options, specialty) from the pinned data."""
+    try:
+        from .engine import run_engine
+        return run_engine({"mode": "metadata"}, engine).get("pokemon", {})
+    except Exception:
+        return load_source_metadata()
+
+
+def berries_per_help(specialty: Optional[str], subskills: Sequence[Sequence[Any]],
+                     level: Optional[int]) -> Optional[int]:
+    """Berries per help: 1, or 2 for berry specialists, +1 with Berry Finding S unlocked."""
+    if not specialty:
+        return None
+    count = 2 if specialty == "berry" else 1
+    if any(entry[0] == "Berry Finding S" and level is not None and entry[1] <= level
+           for entry in subskills):
+        count += 1
+    return count
 
 
 def scan(path: Path, interval: float = .8,

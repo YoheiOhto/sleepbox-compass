@@ -171,6 +171,38 @@ class VLMTests(unittest.TestCase):
         names = icons.match_slots(path, METADATA["PIPLUP"]["ingredients"], observations)
         self.assertEqual(names, [None, "Leek", "Honey"])  # Lv1 has one option: no match needed
 
+    def test_current_game_rules(self):
+        from pokesleep_box.localization import base_main_skill, normalize_individual
+        from pokesleep_box.ocr import berries_per_help
+        # Ver.3.6.0 moved the last two subskill unlocks from Lv75/100 to Lv70/80.
+        row = normalize_individual({"species": "PIPLUP", "nature": "Careful",
+                                    "main_skill": "Psystrike (Berry Zone)",
+                                    "subskills": [["Helping Bonus", 75], ["Berry Finding S", 100]]})
+        self.assertEqual([s[1] for s in row["subskills"]], [70, 80])
+        self.assertEqual(row["main_skill"], "Berry Zone")
+        self.assertEqual(base_main_skill("マジカルフレイム（料理アドバンスS）"), "料理アドバンスS")
+        self.assertEqual(parse_response(answer(main_skill="マジカルフレイム（料理アドバンスS）"))["main_skill"],
+                         "Cooking Advance S")
+        berry_finding = [["Berry Finding S", 25]]
+        self.assertEqual(berries_per_help("berry", berry_finding, 30), 3)
+        self.assertEqual(berries_per_help("skill", berry_finding, 20), 1)  # not unlocked yet
+        self.assertIsNone(berries_per_help(None, berry_finding, 30))
+
+    def test_stored_legacy_unlocks_are_migrated(self):
+        path = self.root / "old.sqlite"
+        db = connect(path)
+        import_individuals(db, [dict(json.loads((Path(__file__).parents[1] /
+                                                  "data/example_individuals.json").read_text())["individuals"][0],
+                                     uid="legacy")])
+        db.execute("UPDATE individual SET subskills_json=? WHERE uid='legacy'",
+                   (json.dumps([["Helping Bonus", 10], ["Berry Finding S", 75], ["Inventory Up S", 100]]),))
+        db.commit()
+        db.close()
+        db = connect(path)
+        stored = json.loads(db.execute("SELECT subskills_json FROM individual").fetchone()[0])
+        self.assertEqual([s[1] for s in stored], [10, 70, 80])
+        db.close()
+
     def test_only_new_captures_are_read_on_the_next_scan(self):
         inbox = self.root / "inbox"
         inbox.mkdir()

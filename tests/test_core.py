@@ -301,14 +301,14 @@ class CoreTests(unittest.TestCase):
                  "あまいミツ x5 Lv.30", "ほっこりポテト x6 Lv.60",
                  "食材ゲットS Lv.1", "Lv.10 げんき回復ボーナス",
                  "Lv.25 きのみの数S", "Lv.50 食材確率アップM",
-                 "Lv.75 おてつだいスピードS", "Lv.100 リサーチEXPボーナス", "おっとり"]
+                 "Lv.70 おてつだいスピードS", "Lv.80 リサーチEXPボーナス", "おっとり"]
         frame = {"frame": 0, "seconds": 0,
                  "observations": [{"text": text, "confidence": .9} for text in lines]}
         row = merge_frames([frame])[0]
         self.assertEqual((row["species"], row["nature"], row["berry"]),
                          ("BULBASAUR", "Mild", "DURIN"))
         self.assertEqual(row["ingredients"], [["Honey", 2], ["Honey", 5], ["Potato", 6]])
-        self.assertEqual([x[1] for x in row["subskills"]], [10, 25, 50, 75, 100])
+        self.assertEqual([x[1] for x in row["subskills"]], [10, 25, 50, 70, 80])
         self.assertEqual((row["level"], row["sp"], row["main_skill"]),
                          (15, 513, "Ingredient Magnet S"))
 
