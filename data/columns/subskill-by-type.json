@@ -1,0 +1,4071 @@
+{
+ "schema": 1,
+ "slug": "subskill-by-type",
+ "title": "サブスキルの価値はタイプでどう変わる？",
+ "provenance": {
+  "generated_on": "2026-11-17",
+  "generator": "pokesleep_box.columns.subskill_by_type",
+  "game_version": "3.6.0",
+  "engine": "nerolis-lab@8a6566c5e824db51e9939e2929d3734c38de11f8",
+  "sources": [
+   "Neroli's Lab（計算エンジン、engine/src/cli.mjs の evaluate / custom-team / metadata モード）",
+   "src/pokesleep_box/columns/subskill_lab.py（個体の組み方）"
+  ]
+ },
+ "assumptions": [
+  "1日のエナジーは計算エンジン（Neroli's Lab）の1匹ぶんの見積もりです。きのみ＋食材（素材の基本エナジー）＋メインスキルのエナジーの合計です。",
+  "土台の個体は、性格てれや（補正なし）、サブスキルなし、メインスキルLv3です。そこにサブスキルを1つだけ（Lv10の枠に）足して比べています。",
+  "スキルレベルアップS/Mは、メインスキルのレベルを1/2上げた状態として計算しています（最大レベルで止まります）。",
+  "きのみが好物になる島（好物2倍）、睡眠は22:00〜6:00、リボンなし、他のポケモンの助けなしで計算しています。",
+  "食材は料理にしたときの倍率を入れていません。そのため、1匹の計算では食材タイプの食材の価値が小さめに出ます。",
+  "チームの計算はゴールド旧発電所、5匹ともLv60・同じ土台で、料理（レシピLv1・最小の鍋）を含みます。シミュレーションは500回です。",
+  "1匹の計算のシミュレーションは1000回です。乱数の並びは毎回同じなので、差はぶれにくくなっています。"
+ ],
+ "data": {
+  "species": [
+   {
+    "species": "RAICHU",
+    "species_ja": "ライチュウ",
+    "specialty": "berry",
+    "main_skill": "エナジーチャージS",
+    "skill_max_level": 7,
+    "berry": "ウブ",
+    "island": "ゴールド旧発電所",
+    "ingredients": [
+     [
+      "とくせんリンゴ",
+      1
+     ],
+     [
+      "とくせんリンゴ",
+      2
+     ],
+     [
+      "とくせんリンゴ",
+      4
+     ]
+    ],
+    "results": {
+     "none": {
+      "energy": {
+       "50": {
+        "berry": 18175,
+        "ingredient": 2069,
+        "direct_skill": 1769,
+        "expected": 22013
+       },
+       "60": {
+        "berry": 23849,
+        "ingredient": 3196,
+        "direct_skill": 1764,
+        "expected": 28810
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1179.8,
+        "ingredient": 444.7,
+        "skill": 227.3
+       },
+       "60": {
+        "berry": 1536.1,
+        "ingredient": 818.0,
+        "skill": 232.4
+       }
+      },
+      "role_scores": {
+       "berry": 46.7,
+       "ingredient": 22.2,
+       "skill": 4.4
+      },
+      "score": 46.7
+     },
+     "Helping Speed M": {
+      "energy": {
+       "50": {
+        "berry": 21194,
+        "ingredient": 2341,
+        "direct_skill": 2013,
+        "expected": 25549
+       },
+       "60": {
+        "berry": 28123,
+        "ingredient": 3619,
+        "direct_skill": 2009,
+        "expected": 33751
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1368.9,
+        "ingredient": 516.0,
+        "skill": 263.8
+       },
+       "60": {
+        "berry": 1785.2,
+        "ingredient": 950.7,
+        "skill": 270.0
+       }
+      },
+      "role_scores": {
+       "berry": 54.2,
+       "ingredient": 25.8,
+       "skill": 5.1
+      },
+      "score": 54.2
+     },
+     "Helping Speed S": {
+      "energy": {
+       "50": {
+        "berry": 19554,
+        "ingredient": 2190,
+        "direct_skill": 1877,
+        "expected": 23622
+       },
+       "60": {
+        "berry": 25606,
+        "ingredient": 3384,
+        "direct_skill": 1873,
+        "expected": 30863
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1271.1,
+        "ingredient": 479.1,
+        "skill": 244.9
+       },
+       "60": {
+        "berry": 1652.3,
+        "ingredient": 879.9,
+        "skill": 249.9
+       }
+      },
+      "role_scores": {
+       "berry": 50.3,
+       "ingredient": 23.9,
+       "skill": 4.8
+      },
+      "score": 50.3
+     },
+     "Berry Finding S": {
+      "energy": {
+       "50": {
+        "berry": 27913,
+        "ingredient": 1924,
+        "direct_skill": 1685,
+        "expected": 31522
+       },
+       "60": {
+        "berry": 36316,
+        "ingredient": 3005,
+        "direct_skill": 1694,
+        "expected": 41015
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1769.7,
+        "ingredient": 444.7,
+        "skill": 227.3
+       },
+       "60": {
+        "berry": 2304.1,
+        "ingredient": 818.0,
+        "skill": 232.4
+       }
+      },
+      "role_scores": {
+       "berry": 70.1,
+       "ingredient": 22.2,
+       "skill": 4.4
+      },
+      "score": 70.1
+     },
+     "Ingredient Finder M": {
+      "energy": {
+       "50": {
+        "berry": 16405,
+        "ingredient": 2829,
+        "direct_skill": 1769,
+        "expected": 21002
+       },
+       "60": {
+        "berry": 21448,
+        "ingredient": 4334,
+        "direct_skill": 1764,
+        "expected": 27546
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1057.3,
+        "ingredient": 604.7,
+        "skill": 227.3
+       },
+       "60": {
+        "berry": 1376.5,
+        "ingredient": 1112.4,
+        "skill": 232.4
+       }
+      },
+      "role_scores": {
+       "berry": 41.9,
+       "ingredient": 30.2,
+       "skill": 4.4
+      },
+      "score": 41.9
+     },
+     "Ingredient Finder S": {
+      "energy": {
+       "50": {
+        "berry": 17292,
+        "ingredient": 2448,
+        "direct_skill": 1769,
+        "expected": 21509
+       },
+       "60": {
+        "berry": 22647,
+        "ingredient": 3766,
+        "direct_skill": 1764,
+        "expected": 28177
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1118.5,
+        "ingredient": 524.7,
+        "skill": 227.3
+       },
+       "60": {
+        "berry": 1456.3,
+        "ingredient": 965.2,
+        "skill": 232.4
+       }
+      },
+      "role_scores": {
+       "berry": 44.3,
+       "ingredient": 26.2,
+       "skill": 4.4
+      },
+      "score": 44.3
+     },
+     "Skill Trigger M": {
+      "energy": {
+       "50": {
+        "berry": 18175,
+        "ingredient": 2069,
+        "direct_skill": 2256,
+        "expected": 22501
+       },
+       "60": {
+        "berry": 23849,
+        "ingredient": 3196,
+        "direct_skill": 2257,
+        "expected": 29302
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1179.8,
+        "ingredient": 444.7,
+        "skill": 309.0
+       },
+       "60": {
+        "berry": 1536.1,
+        "ingredient": 818.0,
+        "skill": 315.9
+       }
+      },
+      "role_scores": {
+       "berry": 46.7,
+       "ingredient": 22.2,
+       "skill": 6.0
+      },
+      "score": 46.7
+     },
+     "Skill Trigger S": {
+      "energy": {
+       "50": {
+        "berry": 18175,
+        "ingredient": 2069,
+        "direct_skill": 2009,
+        "expected": 22254
+       },
+       "60": {
+        "berry": 23849,
+        "ingredient": 3196,
+        "direct_skill": 2007,
+        "expected": 29053
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1179.8,
+        "ingredient": 444.7,
+        "skill": 267.8
+       },
+       "60": {
+        "berry": 1536.1,
+        "ingredient": 818.0,
+        "skill": 273.7
+       }
+      },
+      "role_scores": {
+       "berry": 46.7,
+       "ingredient": 22.2,
+       "skill": 5.2
+      },
+      "score": 46.7
+     },
+     "Skill Level Up M": {
+      "energy": {
+       "50": {
+        "berry": 18175,
+        "ingredient": 2069,
+        "direct_skill": 3370,
+        "expected": 23615
+       },
+       "60": {
+        "berry": 23849,
+        "ingredient": 3196,
+        "direct_skill": 3362,
+        "expected": 30408
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1179.8,
+        "ingredient": 444.7,
+        "skill": 433.2
+       },
+       "60": {
+        "berry": 1536.1,
+        "ingredient": 818.0,
+        "skill": 442.8
+       }
+      },
+      "role_scores": {
+       "berry": 46.7,
+       "ingredient": 22.2,
+       "skill": 8.4
+      },
+      "score": 46.7
+     },
+     "Skill Level Up S": {
+      "energy": {
+       "50": {
+        "berry": 18175,
+        "ingredient": 2069,
+        "direct_skill": 2440,
+        "expected": 22684
+       },
+       "60": {
+        "berry": 23849,
+        "ingredient": 3196,
+        "direct_skill": 2434,
+        "expected": 29480
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1179.8,
+        "ingredient": 444.7,
+        "skill": 313.6
+       },
+       "60": {
+        "berry": 1536.1,
+        "ingredient": 818.0,
+        "skill": 320.6
+       }
+      },
+      "role_scores": {
+       "berry": 46.7,
+       "ingredient": 22.2,
+       "skill": 6.1
+      },
+      "score": 46.7
+     },
+     "Inventory Up L": {
+      "energy": {
+       "50": {
+        "berry": 18252,
+        "ingredient": 2117,
+        "direct_skill": 1784,
+        "expected": 22152
+       },
+       "60": {
+        "berry": 23581,
+        "ingredient": 3340,
+        "direct_skill": 1811,
+        "expected": 28732
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1392.2,
+        "ingredient": 524.8,
+        "skill": 268.2
+       },
+       "60": {
+        "berry": 1812.6,
+        "ingredient": 965.3,
+        "skill": 274.2
+       }
+      },
+      "role_scores": {
+       "berry": 55.1,
+       "ingredient": 26.2,
+       "skill": 5.2
+      },
+      "score": 55.1
+     },
+     "Inventory Up M": {
+      "energy": {
+       "50": {
+        "berry": 18252,
+        "ingredient": 2117,
+        "direct_skill": 1784,
+        "expected": 22152
+       },
+       "60": {
+        "berry": 23581,
+        "ingredient": 3340,
+        "direct_skill": 1811,
+        "expected": 28732
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1333.2,
+        "ingredient": 502.5,
+        "skill": 256.9
+       },
+       "60": {
+        "berry": 1735.8,
+        "ingredient": 924.4,
+        "skill": 262.6
+       }
+      },
+      "role_scores": {
+       "berry": 52.8,
+       "ingredient": 25.1,
+       "skill": 5.0
+      },
+      "score": 52.8
+     },
+     "Inventory Up S": {
+      "energy": {
+       "50": {
+        "berry": 18252,
+        "ingredient": 2117,
+        "direct_skill": 1784,
+        "expected": 22152
+       },
+       "60": {
+        "berry": 23581,
+        "ingredient": 3340,
+        "direct_skill": 1811,
+        "expected": 28732
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1262.4,
+        "ingredient": 475.8,
+        "skill": 243.2
+       },
+       "60": {
+        "berry": 1643.6,
+        "ingredient": 875.3,
+        "skill": 248.6
+       }
+      },
+      "role_scores": {
+       "berry": 50.0,
+       "ingredient": 23.7,
+       "skill": 4.7
+      },
+      "score": 50.0
+     },
+     "Helping Bonus": {
+      "energy": {
+       "50": {
+        "berry": 18958,
+        "ingredient": 2160,
+        "direct_skill": 1850,
+        "expected": 22968
+       },
+       "60": {
+        "berry": 25274,
+        "ingredient": 3337,
+        "direct_skill": 1846,
+        "expected": 30457
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1439.4,
+        "ingredient": 542.5,
+        "skill": 277.3
+       },
+       "60": {
+        "berry": 1874.0,
+        "ingredient": 998.0,
+        "skill": 283.5
+       }
+      },
+      "role_scores": {
+       "berry": 57.0,
+       "ingredient": 27.1,
+       "skill": 5.4
+      },
+      "score": 57.0
+     },
+     "Energy Recovery Bonus": {
+      "energy": {
+       "50": {
+        "berry": 19294,
+        "ingredient": 2160,
+        "direct_skill": 1850,
+        "expected": 23304
+       },
+       "60": {
+        "berry": 25274,
+        "ingredient": 3337,
+        "direct_skill": 1846,
+        "expected": 30457
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1439.4,
+        "ingredient": 542.5,
+        "skill": 277.3
+       },
+       "60": {
+        "berry": 1874.0,
+        "ingredient": 998.0,
+        "skill": 283.5
+       }
+      },
+      "role_scores": {
+       "berry": 57.0,
+       "ingredient": 27.1,
+       "skill": 5.4
+      },
+      "score": 57.0
+     },
+     "Dream Shard Bonus": {
+      "energy": {
+       "50": {
+        "berry": 18175,
+        "ingredient": 2069,
+        "direct_skill": 1769,
+        "expected": 22013
+       },
+       "60": {
+        "berry": 23849,
+        "ingredient": 3196,
+        "direct_skill": 1764,
+        "expected": 28810
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1439.4,
+        "ingredient": 542.5,
+        "skill": 277.3
+       },
+       "60": {
+        "berry": 1874.0,
+        "ingredient": 998.0,
+        "skill": 283.5
+       }
+      },
+      "role_scores": {
+       "berry": 57.0,
+       "ingredient": 27.1,
+       "skill": 5.4
+      },
+      "score": 57.0
+     },
+     "Research EXP Bonus": {
+      "energy": {
+       "50": {
+        "berry": 18175,
+        "ingredient": 2069,
+        "direct_skill": 1769,
+        "expected": 22013
+       },
+       "60": {
+        "berry": 23849,
+        "ingredient": 3196,
+        "direct_skill": 1764,
+        "expected": 28810
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1439.4,
+        "ingredient": 542.5,
+        "skill": 277.3
+       },
+       "60": {
+        "berry": 1874.0,
+        "ingredient": 998.0,
+        "skill": 283.5
+       }
+      },
+      "role_scores": {
+       "berry": 57.0,
+       "ingredient": 27.1,
+       "skill": 5.4
+      },
+      "score": 57.0
+     },
+     "Sleep EXP Bonus": {
+      "energy": {
+       "50": {
+        "berry": 18175,
+        "ingredient": 2069,
+        "direct_skill": 1769,
+        "expected": 22013
+       },
+       "60": {
+        "berry": 23849,
+        "ingredient": 3196,
+        "direct_skill": 1764,
+        "expected": 28810
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1439.4,
+        "ingredient": 542.5,
+        "skill": 277.3
+       },
+       "60": {
+        "berry": 1874.0,
+        "ingredient": 998.0,
+        "skill": 283.5
+       }
+      },
+      "role_scores": {
+       "berry": 57.0,
+       "ingredient": 27.1,
+       "skill": 5.4
+      },
+      "score": 57.0
+     }
+    }
+   },
+   {
+    "species": "HOUNDOOM",
+    "species_ja": "ヘルガー",
+    "specialty": "berry",
+    "main_skill": "エナジーチャージM",
+    "skill_max_level": 7,
+    "berry": "ウイ",
+    "island": "ウノハナ雪原",
+    "ingredients": [
+     [
+      "げきからハーブ",
+      1
+     ],
+     [
+      "げきからハーブ",
+      2
+     ],
+     [
+      "げきからハーブ",
+      4
+     ]
+    ],
+    "results": {
+     "none": {
+      "energy": {
+       "50": {
+        "berry": 15272,
+        "ingredient": 1823,
+        "direct_skill": 3207,
+        "expected": 20302
+       },
+       "60": {
+        "berry": 20102,
+        "ingredient": 2842,
+        "direct_skill": 3233,
+        "expected": 26178
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 994.6,
+        "ingredient": 385.9,
+        "skill": 414.2
+       },
+       "60": {
+        "berry": 1303.8,
+        "ingredient": 711.2,
+        "skill": 424.6
+       }
+      },
+      "role_scores": {
+       "berry": 39.5,
+       "ingredient": 19.3,
+       "skill": 8.1
+      },
+      "score": 39.5
+     },
+     "Helping Speed M": {
+      "energy": {
+       "50": {
+        "berry": 17761,
+        "ingredient": 2021,
+        "direct_skill": 3566,
+        "expected": 23349
+       },
+       "60": {
+        "berry": 23179,
+        "ingredient": 3212,
+        "direct_skill": 3665,
+        "expected": 30055
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1160.4,
+        "ingredient": 450.3,
+        "skill": 483.3
+       },
+       "60": {
+        "berry": 1515.8,
+        "ingredient": 826.8,
+        "skill": 493.6
+       }
+      },
+      "role_scores": {
+       "berry": 46.0,
+       "ingredient": 22.4,
+       "skill": 9.4
+      },
+      "score": 46.0
+     },
+     "Helping Speed S": {
+      "energy": {
+       "50": {
+        "berry": 16266,
+        "ingredient": 1942,
+        "direct_skill": 3422,
+        "expected": 21631
+       },
+       "60": {
+        "berry": 21482,
+        "ingredient": 2965,
+        "direct_skill": 3377,
+        "expected": 27825
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1077.5,
+        "ingredient": 418.1,
+        "skill": 448.8
+       },
+       "60": {
+        "berry": 1409.8,
+        "ingredient": 769.0,
+        "skill": 459.1
+       }
+      },
+      "role_scores": {
+       "berry": 42.7,
+       "ingredient": 20.8,
+       "skill": 8.7
+      },
+      "score": 42.7
+     },
+     "Berry Finding S": {
+      "energy": {
+       "50": {
+        "berry": 23777,
+        "ingredient": 1694,
+        "direct_skill": 3014,
+        "expected": 28485
+       },
+       "60": {
+        "berry": 30751,
+        "ingredient": 2668,
+        "direct_skill": 3086,
+        "expected": 36505
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1492.0,
+        "ingredient": 385.9,
+        "skill": 414.2
+       },
+       "60": {
+        "berry": 1955.7,
+        "ingredient": 711.2,
+        "skill": 424.6
+       }
+      },
+      "role_scores": {
+       "berry": 59.3,
+       "ingredient": 19.3,
+       "skill": 8.1
+      },
+      "score": 59.3
+     },
+     "Ingredient Finder M": {
+      "energy": {
+       "50": {
+        "berry": 13937,
+        "ingredient": 2491,
+        "direct_skill": 3207,
+        "expected": 19635
+       },
+       "60": {
+        "berry": 18262,
+        "ingredient": 3855,
+        "direct_skill": 3233,
+        "expected": 25351
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 903.5,
+        "ingredient": 524.7,
+        "skill": 414.2
+       },
+       "60": {
+        "berry": 1184.4,
+        "ingredient": 966.9,
+        "skill": 424.6
+       }
+      },
+      "role_scores": {
+       "berry": 35.9,
+       "ingredient": 26.2,
+       "skill": 8.1
+      },
+      "score": 35.9
+     },
+     "Ingredient Finder S": {
+      "energy": {
+       "50": {
+        "berry": 14606,
+        "ingredient": 2157,
+        "direct_skill": 3207,
+        "expected": 19969
+       },
+       "60": {
+        "berry": 19181,
+        "ingredient": 3349,
+        "direct_skill": 3233,
+        "expected": 25764
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 949.1,
+        "ingredient": 455.3,
+        "skill": 414.2
+       },
+       "60": {
+        "berry": 1244.1,
+        "ingredient": 839.0,
+        "skill": 424.6
+       }
+      },
+      "role_scores": {
+       "berry": 37.7,
+       "ingredient": 22.7,
+       "skill": 8.1
+      },
+      "score": 37.7
+     },
+     "Skill Trigger M": {
+      "energy": {
+       "50": {
+        "berry": 15272,
+        "ingredient": 1823,
+        "direct_skill": 4178,
+        "expected": 21273
+       },
+       "60": {
+        "berry": 20102,
+        "ingredient": 2842,
+        "direct_skill": 4222,
+        "expected": 27166
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 994.6,
+        "ingredient": 385.9,
+        "skill": 563.4
+       },
+       "60": {
+        "berry": 1303.8,
+        "ingredient": 711.2,
+        "skill": 577.5
+       }
+      },
+      "role_scores": {
+       "berry": 39.5,
+       "ingredient": 19.3,
+       "skill": 10.9
+      },
+      "score": 39.5
+     },
+     "Skill Trigger S": {
+      "energy": {
+       "50": {
+        "berry": 15272,
+        "ingredient": 1823,
+        "direct_skill": 3688,
+        "expected": 20783
+       },
+       "60": {
+        "berry": 20102,
+        "ingredient": 2842,
+        "direct_skill": 3723,
+        "expected": 26668
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 994.6,
+        "ingredient": 385.9,
+        "skill": 488.8
+       },
+       "60": {
+        "berry": 1303.8,
+        "ingredient": 711.2,
+        "skill": 501.0
+       }
+      },
+      "role_scores": {
+       "berry": 39.5,
+       "ingredient": 19.3,
+       "skill": 9.5
+      },
+      "score": 39.5
+     },
+     "Skill Level Up M": {
+      "energy": {
+       "50": {
+        "berry": 15272,
+        "ingredient": 1823,
+        "direct_skill": 6112,
+        "expected": 23207
+       },
+       "60": {
+        "berry": 20102,
+        "ingredient": 2842,
+        "direct_skill": 6163,
+        "expected": 29108
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 994.6,
+        "ingredient": 385.9,
+        "skill": 789.6
+       },
+       "60": {
+        "berry": 1303.8,
+        "ingredient": 711.2,
+        "skill": 809.3
+       }
+      },
+      "role_scores": {
+       "berry": 39.5,
+       "ingredient": 19.3,
+       "skill": 15.3
+      },
+      "score": 39.5
+     },
+     "Skill Level Up S": {
+      "energy": {
+       "50": {
+        "berry": 15272,
+        "ingredient": 1823,
+        "direct_skill": 4427,
+        "expected": 21522
+       },
+       "60": {
+        "berry": 20102,
+        "ingredient": 2842,
+        "direct_skill": 4464,
+        "expected": 27409
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 994.6,
+        "ingredient": 385.9,
+        "skill": 571.9
+       },
+       "60": {
+        "berry": 1303.8,
+        "ingredient": 711.2,
+        "skill": 586.2
+       }
+      },
+      "role_scores": {
+       "berry": 39.5,
+       "ingredient": 19.3,
+       "skill": 11.1
+      },
+      "score": 39.5
+     },
+     "Inventory Up L": {
+      "energy": {
+       "50": {
+        "berry": 15583,
+        "ingredient": 1860,
+        "direct_skill": 3207,
+        "expected": 20650
+       },
+       "60": {
+        "berry": 20352,
+        "ingredient": 2956,
+        "direct_skill": 3278,
+        "expected": 26586
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1173.7,
+        "ingredient": 455.4,
+        "skill": 488.8
+       },
+       "60": {
+        "berry": 1538.5,
+        "ingredient": 839.2,
+        "skill": 501.0
+       }
+      },
+      "role_scores": {
+       "berry": 46.6,
+       "ingredient": 22.7,
+       "skill": 9.5
+      },
+      "score": 46.6
+     },
+     "Inventory Up M": {
+      "energy": {
+       "50": {
+        "berry": 15583,
+        "ingredient": 1860,
+        "direct_skill": 3207,
+        "expected": 20650
+       },
+       "60": {
+        "berry": 20352,
+        "ingredient": 2956,
+        "direct_skill": 3278,
+        "expected": 26586
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1124.0,
+        "ingredient": 436.1,
+        "skill": 468.1
+       },
+       "60": {
+        "berry": 1473.3,
+        "ingredient": 803.6,
+        "skill": 479.8
+       }
+      },
+      "role_scores": {
+       "berry": 44.6,
+       "ingredient": 21.8,
+       "skill": 9.1
+      },
+      "score": 44.6
+     },
+     "Inventory Up S": {
+      "energy": {
+       "50": {
+        "berry": 15583,
+        "ingredient": 1860,
+        "direct_skill": 3207,
+        "expected": 20650
+       },
+       "60": {
+        "berry": 20352,
+        "ingredient": 2956,
+        "direct_skill": 3278,
+        "expected": 26586
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1064.3,
+        "ingredient": 413.0,
+        "skill": 443.2
+       },
+       "60": {
+        "berry": 1395.1,
+        "ingredient": 760.9,
+        "skill": 454.3
+       }
+      },
+      "role_scores": {
+       "berry": 42.3,
+       "ingredient": 20.6,
+       "skill": 8.6
+      },
+      "score": 42.3
+     },
+     "Helping Bonus": {
+      "energy": {
+       "50": {
+        "berry": 15935,
+        "ingredient": 1903,
+        "direct_skill": 3350,
+        "expected": 21188
+       },
+       "60": {
+        "berry": 20950,
+        "ingredient": 2965,
+        "direct_skill": 3377,
+        "expected": 27293
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1213.5,
+        "ingredient": 470.9,
+        "skill": 505.4
+       },
+       "60": {
+        "berry": 1590.6,
+        "ingredient": 867.6,
+        "skill": 518.0
+       }
+      },
+      "role_scores": {
+       "berry": 48.2,
+       "ingredient": 23.5,
+       "skill": 9.8
+      },
+      "score": 48.2
+     },
+     "Energy Recovery Bonus": {
+      "energy": {
+       "50": {
+        "berry": 15935,
+        "ingredient": 1903,
+        "direct_skill": 3350,
+        "expected": 21188
+       },
+       "60": {
+        "berry": 21058,
+        "ingredient": 2904,
+        "direct_skill": 3305,
+        "expected": 27268
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1213.5,
+        "ingredient": 470.9,
+        "skill": 505.4
+       },
+       "60": {
+        "berry": 1590.6,
+        "ingredient": 867.6,
+        "skill": 518.0
+       }
+      },
+      "role_scores": {
+       "berry": 48.2,
+       "ingredient": 23.5,
+       "skill": 9.8
+      },
+      "score": 48.2
+     },
+     "Dream Shard Bonus": {
+      "energy": {
+       "50": {
+        "berry": 15272,
+        "ingredient": 1823,
+        "direct_skill": 3207,
+        "expected": 20302
+       },
+       "60": {
+        "berry": 20102,
+        "ingredient": 2842,
+        "direct_skill": 3233,
+        "expected": 26178
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1213.5,
+        "ingredient": 470.9,
+        "skill": 505.4
+       },
+       "60": {
+        "berry": 1590.6,
+        "ingredient": 867.6,
+        "skill": 518.0
+       }
+      },
+      "role_scores": {
+       "berry": 48.2,
+       "ingredient": 23.5,
+       "skill": 9.8
+      },
+      "score": 48.2
+     },
+     "Research EXP Bonus": {
+      "energy": {
+       "50": {
+        "berry": 15272,
+        "ingredient": 1823,
+        "direct_skill": 3207,
+        "expected": 20302
+       },
+       "60": {
+        "berry": 20102,
+        "ingredient": 2842,
+        "direct_skill": 3233,
+        "expected": 26178
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1213.5,
+        "ingredient": 470.9,
+        "skill": 505.4
+       },
+       "60": {
+        "berry": 1590.6,
+        "ingredient": 867.6,
+        "skill": 518.0
+       }
+      },
+      "role_scores": {
+       "berry": 48.2,
+       "ingredient": 23.5,
+       "skill": 9.8
+      },
+      "score": 48.2
+     },
+     "Sleep EXP Bonus": {
+      "energy": {
+       "50": {
+        "berry": 15272,
+        "ingredient": 1823,
+        "direct_skill": 3207,
+        "expected": 20302
+       },
+       "60": {
+        "berry": 20102,
+        "ingredient": 2842,
+        "direct_skill": 3233,
+        "expected": 26178
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1213.5,
+        "ingredient": 470.9,
+        "skill": 505.4
+       },
+       "60": {
+        "berry": 1590.6,
+        "ingredient": 867.6,
+        "skill": 518.0
+       }
+      },
+      "role_scores": {
+       "berry": 48.2,
+       "ingredient": 23.5,
+       "skill": 9.8
+      },
+      "score": 48.2
+     }
+    }
+   },
+   {
+    "species": "GENGAR",
+    "species_ja": "ゲンガー",
+    "specialty": "ingredient",
+    "main_skill": "エナジーチャージS",
+    "skill_max_level": 7,
+    "berry": "ブリー",
+    "island": "ゴールド旧発電所",
+    "ingredients": [
+     [
+      "げきからハーブ",
+      2
+     ],
+     [
+      "げきからハーブ",
+      5
+     ],
+     [
+      "げきからハーブ",
+      7
+     ]
+    ],
+    "results": {
+     "none": {
+      "energy": {
+       "50": {
+        "berry": 10158,
+        "ingredient": 5287,
+        "direct_skill": 1830,
+        "expected": 17275
+       },
+       "60": {
+        "berry": 13153,
+        "ingredient": 7090,
+        "direct_skill": 1857,
+        "expected": 22101
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 656.6,
+        "ingredient": 1110.8,
+        "skill": 170.5
+       },
+       "60": {
+        "berry": 864.0,
+        "ingredient": 1749.4,
+        "skill": 174.3
+       }
+      },
+      "role_scores": {
+       "berry": 26.2,
+       "ingredient": 47.5,
+       "skill": 3.3
+      },
+      "score": 47.5
+     },
+     "Helping Speed M": {
+      "energy": {
+       "50": {
+        "berry": 11724,
+        "ingredient": 6102,
+        "direct_skill": 2111,
+        "expected": 19936
+       },
+       "60": {
+        "berry": 15506,
+        "ingredient": 7997,
+        "direct_skill": 2106,
+        "expected": 25609
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 761.9,
+        "ingredient": 1288.7,
+        "skill": 197.8
+       },
+       "60": {
+        "berry": 1004.1,
+        "ingredient": 2033.0,
+        "skill": 202.5
+       }
+      },
+      "role_scores": {
+       "berry": 30.4,
+       "ingredient": 55.1,
+       "skill": 3.8
+      },
+      "score": 55.1
+     },
+     "Helping Speed S": {
+      "energy": {
+       "50": {
+        "berry": 10884,
+        "ingredient": 5665,
+        "direct_skill": 1957,
+        "expected": 18505
+       },
+       "60": {
+        "berry": 14124,
+        "ingredient": 7493,
+        "direct_skill": 1968,
+        "expected": 23585
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 707.4,
+        "ingredient": 1196.7,
+        "skill": 183.7
+       },
+       "60": {
+        "berry": 929.4,
+        "ingredient": 1881.7,
+        "skill": 187.4
+       }
+      },
+      "role_scores": {
+       "berry": 28.2,
+       "ingredient": 51.2,
+       "skill": 3.6
+      },
+      "score": 51.2
+     },
+     "Berry Finding S": {
+      "energy": {
+       "50": {
+        "berry": 20445,
+        "ingredient": 4868,
+        "direct_skill": 1740,
+        "expected": 27053
+       },
+       "60": {
+        "berry": 26773,
+        "ingredient": 6492,
+        "direct_skill": 1748,
+        "expected": 35013
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1313.3,
+        "ingredient": 1110.8,
+        "skill": 170.5
+       },
+       "60": {
+        "berry": 1728.0,
+        "ingredient": 1749.4,
+        "skill": 174.3
+       }
+      },
+      "role_scores": {
+       "berry": 52.4,
+       "ingredient": 47.5,
+       "skill": 3.3
+      },
+      "score": 52.4
+     },
+     "Ingredient Finder M": {
+      "energy": {
+       "50": {
+        "berry": 9417,
+        "ingredient": 7180,
+        "direct_skill": 1830,
+        "expected": 18426
+       },
+       "60": {
+        "berry": 12297,
+        "ingredient": 9357,
+        "direct_skill": 1823,
+        "expected": 23476
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 609.6,
+        "ingredient": 1510.2,
+        "skill": 170.5
+       },
+       "60": {
+        "berry": 802.2,
+        "ingredient": 2378.5,
+        "skill": 174.3
+       }
+      },
+      "role_scores": {
+       "berry": 24.3,
+       "ingredient": 64.6,
+       "skill": 3.3
+      },
+      "score": 64.6
+     },
+     "Ingredient Finder S": {
+      "energy": {
+       "50": {
+        "berry": 9794,
+        "ingredient": 6239,
+        "direct_skill": 1830,
+        "expected": 17863
+       },
+       "60": {
+        "berry": 12706,
+        "ingredient": 8235,
+        "direct_skill": 1840,
+        "expected": 22781
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 633.2,
+        "ingredient": 1310.2,
+        "skill": 170.5
+       },
+       "60": {
+        "berry": 833.1,
+        "ingredient": 2063.4,
+        "skill": 174.3
+       }
+      },
+      "role_scores": {
+       "berry": 25.2,
+       "ingredient": 56.1,
+       "skill": 3.3
+      },
+      "score": 56.1
+     },
+     "Skill Trigger M": {
+      "energy": {
+       "50": {
+        "berry": 10158,
+        "ingredient": 5287,
+        "direct_skill": 2263,
+        "expected": 17708
+       },
+       "60": {
+        "berry": 13153,
+        "ingredient": 7090,
+        "direct_skill": 2298,
+        "expected": 22541
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 656.6,
+        "ingredient": 1110.8,
+        "skill": 231.6
+       },
+       "60": {
+        "berry": 864.0,
+        "ingredient": 1749.4,
+        "skill": 236.7
+       }
+      },
+      "role_scores": {
+       "berry": 26.2,
+       "ingredient": 47.5,
+       "skill": 4.5
+      },
+      "score": 47.5
+     },
+     "Skill Trigger S": {
+      "energy": {
+       "50": {
+        "berry": 10158,
+        "ingredient": 5287,
+        "direct_skill": 2043,
+        "expected": 17488
+       },
+       "60": {
+        "berry": 13153,
+        "ingredient": 7090,
+        "direct_skill": 2074,
+        "expected": 22317
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 656.6,
+        "ingredient": 1110.8,
+        "skill": 201.1
+       },
+       "60": {
+        "berry": 864.0,
+        "ingredient": 1749.4,
+        "skill": 205.5
+       }
+      },
+      "role_scores": {
+       "berry": 26.2,
+       "ingredient": 47.5,
+       "skill": 3.9
+      },
+      "score": 47.5
+     },
+     "Skill Level Up M": {
+      "energy": {
+       "50": {
+        "berry": 10158,
+        "ingredient": 5287,
+        "direct_skill": 3486,
+        "expected": 18931
+       },
+       "60": {
+        "berry": 13153,
+        "ingredient": 7090,
+        "direct_skill": 3539,
+        "expected": 23782
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 656.6,
+        "ingredient": 1110.8,
+        "skill": 324.9
+       },
+       "60": {
+        "berry": 864.0,
+        "ingredient": 1749.4,
+        "skill": 332.1
+       }
+      },
+      "role_scores": {
+       "berry": 26.2,
+       "ingredient": 47.5,
+       "skill": 6.3
+      },
+      "score": 47.5
+     },
+     "Skill Level Up S": {
+      "energy": {
+       "50": {
+        "berry": 10158,
+        "ingredient": 5287,
+        "direct_skill": 2524,
+        "expected": 17969
+       },
+       "60": {
+        "berry": 13153,
+        "ingredient": 7090,
+        "direct_skill": 2562,
+        "expected": 22806
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 656.6,
+        "ingredient": 1110.8,
+        "skill": 235.2
+       },
+       "60": {
+        "berry": 864.0,
+        "ingredient": 1749.4,
+        "skill": 240.4
+       }
+      },
+      "role_scores": {
+       "berry": 26.2,
+       "ingredient": 47.5,
+       "skill": 4.6
+      },
+      "score": 47.5
+     },
+     "Inventory Up L": {
+      "energy": {
+       "50": {
+        "berry": 10158,
+        "ingredient": 5287,
+        "direct_skill": 1830,
+        "expected": 17275
+       },
+       "60": {
+        "berry": 13264,
+        "ingredient": 7150,
+        "direct_skill": 1857,
+        "expected": 22271
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 774.8,
+        "ingredient": 1310.7,
+        "skill": 201.2
+       },
+       "60": {
+        "berry": 1019.5,
+        "ingredient": 2064.2,
+        "skill": 205.6
+       }
+      },
+      "role_scores": {
+       "berry": 30.9,
+       "ingredient": 56.1,
+       "skill": 3.9
+      },
+      "score": 56.1
+     },
+     "Inventory Up M": {
+      "energy": {
+       "50": {
+        "berry": 10158,
+        "ingredient": 5287,
+        "direct_skill": 1830,
+        "expected": 17275
+       },
+       "60": {
+        "berry": 13264,
+        "ingredient": 7150,
+        "direct_skill": 1857,
+        "expected": 22271
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 742.0,
+        "ingredient": 1255.2,
+        "skill": 192.7
+       },
+       "60": {
+        "berry": 976.3,
+        "ingredient": 1976.8,
+        "skill": 196.9
+       }
+      },
+      "role_scores": {
+       "berry": 29.6,
+       "ingredient": 53.7,
+       "skill": 3.7
+      },
+      "score": 53.7
+     },
+     "Inventory Up S": {
+      "energy": {
+       "50": {
+        "berry": 10158,
+        "ingredient": 5287,
+        "direct_skill": 1830,
+        "expected": 17275
+       },
+       "60": {
+        "berry": 13264,
+        "ingredient": 7150,
+        "direct_skill": 1857,
+        "expected": 22271
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 702.6,
+        "ingredient": 1188.5,
+        "skill": 182.4
+       },
+       "60": {
+        "berry": 924.5,
+        "ingredient": 1871.8,
+        "skill": 186.5
+       }
+      },
+      "role_scores": {
+       "berry": 28.0,
+       "ingredient": 50.9,
+       "skill": 3.5
+      },
+      "score": 50.9
+     },
+     "Helping Bonus": {
+      "energy": {
+       "50": {
+        "berry": 10593,
+        "ingredient": 5514,
+        "direct_skill": 1913,
+        "expected": 18020
+       },
+       "60": {
+        "berry": 13937,
+        "ingredient": 7392,
+        "direct_skill": 1940,
+        "expected": 23270
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 801.1,
+        "ingredient": 1355.1,
+        "skill": 208.0
+       },
+       "60": {
+        "berry": 1054.1,
+        "ingredient": 2134.2,
+        "skill": 212.6
+       }
+      },
+      "role_scores": {
+       "berry": 31.9,
+       "ingredient": 58.0,
+       "skill": 4.0
+      },
+      "score": 58.0
+     },
+     "Energy Recovery Bonus": {
+      "energy": {
+       "50": {
+        "berry": 10739,
+        "ingredient": 5589,
+        "direct_skill": 1929,
+        "expected": 18257
+       },
+       "60": {
+        "berry": 13937,
+        "ingredient": 7392,
+        "direct_skill": 1940,
+        "expected": 23270
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 801.1,
+        "ingredient": 1355.1,
+        "skill": 208.0
+       },
+       "60": {
+        "berry": 1054.1,
+        "ingredient": 2134.2,
+        "skill": 212.6
+       }
+      },
+      "role_scores": {
+       "berry": 31.9,
+       "ingredient": 58.0,
+       "skill": 4.0
+      },
+      "score": 58.0
+     },
+     "Dream Shard Bonus": {
+      "energy": {
+       "50": {
+        "berry": 10158,
+        "ingredient": 5287,
+        "direct_skill": 1830,
+        "expected": 17275
+       },
+       "60": {
+        "berry": 13153,
+        "ingredient": 7090,
+        "direct_skill": 1857,
+        "expected": 22101
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 801.1,
+        "ingredient": 1355.1,
+        "skill": 208.0
+       },
+       "60": {
+        "berry": 1054.1,
+        "ingredient": 2134.2,
+        "skill": 212.6
+       }
+      },
+      "role_scores": {
+       "berry": 31.9,
+       "ingredient": 58.0,
+       "skill": 4.0
+      },
+      "score": 58.0
+     },
+     "Research EXP Bonus": {
+      "energy": {
+       "50": {
+        "berry": 10158,
+        "ingredient": 5287,
+        "direct_skill": 1830,
+        "expected": 17275
+       },
+       "60": {
+        "berry": 13153,
+        "ingredient": 7090,
+        "direct_skill": 1857,
+        "expected": 22101
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 801.1,
+        "ingredient": 1355.1,
+        "skill": 208.0
+       },
+       "60": {
+        "berry": 1054.1,
+        "ingredient": 2134.2,
+        "skill": 212.6
+       }
+      },
+      "role_scores": {
+       "berry": 31.9,
+       "ingredient": 58.0,
+       "skill": 4.0
+      },
+      "score": 58.0
+     },
+     "Sleep EXP Bonus": {
+      "energy": {
+       "50": {
+        "berry": 10158,
+        "ingredient": 5287,
+        "direct_skill": 1830,
+        "expected": 17275
+       },
+       "60": {
+        "berry": 13153,
+        "ingredient": 7090,
+        "direct_skill": 1857,
+        "expected": 22101
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 801.1,
+        "ingredient": 1355.1,
+        "skill": 208.0
+       },
+       "60": {
+        "berry": 1054.1,
+        "ingredient": 2134.2,
+        "skill": 212.6
+       }
+      },
+      "role_scores": {
+       "berry": 31.9,
+       "ingredient": 58.0,
+       "skill": 4.0
+      },
+      "score": 58.0
+     }
+    }
+   },
+   {
+    "species": "QUAQUAVAL",
+    "species_ja": "ウェーニバル",
+    "specialty": "ingredient",
+    "main_skill": "エナジーチャージM",
+    "skill_max_level": 7,
+    "berry": "クラボ",
+    "island": "ラピスラズリ湖畔",
+    "ingredients": [
+     [
+      "ワカクサ大豆",
+      2
+     ],
+     [
+      "ワカクサ大豆",
+      5
+     ],
+     [
+      "ワカクサ大豆",
+      7
+     ]
+    ],
+    "results": {
+     "none": {
+      "energy": {
+       "50": {
+        "berry": 8247,
+        "ingredient": 4791,
+        "direct_skill": 2737,
+        "expected": 15775
+       },
+       "60": {
+        "berry": 10691,
+        "ingredient": 6496,
+        "direct_skill": 2786,
+        "expected": 19972
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 534.6,
+        "ingredient": 1009.4,
+        "skill": 316.9
+       },
+       "60": {
+        "berry": 694.9,
+        "ingredient": 1585.3,
+        "skill": 323.1
+       }
+      },
+      "role_scores": {
+       "berry": 21.2,
+       "ingredient": 43.2,
+       "skill": 6.2
+      },
+      "score": 43.2
+     },
+     "Helping Speed M": {
+      "energy": {
+       "50": {
+        "berry": 9505,
+        "ingredient": 5522,
+        "direct_skill": 3139,
+        "expected": 18166
+       },
+       "60": {
+        "berry": 12467,
+        "ingredient": 7435,
+        "direct_skill": 3206,
+        "expected": 23108
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 622,
+        "ingredient": 1174.3,
+        "skill": 368.7
+       },
+       "60": {
+        "berry": 810.7,
+        "ingredient": 1849.6,
+        "skill": 376.9
+       }
+      },
+      "role_scores": {
+       "berry": 24.6,
+       "ingredient": 50.3,
+       "skill": 7.2
+      },
+      "score": 50.3
+     },
+     "Helping Speed S": {
+      "energy": {
+       "50": {
+        "berry": 8806,
+        "ingredient": 5116,
+        "direct_skill": 2914,
+        "expected": 16836
+       },
+       "60": {
+        "berry": 11523,
+        "ingredient": 7002,
+        "direct_skill": 3011,
+        "expected": 21536
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 576.6,
+        "ingredient": 1088.6,
+        "skill": 341.7
+       },
+       "60": {
+        "berry": 748.3,
+        "ingredient": 1707.3,
+        "skill": 348.0
+       }
+      },
+      "role_scores": {
+       "berry": 22.8,
+       "ingredient": 46.6,
+       "skill": 6.6
+      },
+      "score": 46.6
+     },
+     "Berry Finding S": {
+      "energy": {
+       "50": {
+        "berry": 16481,
+        "ingredient": 4576,
+        "direct_skill": 2671,
+        "expected": 23728
+       },
+       "60": {
+        "berry": 21374,
+        "ingredient": 6071,
+        "direct_skill": 2685,
+        "expected": 30130
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1069.3,
+        "ingredient": 1009.4,
+        "skill": 316.9
+       },
+       "60": {
+        "berry": 1389.8,
+        "ingredient": 1585.3,
+        "skill": 323.1
+       }
+      },
+      "role_scores": {
+       "berry": 42.3,
+       "ingredient": 43.2,
+       "skill": 6.2
+      },
+      "score": 43.2
+     },
+     "Ingredient Finder M": {
+      "energy": {
+       "50": {
+        "berry": 7350,
+        "ingredient": 6515,
+        "direct_skill": 2737,
+        "expected": 16602
+       },
+       "60": {
+        "berry": 9513,
+        "ingredient": 8606,
+        "direct_skill": 2753,
+        "expected": 20872
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 476.5,
+        "ingredient": 1372.7,
+        "skill": 316.9
+       },
+       "60": {
+        "berry": 619.3,
+        "ingredient": 2155.9,
+        "skill": 323.1
+       }
+      },
+      "role_scores": {
+       "berry": 18.9,
+       "ingredient": 58.7,
+       "skill": 6.2
+      },
+      "score": 58.7
+     },
+     "Ingredient Finder S": {
+      "energy": {
+       "50": {
+        "berry": 7798,
+        "ingredient": 5653,
+        "direct_skill": 2737,
+        "expected": 16189
+       },
+       "60": {
+        "berry": 10020,
+        "ingredient": 7598,
+        "direct_skill": 2786,
+        "expected": 20404
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 505.6,
+        "ingredient": 1190.8,
+        "skill": 316.9
+       },
+       "60": {
+        "berry": 657.1,
+        "ingredient": 1870.3,
+        "skill": 323.1
+       }
+      },
+      "role_scores": {
+       "berry": 20.0,
+       "ingredient": 51.0,
+       "skill": 6.2
+      },
+      "score": 51.0
+     },
+     "Skill Trigger M": {
+      "energy": {
+       "50": {
+        "berry": 8247,
+        "ingredient": 4791,
+        "direct_skill": 3391,
+        "expected": 16428
+       },
+       "60": {
+        "berry": 10691,
+        "ingredient": 6496,
+        "direct_skill": 3452,
+        "expected": 20638
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 534.6,
+        "ingredient": 1009.4,
+        "skill": 430.4
+       },
+       "60": {
+        "berry": 694.9,
+        "ingredient": 1585.3,
+        "skill": 438.9
+       }
+      },
+      "role_scores": {
+       "berry": 21.2,
+       "ingredient": 43.2,
+       "skill": 8.4
+      },
+      "score": 43.2
+     },
+     "Skill Trigger S": {
+      "energy": {
+       "50": {
+        "berry": 8247,
+        "ingredient": 4791,
+        "direct_skill": 3058,
+        "expected": 16096
+       },
+       "60": {
+        "berry": 10691,
+        "ingredient": 6496,
+        "direct_skill": 3113,
+        "expected": 20299
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 534.6,
+        "ingredient": 1009.4,
+        "skill": 373.7
+       },
+       "60": {
+        "berry": 694.9,
+        "ingredient": 1585.3,
+        "skill": 381.0
+       }
+      },
+      "role_scores": {
+       "berry": 21.2,
+       "ingredient": 43.2,
+       "skill": 7.3
+      },
+      "score": 43.2
+     },
+     "Skill Level Up M": {
+      "energy": {
+       "50": {
+        "berry": 8247,
+        "ingredient": 4791,
+        "direct_skill": 5217,
+        "expected": 18255
+       },
+       "60": {
+        "berry": 10691,
+        "ingredient": 6496,
+        "direct_skill": 5310,
+        "expected": 22496
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 534.6,
+        "ingredient": 1009.4,
+        "skill": 604.0
+       },
+       "60": {
+        "berry": 694.9,
+        "ingredient": 1585.3,
+        "skill": 615.9
+       }
+      },
+      "role_scores": {
+       "berry": 21.2,
+       "ingredient": 43.2,
+       "skill": 11.7
+      },
+      "score": 43.2
+     },
+     "Skill Level Up S": {
+      "energy": {
+       "50": {
+        "berry": 8247,
+        "ingredient": 4791,
+        "direct_skill": 3779,
+        "expected": 16816
+       },
+       "60": {
+        "berry": 10691,
+        "ingredient": 6496,
+        "direct_skill": 3846,
+        "expected": 21032
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 534.6,
+        "ingredient": 1009.4,
+        "skill": 437.5
+       },
+       "60": {
+        "berry": 694.9,
+        "ingredient": 1585.3,
+        "skill": 446.1
+       }
+      },
+      "role_scores": {
+       "berry": 21.2,
+       "ingredient": 43.2,
+       "skill": 8.5
+      },
+      "score": 43.2
+     },
+     "Inventory Up L": {
+      "energy": {
+       "50": {
+        "berry": 8247,
+        "ingredient": 4791,
+        "direct_skill": 2737,
+        "expected": 15775
+       },
+       "60": {
+        "berry": 10691,
+        "ingredient": 6496,
+        "direct_skill": 2786,
+        "expected": 19972
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 630.9,
+        "ingredient": 1191.1,
+        "skill": 373.9
+       },
+       "60": {
+        "berry": 820.0,
+        "ingredient": 1870.7,
+        "skill": 381.3
+       }
+      },
+      "role_scores": {
+       "berry": 25.0,
+       "ingredient": 51.0,
+       "skill": 7.3
+      },
+      "score": 51.0
+     },
+     "Inventory Up M": {
+      "energy": {
+       "50": {
+        "berry": 8247,
+        "ingredient": 4791,
+        "direct_skill": 2737,
+        "expected": 15775
+       },
+       "60": {
+        "berry": 10691,
+        "ingredient": 6496,
+        "direct_skill": 2786,
+        "expected": 19972
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 604.1,
+        "ingredient": 1140.6,
+        "skill": 358.1
+       },
+       "60": {
+        "berry": 785.2,
+        "ingredient": 1791.4,
+        "skill": 365.1
+       }
+      },
+      "role_scores": {
+       "berry": 23.9,
+       "ingredient": 48.8,
+       "skill": 7.0
+      },
+      "score": 48.8
+     },
+     "Inventory Up S": {
+      "energy": {
+       "50": {
+        "berry": 8247,
+        "ingredient": 4791,
+        "direct_skill": 2737,
+        "expected": 15775
+       },
+       "60": {
+        "berry": 10691,
+        "ingredient": 6496,
+        "direct_skill": 2786,
+        "expected": 19972
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 572.1,
+        "ingredient": 1080.1,
+        "skill": 339.1
+       },
+       "60": {
+        "berry": 743.5,
+        "ingredient": 1696.3,
+        "skill": 345.7
+       }
+      },
+      "role_scores": {
+       "berry": 22.7,
+       "ingredient": 46.2,
+       "skill": 6.6
+      },
+      "score": 46.2
+     },
+     "Helping Bonus": {
+      "energy": {
+       "50": {
+        "berry": 8666,
+        "ingredient": 5034,
+        "direct_skill": 2883,
+        "expected": 16583
+       },
+       "60": {
+        "berry": 11166,
+        "ingredient": 6785,
+        "direct_skill": 2914,
+        "expected": 20866
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 652.3,
+        "ingredient": 1231.5,
+        "skill": 386.6
+       },
+       "60": {
+        "berry": 847.8,
+        "ingredient": 1934.1,
+        "skill": 394.2
+       }
+      },
+      "role_scores": {
+       "berry": 25.8,
+       "ingredient": 52.7,
+       "skill": 7.5
+      },
+      "score": 52.7
+     },
+     "Energy Recovery Bonus": {
+      "energy": {
+       "50": {
+        "berry": 8666,
+        "ingredient": 5034,
+        "direct_skill": 2866,
+        "expected": 16566
+       },
+       "60": {
+        "berry": 11398,
+        "ingredient": 6785,
+        "direct_skill": 2914,
+        "expected": 21098
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 652.3,
+        "ingredient": 1231.5,
+        "skill": 386.6
+       },
+       "60": {
+        "berry": 847.8,
+        "ingredient": 1934.1,
+        "skill": 394.2
+       }
+      },
+      "role_scores": {
+       "berry": 25.8,
+       "ingredient": 52.7,
+       "skill": 7.5
+      },
+      "score": 52.7
+     },
+     "Dream Shard Bonus": {
+      "energy": {
+       "50": {
+        "berry": 8247,
+        "ingredient": 4791,
+        "direct_skill": 2737,
+        "expected": 15775
+       },
+       "60": {
+        "berry": 10691,
+        "ingredient": 6496,
+        "direct_skill": 2786,
+        "expected": 19972
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 652.3,
+        "ingredient": 1231.5,
+        "skill": 386.6
+       },
+       "60": {
+        "berry": 847.8,
+        "ingredient": 1934.1,
+        "skill": 394.2
+       }
+      },
+      "role_scores": {
+       "berry": 25.8,
+       "ingredient": 52.7,
+       "skill": 7.5
+      },
+      "score": 52.7
+     },
+     "Research EXP Bonus": {
+      "energy": {
+       "50": {
+        "berry": 8247,
+        "ingredient": 4791,
+        "direct_skill": 2737,
+        "expected": 15775
+       },
+       "60": {
+        "berry": 10691,
+        "ingredient": 6496,
+        "direct_skill": 2786,
+        "expected": 19972
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 652.3,
+        "ingredient": 1231.5,
+        "skill": 386.6
+       },
+       "60": {
+        "berry": 847.8,
+        "ingredient": 1934.1,
+        "skill": 394.2
+       }
+      },
+      "role_scores": {
+       "berry": 25.8,
+       "ingredient": 52.7,
+       "skill": 7.5
+      },
+      "score": 52.7
+     },
+     "Sleep EXP Bonus": {
+      "energy": {
+       "50": {
+        "berry": 8247,
+        "ingredient": 4791,
+        "direct_skill": 2737,
+        "expected": 15775
+       },
+       "60": {
+        "berry": 10691,
+        "ingredient": 6496,
+        "direct_skill": 2786,
+        "expected": 19972
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 652.3,
+        "ingredient": 1231.5,
+        "skill": 386.6
+       },
+       "60": {
+        "berry": 847.8,
+        "ingredient": 1934.1,
+        "skill": 394.2
+       }
+      },
+      "role_scores": {
+       "berry": 25.8,
+       "ingredient": 52.7,
+       "skill": 7.5
+      },
+      "score": 52.7
+     }
+    }
+   },
+   {
+    "species": "AMPHAROS",
+    "species_ja": "デンリュウ",
+    "specialty": "skill",
+    "main_skill": "エナジーチャージM",
+    "skill_max_level": 7,
+    "berry": "ウブ",
+    "island": "ゴールド旧発電所",
+    "ingredients": [
+     [
+      "げきからハーブ",
+      1
+     ],
+     [
+      "げきからハーブ",
+      2
+     ],
+     [
+      "げきからハーブ",
+      4
+     ]
+    ],
+    "results": {
+     "none": {
+      "energy": {
+       "50": {
+        "berry": 8916,
+        "ingredient": 1546,
+        "direct_skill": 5198,
+        "expected": 15660
+       },
+       "60": {
+        "berry": 11729,
+        "ingredient": 2484,
+        "direct_skill": 5356,
+        "expected": 19570
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 581.0,
+        "ingredient": 327.5,
+        "skill": 644.9
+       },
+       "60": {
+        "berry": 758.7,
+        "ingredient": 603.5,
+        "skill": 661.1
+       }
+      },
+      "role_scores": {
+       "berry": 23.0,
+       "ingredient": 16.4,
+       "skill": 12.5
+      },
+      "score": 23.0
+     },
+     "Helping Speed M": {
+      "energy": {
+       "50": {
+        "berry": 10377,
+        "ingredient": 1800,
+        "direct_skill": 6013,
+        "expected": 18190
+       },
+       "60": {
+        "berry": 13591,
+        "ingredient": 2879,
+        "direct_skill": 6186,
+        "expected": 22656
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 676.0,
+        "ingredient": 381.0,
+        "skill": 750.4
+       },
+       "60": {
+        "berry": 879.7,
+        "ingredient": 699.8,
+        "skill": 766.6
+       }
+      },
+      "role_scores": {
+       "berry": 26.8,
+       "ingredient": 19.0,
+       "skill": 14.6
+      },
+      "score": 26.8
+     },
+     "Helping Speed S": {
+      "energy": {
+       "50": {
+        "berry": 9647,
+        "ingredient": 1673,
+        "direct_skill": 5599,
+        "expected": 16919
+       },
+       "60": {
+        "berry": 12474,
+        "ingredient": 2642,
+        "direct_skill": 5686,
+        "expected": 20802
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 624.8,
+        "ingredient": 352.2,
+        "skill": 693.6
+       },
+       "60": {
+        "berry": 814.5,
+        "ingredient": 648.0,
+        "skill": 709.8
+       }
+      },
+      "role_scores": {
+       "berry": 24.7,
+       "ingredient": 17.6,
+       "skill": 13.5
+      },
+      "score": 24.7
+     },
+     "Berry Finding S": {
+      "energy": {
+       "50": {
+        "berry": 17895,
+        "ingredient": 1494,
+        "direct_skill": 5050,
+        "expected": 24439
+       },
+       "60": {
+        "berry": 23341,
+        "ingredient": 2336,
+        "direct_skill": 5137,
+        "expected": 30813
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1162.0,
+        "ingredient": 327.5,
+        "skill": 644.9
+       },
+       "60": {
+        "berry": 1517.4,
+        "ingredient": 603.5,
+        "skill": 661.1
+       }
+      },
+      "role_scores": {
+       "berry": 46.0,
+       "ingredient": 16.4,
+       "skill": 12.5
+      },
+      "score": 46.0
+     },
+     "Ingredient Finder M": {
+      "energy": {
+       "50": {
+        "berry": 8436,
+        "ingredient": 2103,
+        "direct_skill": 5198,
+        "expected": 15737
+       },
+       "60": {
+        "berry": 11098,
+        "ingredient": 3379,
+        "direct_skill": 5356,
+        "expected": 19833
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 549.7,
+        "ingredient": 445.4,
+        "skill": 644.9
+       },
+       "60": {
+        "berry": 717.9,
+        "ingredient": 820.8,
+        "skill": 661.1
+       }
+      },
+      "role_scores": {
+       "berry": 21.8,
+       "ingredient": 22.2,
+       "skill": 12.5
+      },
+      "score": 22.2
+     },
+     "Ingredient Finder S": {
+      "energy": {
+       "50": {
+        "berry": 8676,
+        "ingredient": 1825,
+        "direct_skill": 5198,
+        "expected": 15699
+       },
+       "60": {
+        "berry": 11414,
+        "ingredient": 2931,
+        "direct_skill": 5356,
+        "expected": 19702
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 565.4,
+        "ingredient": 386.4,
+        "skill": 644.9
+       },
+       "60": {
+        "berry": 738.3,
+        "ingredient": 712.2,
+        "skill": 661.1
+       }
+      },
+      "role_scores": {
+       "berry": 22.4,
+       "ingredient": 19.3,
+       "skill": 12.5
+      },
+      "score": 22.4
+     },
+     "Skill Trigger M": {
+      "energy": {
+       "50": {
+        "berry": 8916,
+        "ingredient": 1546,
+        "direct_skill": 6730,
+        "expected": 17192
+       },
+       "60": {
+        "berry": 11729,
+        "ingredient": 2484,
+        "direct_skill": 6926,
+        "expected": 21140
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 581.0,
+        "ingredient": 327.5,
+        "skill": 876.8
+       },
+       "60": {
+        "berry": 758.7,
+        "ingredient": 603.5,
+        "skill": 898.9
+       }
+      },
+      "role_scores": {
+       "berry": 23.0,
+       "ingredient": 16.4,
+       "skill": 17.0
+      },
+      "score": 23.0
+     },
+     "Skill Trigger S": {
+      "energy": {
+       "50": {
+        "berry": 8916,
+        "ingredient": 1546,
+        "direct_skill": 5954,
+        "expected": 16416
+       },
+       "60": {
+        "berry": 11729,
+        "ingredient": 2484,
+        "direct_skill": 6131,
+        "expected": 20345
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 581.0,
+        "ingredient": 327.5,
+        "skill": 760.2
+       },
+       "60": {
+        "berry": 758.7,
+        "ingredient": 603.5,
+        "skill": 779.3
+       }
+      },
+      "role_scores": {
+       "berry": 23.0,
+       "ingredient": 16.4,
+       "skill": 14.8
+      },
+      "score": 23.0
+     },
+     "Skill Level Up M": {
+      "energy": {
+       "50": {
+        "berry": 8916,
+        "ingredient": 1546,
+        "direct_skill": 9908,
+        "expected": 20371
+       },
+       "60": {
+        "berry": 11729,
+        "ingredient": 2484,
+        "direct_skill": 10210,
+        "expected": 24423
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 581.0,
+        "ingredient": 327.5,
+        "skill": 1229.3
+       },
+       "60": {
+        "berry": 758.7,
+        "ingredient": 603.5,
+        "skill": 1260.2
+       }
+      },
+      "role_scores": {
+       "berry": 23.0,
+       "ingredient": 16.4,
+       "skill": 23.9
+      },
+      "score": 23.9
+     },
+     "Skill Level Up S": {
+      "energy": {
+       "50": {
+        "berry": 8916,
+        "ingredient": 1546,
+        "direct_skill": 7177,
+        "expected": 17639
+       },
+       "60": {
+        "berry": 11729,
+        "ingredient": 2484,
+        "direct_skill": 7395,
+        "expected": 21609
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 581.0,
+        "ingredient": 327.5,
+        "skill": 890.4
+       },
+       "60": {
+        "berry": 758.7,
+        "ingredient": 603.5,
+        "skill": 912.8
+       }
+      },
+      "role_scores": {
+       "berry": 23.0,
+       "ingredient": 16.4,
+       "skill": 17.3
+      },
+      "score": 23.0
+     },
+     "Inventory Up L": {
+      "energy": {
+       "50": {
+        "berry": 8916,
+        "ingredient": 1546,
+        "direct_skill": 5198,
+        "expected": 15660
+       },
+       "60": {
+        "berry": 11729,
+        "ingredient": 2484,
+        "direct_skill": 5356,
+        "expected": 19570
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 685.6,
+        "ingredient": 386.4,
+        "skill": 761.0
+       },
+       "60": {
+        "berry": 895.2,
+        "ingredient": 712.2,
+        "skill": 780.1
+       }
+      },
+      "role_scores": {
+       "berry": 27.2,
+       "ingredient": 19.3,
+       "skill": 14.8
+      },
+      "score": 27.2
+     },
+     "Inventory Up M": {
+      "energy": {
+       "50": {
+        "berry": 8916,
+        "ingredient": 1546,
+        "direct_skill": 5198,
+        "expected": 15660
+       },
+       "60": {
+        "berry": 11729,
+        "ingredient": 2484,
+        "direct_skill": 5356,
+        "expected": 19570
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 656.5,
+        "ingredient": 370.1,
+        "skill": 728.7
+       },
+       "60": {
+        "berry": 857.3,
+        "ingredient": 682.0,
+        "skill": 747.1
+       }
+      },
+      "role_scores": {
+       "berry": 26.0,
+       "ingredient": 18.5,
+       "skill": 14.2
+      },
+      "score": 26.0
+     },
+     "Inventory Up S": {
+      "energy": {
+       "50": {
+        "berry": 8916,
+        "ingredient": 1546,
+        "direct_skill": 5198,
+        "expected": 15660
+       },
+       "60": {
+        "berry": 11729,
+        "ingredient": 2484,
+        "direct_skill": 5356,
+        "expected": 19570
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 621.6,
+        "ingredient": 350.4,
+        "skill": 690.1
+       },
+       "60": {
+        "berry": 811.8,
+        "ingredient": 645.8,
+        "skill": 707.4
+       }
+      },
+      "role_scores": {
+       "berry": 24.6,
+       "ingredient": 17.5,
+       "skill": 13.4
+      },
+      "score": 24.6
+     },
+     "Helping Bonus": {
+      "energy": {
+       "50": {
+        "berry": 9500,
+        "ingredient": 1648,
+        "direct_skill": 5513,
+        "expected": 16661
+       },
+       "60": {
+        "berry": 12288,
+        "ingredient": 2603,
+        "direct_skill": 5599,
+        "expected": 20490
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 708.8,
+        "ingredient": 399.5,
+        "skill": 786.8
+       },
+       "60": {
+        "berry": 925.6,
+        "ingredient": 736.3,
+        "skill": 806.6
+       }
+      },
+      "role_scores": {
+       "berry": 28.1,
+       "ingredient": 20.0,
+       "skill": 15.3
+      },
+      "score": 28.1
+     },
+     "Energy Recovery Bonus": {
+      "energy": {
+       "50": {
+        "berry": 9500,
+        "ingredient": 1648,
+        "direct_skill": 5513,
+        "expected": 16661
+       },
+       "60": {
+        "berry": 12288,
+        "ingredient": 2603,
+        "direct_skill": 5599,
+        "expected": 20490
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 708.8,
+        "ingredient": 399.5,
+        "skill": 786.8
+       },
+       "60": {
+        "berry": 925.6,
+        "ingredient": 736.3,
+        "skill": 806.6
+       }
+      },
+      "role_scores": {
+       "berry": 28.1,
+       "ingredient": 20.0,
+       "skill": 15.3
+      },
+      "score": 28.1
+     },
+     "Dream Shard Bonus": {
+      "energy": {
+       "50": {
+        "berry": 8916,
+        "ingredient": 1546,
+        "direct_skill": 5198,
+        "expected": 15660
+       },
+       "60": {
+        "berry": 11729,
+        "ingredient": 2484,
+        "direct_skill": 5356,
+        "expected": 19570
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 708.8,
+        "ingredient": 399.5,
+        "skill": 786.8
+       },
+       "60": {
+        "berry": 925.6,
+        "ingredient": 736.3,
+        "skill": 806.6
+       }
+      },
+      "role_scores": {
+       "berry": 28.1,
+       "ingredient": 20.0,
+       "skill": 15.3
+      },
+      "score": 28.1
+     },
+     "Research EXP Bonus": {
+      "energy": {
+       "50": {
+        "berry": 8916,
+        "ingredient": 1546,
+        "direct_skill": 5198,
+        "expected": 15660
+       },
+       "60": {
+        "berry": 11729,
+        "ingredient": 2484,
+        "direct_skill": 5356,
+        "expected": 19570
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 708.8,
+        "ingredient": 399.5,
+        "skill": 786.8
+       },
+       "60": {
+        "berry": 925.6,
+        "ingredient": 736.3,
+        "skill": 806.6
+       }
+      },
+      "role_scores": {
+       "berry": 28.1,
+       "ingredient": 20.0,
+       "skill": 15.3
+      },
+      "score": 28.1
+     },
+     "Sleep EXP Bonus": {
+      "energy": {
+       "50": {
+        "berry": 8916,
+        "ingredient": 1546,
+        "direct_skill": 5198,
+        "expected": 15660
+       },
+       "60": {
+        "berry": 11729,
+        "ingredient": 2484,
+        "direct_skill": 5356,
+        "expected": 19570
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 708.8,
+        "ingredient": 399.5,
+        "skill": 786.8
+       },
+       "60": {
+        "berry": 925.6,
+        "ingredient": 736.3,
+        "skill": 806.6
+       }
+      },
+      "role_scores": {
+       "berry": 28.1,
+       "ingredient": 20.0,
+       "skill": 15.3
+      },
+      "score": 28.1
+     }
+    }
+   },
+   {
+    "species": "ESPEON",
+    "species_ja": "エーフィ",
+    "specialty": "skill",
+    "main_skill": "エナジーチャージM",
+    "skill_max_level": 7,
+    "berry": "マゴ",
+    "island": "ラピスラズリ湖畔",
+    "ingredients": [
+     [
+      "モーモーミルク",
+      1
+     ],
+     [
+      "モーモーミルク",
+      2
+     ],
+     [
+      "モーモーミルク",
+      4
+     ]
+    ],
+    "results": {
+     "none": {
+      "energy": {
+       "50": {
+        "berry": 9310,
+        "ingredient": 1543,
+        "direct_skill": 5120,
+        "expected": 15972
+       },
+       "60": {
+        "berry": 12172,
+        "ingredient": 2438,
+        "direct_skill": 5201,
+        "expected": 19811
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 603.7,
+        "ingredient": 325.1,
+        "skill": 630.3
+       },
+       "60": {
+        "berry": 795.9,
+        "ingredient": 597.5,
+        "skill": 645.5
+       }
+      },
+      "role_scores": {
+       "berry": 24.1,
+       "ingredient": 16.2,
+       "skill": 12.3
+      },
+      "score": 24.1
+     },
+     "Helping Speed M": {
+      "energy": {
+       "50": {
+        "berry": 10764,
+        "ingredient": 1784,
+        "direct_skill": 5885,
+        "expected": 18434
+       },
+       "60": {
+        "berry": 14125,
+        "ingredient": 2784,
+        "direct_skill": 5983,
+        "expected": 22892
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 701.9,
+        "ingredient": 378.0,
+        "skill": 732.9
+       },
+       "60": {
+        "berry": 922.3,
+        "ingredient": 692.4,
+        "skill": 748.0
+       }
+      },
+      "role_scores": {
+       "berry": 27.9,
+       "ingredient": 18.8,
+       "skill": 14.2
+      },
+      "score": 27.9
+     },
+     "Helping Speed S": {
+      "energy": {
+       "50": {
+        "berry": 10037,
+        "ingredient": 1663,
+        "direct_skill": 5512,
+        "expected": 17212
+       },
+       "60": {
+        "berry": 13108,
+        "ingredient": 2625,
+        "direct_skill": 5593,
+        "expected": 21326
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 647.3,
+        "ingredient": 348.7,
+        "skill": 675.9
+       },
+       "60": {
+        "berry": 852.0,
+        "ingredient": 639.7,
+        "skill": 691.1
+       }
+      },
+      "role_scores": {
+       "berry": 25.8,
+       "ingredient": 17.3,
+       "skill": 13.1
+      },
+      "score": 25.8
+     },
+     "Berry Finding S": {
+      "energy": {
+       "50": {
+        "berry": 18890,
+        "ingredient": 1421,
+        "direct_skill": 4764,
+        "expected": 25075
+       },
+       "60": {
+        "berry": 24420,
+        "ingredient": 2221,
+        "direct_skill": 4845,
+        "expected": 31486
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 1207.3,
+        "ingredient": 325.1,
+        "skill": 630.3
+       },
+       "60": {
+        "berry": 1591.7,
+        "ingredient": 597.5,
+        "skill": 645.5
+       }
+      },
+      "role_scores": {
+       "berry": 48.2,
+       "ingredient": 16.2,
+       "skill": 12.3
+      },
+      "score": 48.2
+     },
+     "Ingredient Finder M": {
+      "energy": {
+       "50": {
+        "berry": 8652,
+        "ingredient": 2098,
+        "direct_skill": 5120,
+        "expected": 15870
+       },
+       "60": {
+        "berry": 11313,
+        "ingredient": 3315,
+        "direct_skill": 5201,
+        "expected": 19829
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 561.1,
+        "ingredient": 442.1,
+        "skill": 630.3
+       },
+       "60": {
+        "berry": 739.7,
+        "ingredient": 812.5,
+        "skill": 645.5
+       }
+      },
+      "role_scores": {
+       "berry": 22.4,
+       "ingredient": 22.0,
+       "skill": 12.3
+      },
+      "score": 22.4
+     },
+     "Ingredient Finder S": {
+      "energy": {
+       "50": {
+        "berry": 8981,
+        "ingredient": 1821,
+        "direct_skill": 5120,
+        "expected": 15921
+       },
+       "60": {
+        "berry": 11742,
+        "ingredient": 2876,
+        "direct_skill": 5201,
+        "expected": 19820
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 582.4,
+        "ingredient": 383.6,
+        "skill": 630.3
+       },
+       "60": {
+        "berry": 767.8,
+        "ingredient": 705,
+        "skill": 645.5
+       }
+      },
+      "role_scores": {
+       "berry": 23.3,
+       "ingredient": 19.1,
+       "skill": 12.3
+      },
+      "score": 23.3
+     },
+     "Skill Trigger M": {
+      "energy": {
+       "50": {
+        "berry": 9310,
+        "ingredient": 1543,
+        "direct_skill": 6616,
+        "expected": 17469
+       },
+       "60": {
+        "berry": 12172,
+        "ingredient": 2438,
+        "direct_skill": 6722,
+        "expected": 21332
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 603.7,
+        "ingredient": 325.1,
+        "skill": 856.7
+       },
+       "60": {
+        "berry": 795.9,
+        "ingredient": 597.5,
+        "skill": 877.3
+       }
+      },
+      "role_scores": {
+       "berry": 24.1,
+       "ingredient": 16.2,
+       "skill": 16.7
+      },
+      "score": 24.1
+     },
+     "Skill Trigger S": {
+      "energy": {
+       "50": {
+        "berry": 9310,
+        "ingredient": 1543,
+        "direct_skill": 5858,
+        "expected": 16711
+       },
+       "60": {
+        "berry": 12172,
+        "ingredient": 2438,
+        "direct_skill": 5951,
+        "expected": 20561
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 603.7,
+        "ingredient": 325.1,
+        "skill": 743.5
+       },
+       "60": {
+        "berry": 795.9,
+        "ingredient": 597.5,
+        "skill": 761.4
+       }
+      },
+      "role_scores": {
+       "berry": 24.1,
+       "ingredient": 16.2,
+       "skill": 14.5
+      },
+      "score": 24.1
+     },
+     "Skill Level Up M": {
+      "energy": {
+       "50": {
+        "berry": 9310,
+        "ingredient": 1543,
+        "direct_skill": 9759,
+        "expected": 20612
+       },
+       "60": {
+        "berry": 12172,
+        "ingredient": 2438,
+        "direct_skill": 9914,
+        "expected": 24523
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 603.7,
+        "ingredient": 325.1,
+        "skill": 1201.5
+       },
+       "60": {
+        "berry": 795.9,
+        "ingredient": 597.5,
+        "skill": 1230.5
+       }
+      },
+      "role_scores": {
+       "berry": 24.1,
+       "ingredient": 16.2,
+       "skill": 23.4
+      },
+      "score": 24.1
+     },
+     "Skill Level Up S": {
+      "energy": {
+       "50": {
+        "berry": 9310,
+        "ingredient": 1543,
+        "direct_skill": 7069,
+        "expected": 17921
+       },
+       "60": {
+        "berry": 12172,
+        "ingredient": 2438,
+        "direct_skill": 7181,
+        "expected": 21790
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 603.7,
+        "ingredient": 325.1,
+        "skill": 870.3
+       },
+       "60": {
+        "berry": 795.9,
+        "ingredient": 597.5,
+        "skill": 891.2
+       }
+      },
+      "role_scores": {
+       "berry": 24.1,
+       "ingredient": 16.2,
+       "skill": 16.9
+      },
+      "score": 24.1
+     },
+     "Inventory Up L": {
+      "energy": {
+       "50": {
+        "berry": 9310,
+        "ingredient": 1543,
+        "direct_skill": 5120,
+        "expected": 15972
+       },
+       "60": {
+        "berry": 12172,
+        "ingredient": 2438,
+        "direct_skill": 5201,
+        "expected": 19811
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 712.3,
+        "ingredient": 383.7,
+        "skill": 743.8
+       },
+       "60": {
+        "berry": 939.1,
+        "ingredient": 705.1,
+        "skill": 761.7
+       }
+      },
+      "role_scores": {
+       "berry": 28.5,
+       "ingredient": 19.1,
+       "skill": 14.5
+      },
+      "score": 28.5
+     },
+     "Inventory Up M": {
+      "energy": {
+       "50": {
+        "berry": 9310,
+        "ingredient": 1543,
+        "direct_skill": 5120,
+        "expected": 15972
+       },
+       "60": {
+        "berry": 12172,
+        "ingredient": 2438,
+        "direct_skill": 5201,
+        "expected": 19811
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 682.1,
+        "ingredient": 367.4,
+        "skill": 712.3
+       },
+       "60": {
+        "berry": 899.3,
+        "ingredient": 675.2,
+        "skill": 729.4
+       }
+      },
+      "role_scores": {
+       "berry": 27.3,
+       "ingredient": 18.3,
+       "skill": 13.8
+      },
+      "score": 27.3
+     },
+     "Inventory Up S": {
+      "energy": {
+       "50": {
+        "berry": 9310,
+        "ingredient": 1543,
+        "direct_skill": 5120,
+        "expected": 15972
+       },
+       "60": {
+        "berry": 12172,
+        "ingredient": 2438,
+        "direct_skill": 5201,
+        "expected": 19811
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 645.9,
+        "ingredient": 347.9,
+        "skill": 674.5
+       },
+       "60": {
+        "berry": 851.6,
+        "ingredient": 639.3,
+        "skill": 690.7
+       }
+      },
+      "role_scores": {
+       "berry": 25.8,
+       "ingredient": 17.3,
+       "skill": 13.1
+      },
+      "score": 25.8
+     },
+     "Helping Bonus": {
+      "energy": {
+       "50": {
+        "berry": 9746,
+        "ingredient": 1615,
+        "direct_skill": 5349,
+        "expected": 16711
+       },
+       "60": {
+        "berry": 12921,
+        "ingredient": 2588,
+        "direct_skill": 5512,
+        "expected": 21020
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 736.5,
+        "ingredient": 396.7,
+        "skill": 769.0
+       },
+       "60": {
+        "berry": 971.0,
+        "ingredient": 729.0,
+        "skill": 787.5
+       }
+      },
+      "role_scores": {
+       "berry": 29.4,
+       "ingredient": 19.8,
+       "skill": 14.9
+      },
+      "score": 29.4
+     },
+     "Energy Recovery Bonus": {
+      "energy": {
+       "50": {
+        "berry": 9746,
+        "ingredient": 1615,
+        "direct_skill": 5349,
+        "expected": 16711
+       },
+       "60": {
+        "berry": 12777,
+        "ingredient": 2559,
+        "direct_skill": 5496,
+        "expected": 20832
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 736.5,
+        "ingredient": 396.7,
+        "skill": 769.0
+       },
+       "60": {
+        "berry": 971.0,
+        "ingredient": 729.0,
+        "skill": 787.5
+       }
+      },
+      "role_scores": {
+       "berry": 29.4,
+       "ingredient": 19.8,
+       "skill": 14.9
+      },
+      "score": 29.4
+     },
+     "Dream Shard Bonus": {
+      "energy": {
+       "50": {
+        "berry": 9310,
+        "ingredient": 1543,
+        "direct_skill": 5120,
+        "expected": 15972
+       },
+       "60": {
+        "berry": 12172,
+        "ingredient": 2438,
+        "direct_skill": 5201,
+        "expected": 19811
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 736.5,
+        "ingredient": 396.7,
+        "skill": 769.0
+       },
+       "60": {
+        "berry": 971.0,
+        "ingredient": 729.0,
+        "skill": 787.5
+       }
+      },
+      "role_scores": {
+       "berry": 29.4,
+       "ingredient": 19.8,
+       "skill": 14.9
+      },
+      "score": 29.4
+     },
+     "Research EXP Bonus": {
+      "energy": {
+       "50": {
+        "berry": 9310,
+        "ingredient": 1543,
+        "direct_skill": 5120,
+        "expected": 15972
+       },
+       "60": {
+        "berry": 12172,
+        "ingredient": 2438,
+        "direct_skill": 5201,
+        "expected": 19811
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 736.5,
+        "ingredient": 396.7,
+        "skill": 769.0
+       },
+       "60": {
+        "berry": 971.0,
+        "ingredient": 729.0,
+        "skill": 787.5
+       }
+      },
+      "role_scores": {
+       "berry": 29.4,
+       "ingredient": 19.8,
+       "skill": 14.9
+      },
+      "score": 29.4
+     },
+     "Sleep EXP Bonus": {
+      "energy": {
+       "50": {
+        "berry": 9310,
+        "ingredient": 1543,
+        "direct_skill": 5120,
+        "expected": 15972
+       },
+       "60": {
+        "berry": 12172,
+        "ingredient": 2438,
+        "direct_skill": 5201,
+        "expected": 19811
+       }
+      },
+      "rp": {
+       "50": {
+        "berry": 736.5,
+        "ingredient": 396.7,
+        "skill": 769.0
+       },
+       "60": {
+        "berry": 971.0,
+        "ingredient": 729.0,
+        "skill": 787.5
+       }
+      },
+      "role_scores": {
+       "berry": 29.4,
+       "ingredient": 19.8,
+       "skill": 14.9
+      },
+      "score": 29.4
+     }
+    }
+   }
+  ],
+  "subskills": [
+   "Helping Speed M",
+   "Helping Speed S",
+   "Berry Finding S",
+   "Ingredient Finder M",
+   "Ingredient Finder S",
+   "Skill Trigger M",
+   "Skill Trigger S",
+   "Skill Level Up M",
+   "Skill Level Up S",
+   "Inventory Up L",
+   "Inventory Up M",
+   "Inventory Up S",
+   "Helping Bonus",
+   "Energy Recovery Bonus",
+   "Dream Shard Bonus",
+   "Research EXP Bonus",
+   "Sleep EXP Bonus"
+  ],
+  "subskills_ja": {
+   "Helping Speed M": "おてつだいスピードM",
+   "Helping Speed S": "おてつだいスピードS",
+   "Berry Finding S": "きのみの数S",
+   "Ingredient Finder M": "食材確率アップM",
+   "Ingredient Finder S": "食材確率アップS",
+   "Skill Trigger M": "スキル確率アップM",
+   "Skill Trigger S": "スキル確率アップS",
+   "Skill Level Up M": "スキルレベルアップM",
+   "Skill Level Up S": "スキルレベルアップS",
+   "Inventory Up L": "最大所持数アップL",
+   "Inventory Up M": "最大所持数アップM",
+   "Inventory Up S": "最大所持数アップS",
+   "Helping Bonus": "おてつだいボーナス",
+   "Energy Recovery Bonus": "げんき回復ボーナス",
+   "Dream Shard Bonus": "ゆめのかけらボーナス",
+   "Research EXP Bonus": "リサーチEXPボーナス",
+   "Sleep EXP Bonus": "睡眠EXPボーナス"
+  },
+  "nature": "てれや",
+  "base_skill_level": 3,
+  "levels": [
+   50,
+   60
+  ],
+  "iterations": 1000,
+  "team": {
+   "island": "ゴールド旧発電所",
+   "level": 60,
+   "iterations": 500,
+   "members": [
+    "RAICHU",
+    "GENGAR",
+    "AMPHAROS",
+    "QUAQUAVAL",
+    "ESPEON"
+   ],
+   "base": {
+    "total": 96875,
+    "cooking": 19306,
+    "members": {
+     "RAICHU": 25470,
+     "AMPHAROS": 17020,
+     "GENGAR": 15279,
+     "ESPEON": 11418,
+     "QUAQUAVAL": 8381
+    }
+   },
+   "rows": [
+    {
+     "holder": "RAICHU",
+     "subskill": "Helping Speed M",
+     "total": 101415,
+     "cooking": 19785,
+     "holder_energy": 29733,
+     "others_energy": 51897
+    },
+    {
+     "holder": "RAICHU",
+     "subskill": "Berry Finding S",
+     "total": 108813,
+     "cooking": 19244,
+     "holder_energy": 37582,
+     "others_energy": 51987
+    },
+    {
+     "holder": "RAICHU",
+     "subskill": "Skill Trigger M",
+     "total": 97286,
+     "cooking": 19319,
+     "holder_energy": 25926,
+     "others_energy": 52040
+    },
+    {
+     "holder": "RAICHU",
+     "subskill": "Skill Level Up M",
+     "total": 98638,
+     "cooking": 19306,
+     "holder_energy": 27233,
+     "others_energy": 52098
+    },
+    {
+     "holder": "RAICHU",
+     "subskill": "Helping Bonus",
+     "total": 100645,
+     "cooking": 19464,
+     "holder_energy": 26656,
+     "others_energy": 54525
+    },
+    {
+     "holder": "RAICHU",
+     "subskill": "Energy Recovery Bonus",
+     "total": 99817,
+     "cooking": 19558,
+     "holder_energy": 26731,
+     "others_energy": 53527
+    },
+    {
+     "holder": "GENGAR",
+     "subskill": "Helping Speed M",
+     "total": 99083,
+     "cooking": 19287,
+     "holder_energy": 17701,
+     "others_energy": 62095
+    },
+    {
+     "holder": "GENGAR",
+     "subskill": "Berry Finding S",
+     "total": 110679,
+     "cooking": 19945,
+     "holder_energy": 28417,
+     "others_energy": 62318
+    },
+    {
+     "holder": "GENGAR",
+     "subskill": "Skill Trigger M",
+     "total": 97405,
+     "cooking": 19668,
+     "holder_energy": 15651,
+     "others_energy": 62085
+    },
+    {
+     "holder": "GENGAR",
+     "subskill": "Skill Level Up M",
+     "total": 98785,
+     "cooking": 19306,
+     "holder_energy": 17189,
+     "others_energy": 62289
+    },
+    {
+     "holder": "GENGAR",
+     "subskill": "Helping Bonus",
+     "total": 100645,
+     "cooking": 19464,
+     "holder_energy": 16032,
+     "others_energy": 65149
+    },
+    {
+     "holder": "GENGAR",
+     "subskill": "Energy Recovery Bonus",
+     "total": 99346,
+     "cooking": 19609,
+     "holder_energy": 16029,
+     "others_energy": 63709
+    },
+    {
+     "holder": "AMPHAROS",
+     "subskill": "Helping Speed M",
+     "total": 99815,
+     "cooking": 19636,
+     "holder_energy": 19657,
+     "others_energy": 60522
+    },
+    {
+     "holder": "AMPHAROS",
+     "subskill": "Berry Finding S",
+     "total": 108078,
+     "cooking": 19412,
+     "holder_energy": 28153,
+     "others_energy": 60512
+    },
+    {
+     "holder": "AMPHAROS",
+     "subskill": "Skill Trigger M",
+     "total": 98477,
+     "cooking": 19658,
+     "holder_energy": 18368,
+     "others_energy": 60451
+    },
+    {
+     "holder": "AMPHAROS",
+     "subskill": "Skill Level Up M",
+     "total": 101554,
+     "cooking": 19484,
+     "holder_energy": 21535,
+     "others_energy": 60534
+    },
+    {
+     "holder": "AMPHAROS",
+     "subskill": "Helping Bonus",
+     "total": 100645,
+     "cooking": 19464,
+     "holder_energy": 17859,
+     "others_energy": 63322
+    },
+    {
+     "holder": "AMPHAROS",
+     "subskill": "Energy Recovery Bonus",
+     "total": 99620,
+     "cooking": 19854,
+     "holder_energy": 17945,
+     "others_energy": 61821
+    }
+   ]
+  },
+  "team_species_ja": {
+   "RAICHU": "ライチュウ",
+   "GENGAR": "ゲンガー",
+   "AMPHAROS": "デンリュウ",
+   "QUAQUAVAL": "ウェーニバル",
+   "ESPEON": "エーフィ"
+  }
+ }
+}
