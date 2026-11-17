@@ -196,6 +196,7 @@ def capture_species_rows(capture: Mapping[str, Any], items: Sequence[Mapping[str
     # team is the box trained (and evolved) to the target level.
     labels = {item["uid"]: to_japanese("species", item.get("final_evolution") or item.get("species") or "")
               for item in items}
+    species_of = {item["uid"]: {item.get("species"), item.get("final_evolution")} for item in items}
     rows: Dict[str, Dict[str, Any]] = {}
     for entry in capture.get("species", []):
         options = [o for o in entry.get("options", []) if o.get("gain") is not None]
@@ -222,13 +223,21 @@ def capture_species_rows(capture: Mapping[str, Any], items: Sequence[Mapping[str
                  (status != "good" and (o.get("gain_ideal") or 0) > 0)]
         replaced_uid = best.get("replaced") if status == "good" else best.get("replaced_ideal")
         replaced = labels.get(replaced_uid) if replaced_uid else None
+        # Say whether the catch would upgrade an owned member of the same line
+        # or join the team as an extra copy of a line already owned.
+        if replaced_uid and species_of.get(replaced_uid, set()) & line:
+            how, fit = "upgrade", f"（手持ちの{replaced}より強い個体として入れ替え）"
+        elif owned and replaced:
+            how, fit = "extra", f"（2匹目として{replaced}と交代）"
+        elif owned:
+            how, fit = "extra", "（2匹目として）"
+        else:
+            how, fit = "new", (f"（{replaced}と交代）" if replaced else "")
         if status == "good":
-            reason = (f"ふつうの個体でも、手持ちを育てた編成より{best['island']}で週+{weekly:,}"
-                      + (f"（{replaced}と交代）" if replaced else ""))
+            reason = f"ふつうの個体でも、手持ちを育てた編成より{best['island']}で週+{weekly:,}" + fit
         elif status == "lucky":
             reason = (f"ふつうの個体なら手持ちを育てた方が強い。理想の性格・サブスキルなら"
-                      f"{best['island']}で週+{weekly:,}"
-                      + (f"（{replaced}と交代）" if replaced else ""))
+                      f"{best['island']}で週+{weekly:,}" + fit)
         else:
             reason = "理想の個体でも、手持ちを育てた編成を超えない"
         rows[entry["species"]] = {
@@ -242,7 +251,8 @@ def capture_species_rows(capture: Mapping[str, Any], items: Sequence[Mapping[str
             "ideal_per_week": (ideal.get("gain_ideal") or 0) * 7,
             "now_per_week": (best.get("gain_now") or 0) * 7,
             "roles": best.get("roles", []), "provides": best.get("provides", []),
-            "replaced": replaced, "helps": helps, "cost": cost,
+            "replaced": replaced, "fit": how if status != "skip" else None,
+            "helps": helps, "cost": cost,
             "gain_per_10k_shards": efficiency,
             "owned_count": len(owned),
             "owned_score": (round(float(best_owned.get("absolute_score") or 0), 1)

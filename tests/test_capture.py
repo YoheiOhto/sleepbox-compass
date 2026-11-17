@@ -101,6 +101,9 @@ class CaptureViewTests(unittest.TestCase):
         self.assertEqual(raichu["species"], "ピチュー")
         self.assertEqual(raichu["evolves_to"], "ライチュウ")
         self.assertEqual(raichu["replaced"], "ニンフィア")  # named by final evolution
+        # Owns the Pikachu line and would replace another species: a second copy.
+        self.assertEqual(raichu["fit"], "extra")
+        self.assertIn("2匹目としてニンフィアと交代", raichu["reason"])
         self.assertEqual((raichu["owned_count"], raichu["owned_score"]), (1, 82.5))
         self.assertEqual(raichu["helps"], [ISLAND, OTHER])
         self.assertGreater(raichu["cost"]["dream_shards"], 0)
@@ -253,3 +256,14 @@ class CaptureRenderTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CaptureFitTests(unittest.TestCase):
+    def test_replacing_an_owned_member_of_the_same_line_is_an_upgrade(self):
+        items = [{"uid": "b", "species": "PIKACHU", "final_evolution": "RAICHU", "absolute_score": 60.0}]
+        doc = {"species": [{"species": "RAICHU", "base": "PICHU", "line": ["PICHU", "PIKACHU", "RAICHU"],
+                            "target": 50, "options": [{"island": ISLAND, "gain": 100,
+                                                       "replaced": "b"}]}]}
+        row = capture_species_rows(doc, items)["RAICHU"]
+        self.assertEqual(row["fit"], "upgrade")
+        self.assertIn("手持ちのライチュウより強い個体として入れ替え", row["reason"])
