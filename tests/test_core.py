@@ -317,7 +317,7 @@ class CoreTests(unittest.TestCase):
         render_review(rows, review)
         self.assertIn("取り込みレビュー", review.read_text())
 
-    def test_vision_stills_with_identical_builds_remain_distinct(self):
+    def test_screenshots_of_one_individual_are_stored_once(self):
         inbox = Path(self.tmp.name) / "inbox"
         inbox.mkdir()
         (inbox / "one.jpg").write_bytes(b"first capture")
@@ -328,7 +328,10 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(len(rows), 2)
         self.assertNotEqual(rows[0]["uid"], rows[1]["uid"])
         import_individuals(self.db, rows)
-        self.assertEqual(self.db.execute("SELECT count(*) FROM individual").fetchone()[0], 2)
+        # Same build, level, SP and nickname: two screenshots of one individual.
+        self.assertEqual(self.db.execute("SELECT count(*) FROM individual").fetchone()[0], 1)
+        self.assertEqual(rows[1]["stored_uid"], rows[0]["stored_uid"])
+        self.assertTrue(rows[1]["duplicate_capture"])
 
     def test_japanese_vision_observations_are_parsed(self):
         lines = ["フシギダネ", "Lv.15 SP 513", "きのみ ドリ", "あまいミツ x2",

@@ -228,6 +228,56 @@ def find_recapture(db: sqlite3.Connection, item: Mapping[str, Any], candidate_ui
     return None, len(matches)
 
 
+def exact_build_key(item: Mapping[str, Any]) -> Optional[str]:
+    """Identity of a fully read individual: build plus level, SP and nickname.
+
+    Two different helpers can share a build, but sharing it together with the
+    same level, SP and nickname is practically impossible, so two still
+    captures with the same key are screenshots of one individual. Items with an
+    unknown level or SP have no key.
+    """
+    if not _known(item.get("level")) or not _known(item.get("sp")):
+        return None
+    core = {field: item.get(field) for field in
+            ("species", "nature", "ingredients", "subskills", "main_skill", "skill_level")}
+    core.update(level=int(item["level"]), sp=int(item["sp"]),
+                display_name=item.get("display_name") or "")
+    return json.dumps(core, ensure_ascii=False, sort_keys=True)
+
+
+def merge_exact_duplicates(db: sqlite3.Connection) -> List[Tuple[str, List[str]]]:
+    """Remove stored rows that duplicate another active row exactly.
+
+    Cleans boxes imported before ``import_individuals`` merged repeated
+    screenshots. In each group the human-confirmed, then verified, then
+    earliest row is kept; the others and their evaluations and decisions are
+    deleted. Returns ``(kept uid, removed uids)`` per group.
+    """
+    groups: Dict[str, List[sqlite3.Row]] = {}
+    for row in db.execute("SELECT * FROM individual WHERE archived=0"):
+        item = {"species": row["species"], "nature": row["nature"],
+                "ingredients": json.loads(row["ingredients_json"]),
+                "subskills": json.loads(row["subskills_json"]),
+                "main_skill": row["main_skill"], "skill_level": row["skill_level"],
+                "level": row["level"], "sp": row["sp"], "display_name": row["display_name"]}
+        key = exact_build_key(item)
+        if key:
+            groups.setdefault(key, []).append(row)
+    merged = []
+    for rows in groups.values():
+        if len(rows) < 2:
+            continue
+        rows.sort(key=lambda r: (-int(r["review_confirmed"] or 0), -int(r["verified"] or 0),
+                                 r["first_seen"] or "", r["uid"]))
+        removed = [r["uid"] for r in rows[1:]]
+        for uid in removed:
+            for table in ("evaluation", "decision", "individual"):
+                db.execute(f"DELETE FROM {table} WHERE uid=?", (uid,))
+        merged.append((rows[0]["uid"], removed))
+    db.commit()
+    return merged
+
+
 def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]]) -> int:
     """Insert or update individuals.
 
@@ -245,9 +295,19 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
     timestamp = now()
     count = 0
     candidates = {row["uid"] for row in db.execute("SELECT uid FROM individual")}
+    # Still captures written in this call, by exact build (see exact_build_key).
+    written: Dict[str, str] = {}
     for raw_item in items:
         item = normalize_individual(dict(raw_item))
         uid = item.get("uid")
+        missing = set(raw_item.get("ocr_missing", []))
+        key = exact_build_key(item) if not missing else None
+        if key and key in written and (not uid or str(uid).startswith("capture-")):
+            # Another screenshot of an individual already written in this call.
+            if isinstance(raw_item, dict):
+                raw_item["uid"] = raw_item["stored_uid"] = written[key]
+                raw_item["duplicate_capture"] = True
+            continue
         existing = None
         recaptured = False
         if not uid and item.get("sp") is not None:
@@ -256,7 +316,6 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
             if len(matches) == 1:
                 existing = matches[0]
                 uid = existing["uid"]
-        missing = set(raw_item.get("ocr_missing", []))
         if not existing and (not uid or str(uid).startswith("capture-")):
             target = uid or canonical_uid(item)
             if not db.execute("SELECT 1 FROM individual WHERE uid=?", (target,)).fetchone():
@@ -294,6 +353,8 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
         uid = uid or canonical_uid(item)
         if isinstance(raw_item, dict):
             raw_item["stored_uid"] = uid
+        if key:
+            written[key] = uid
         same_core = bool(existing and all((
             existing["species"] == item["species"],
             existing["nature"] == item["nature"],
