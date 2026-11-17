@@ -18,7 +18,7 @@ from .localization import names
 from .paths import DEFAULT_PATHS as P, load_settings, private_paths
 from .render import render_site
 from .sync import (DEFAULT_VLM_MODEL, FALLBACK_VLM_MODEL, format_summary, import_checked,
-                   render_private, run_sync, scan_new)
+                   low_resolution_message, render_private, run_sync, scan_new)
 
 
 def archived_line(row) -> str:
@@ -192,7 +192,10 @@ def main() -> None:
         scanned = scan_new(db, args.path, args.frames, args.vlm_cache, args.ocr, args.vlm_model,
                            args.rescan, args.interval, args.ocr_command)
         items, done, qwen = scanned["items"], scanned["done"], scanned["qwen"]
-        summary = {"imported": scanned["imported"], "new_sources": len(done)}
+        summary = {"imported": scanned["imported"], "new_sources": len(done),
+                   "low_resolution": len(scanned["low_resolution"])}
+        if scanned["low_resolution"]:
+            print(low_resolution_message(scanned["low_resolution"]), file=sys.stderr)
         if done:
             # Audit and review only the newly synced captures. With nothing new,
             # keep the previous report and review page instead of blanking them.
