@@ -367,6 +367,14 @@ def load_source_metadata() -> Dict[str, Any]:
         source = (pokemon_dir / filename).read_text(encoding="utf-8")
         declarations.extend(pattern.findall(source))
     result: Dict[str, Any] = {}
+    # Evolution links by constant: evolvedPokemon(BASE) evolves from BASE and
+    # preEvolvedPokemon(NEXT) is what NEXT evolves from.
+    evolves_from: Dict[str, str] = {}
+    for constant, constructor, relative, _ in declarations:
+        if constructor == "evolvedPokemon":
+            evolves_from[constant] = relative
+        elif constructor == "preEvolvedPokemon":
+            evolves_from[relative] = constant
     pending = list(declarations)
     while pending:
         next_pending = []
@@ -381,7 +389,8 @@ def load_source_metadata() -> Dict[str, Any]:
                 if not base:
                     next_pending.append((constant, constructor, relative, body))
                     continue
-                result[constant] = {**base, "name": name, "pokedex_number": pokedex_number}
+                result[constant] = {**base, "name": name, "pokedex_number": pokedex_number,
+                                    "constant": constant}
                 progressed = True
                 continue
             berry_match = re.search(r"berry:\s*(\w+)", body)
@@ -407,14 +416,17 @@ def load_source_metadata() -> Dict[str, Any]:
                 slots.append({"level": level, "choices": values})
             result[constant] = {"name": name, "berry": berry_match.group(1),
                                 "ingredients": slots, "pokedex_number": pokedex_number,
-                                "specialty": specialty}
+                                "specialty": specialty, "constant": constant}
             progressed = True
         if not progressed:
             break
         pending = next_pending
+    names_by_constant = {constant: value["name"] for constant, value in result.items()}
     return {value["name"]: {"berry": value["berry"], "ingredients": value["ingredients"],
                             "pokedex_number": value.get("pokedex_number"),
-                            "specialty": value.get("specialty")}
+                            "specialty": value.get("specialty"),
+                            "evolves_from": names_by_constant.get(
+                                evolves_from.get(value["constant"], ""))}
             for value in result.values()}
 
 
