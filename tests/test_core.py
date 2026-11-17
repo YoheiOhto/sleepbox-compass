@@ -611,3 +611,50 @@ class EvaluateVersionTests(unittest.TestCase):
             rows = db.execute("SELECT engine_version, score FROM evaluation").fetchall()
             self.assertEqual([(r["engine_version"], r["score"]) for r in rows], [("new", 2.0)])
             db.close()
+
+
+class TeamPlanReuseTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.db = connect(Path(self.tmp.name) / "box.sqlite")
+        items = json.loads((ROOT / "data/example_individuals.json").read_text())["individuals"]
+        import_individuals(self.db, items[:3])
+        self.uids = [r["uid"] for r in self.db.execute("SELECT uid FROM individual ORDER BY box_index")]
+        self.teams = Path(self.tmp.name) / "teams.json"
+        self.team_runs = 0
+
+    def tearDown(self):
+        self.db.close()
+        self.tmp.cleanup()
+
+    def run_evaluate(self, member):
+        from pokesleep_box import engine
+
+        def run(payload, *args, **kwargs):
+            if payload["mode"] == "team-evaluate":
+                self.team_runs += 1
+                return {"engineVersion": "v", "plans": [{"island": "x", "members": [{"uid": member}]}]}
+            return {"engineVersion": "v", "valuationHash": "h", "results": []}
+        with patch.object(engine, "run_engine", run):
+            engine.evaluate(self.db, team_out=self.teams)
+
+    def archive(self, uid):
+        self.db.execute("UPDATE individual SET archived=1 WHERE uid=?", (uid,))
+        self.db.commit()
+
+    def test_unchanged_box_and_removed_non_member_reuse_plans(self):
+        self.run_evaluate(self.uids[0])
+        self.run_evaluate(self.uids[0])
+        self.archive(self.uids[2])
+        self.run_evaluate(self.uids[0])
+        self.assertEqual(self.team_runs, 1)
+
+    def test_removed_member_or_changed_individual_recomputes(self):
+        self.run_evaluate(self.uids[0])
+        self.archive(self.uids[0])
+        self.run_evaluate(self.uids[1])
+        self.assertEqual(self.team_runs, 2)
+        self.db.execute("UPDATE individual SET level=level+1 WHERE uid=?", (self.uids[2],))
+        self.db.commit()
+        self.run_evaluate(self.uids[1])
+        self.assertEqual(self.team_runs, 3)

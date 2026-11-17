@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 import threading
@@ -120,16 +121,58 @@ def evaluate(db, command: str = "engine/bin/pokesleep-engine",
                                 valuation, now()))
                     count += 1
     db.commit()
-    team_response = run_engine({"mode": "team-evaluate", "anchors": list(ANCHORS),
-                                "islands": {name: list(berries) for name, berries in ISLANDS.items()},
-                                "teamSearchIterations": 80, "teamIterations": 500,
-                                "instances": [{"uid": r["uid"], "verified": bool(r["verified"]),
-                                               "instance": individual_to_engine(dict(r))}
-                                              for r in computable]}, command, on_progress)
+    team_payload = {"mode": "team-evaluate", "anchors": list(ANCHORS),
+                    "islands": {name: list(berries) for name, berries in ISLANDS.items()},
+                    "teamSearchIterations": 80, "teamIterations": 500,
+                    "instances": [{"uid": r["uid"], "verified": bool(r["verified"]),
+                                   "instance": individual_to_engine(dict(r))}
+                                  for r in computable]}
+    inputs = team_inputs(team_payload)
+    if reusable_team_plans(team_out, version, inputs):
+        if on_progress:
+            on_progress("team-evaluate: 前回のチーム編成を使います（編成に関わる個体の変更なし）")
+        return count
+    team_response = run_engine(team_payload, command, on_progress)
+    team_response["inputs"] = inputs
     team_out.parent.mkdir(parents=True, exist_ok=True)
     team_out.write_text(json.dumps(team_response, ensure_ascii=False, indent=2) + "\n",
                         encoding="utf-8")
     return count
+
+
+def team_inputs(payload: Mapping[str, Any]) -> Dict[str, Any]:
+    """Fingerprint a team-evaluate request: its settings and each member's data."""
+    def digest(value: Any) -> str:
+        raw = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(raw.encode()).hexdigest()[:16]
+    return {"settings": digest({k: v for k, v in payload.items() if k != "instances"}),
+            "individuals": {entry["uid"]: digest(entry) for entry in payload["instances"]}}
+
+
+def reusable_team_plans(team_out: Path, version: str, inputs: Mapping[str, Any]) -> bool:
+    """True when stored team plans are still exact for ``inputs``.
+
+    Team search is the slowest step (about 15 minutes for 250 individuals), and
+    removing individuals that no plan uses -- e.g. sending low scorers to the
+    Professor -- cannot change the best teams. So the stored plans are reused
+    when they come from the same engine and settings, every current individual
+    was evaluated last time with identical data, and every plan member is still
+    present. Any new or changed individual, or a removed plan member, forces a
+    fresh search.
+    """
+    try:
+        previous = json.loads(team_out.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    before = previous.get("inputs") or {}
+    if previous.get("engineVersion") != version or before.get("settings") != inputs["settings"]:
+        return False
+    old, new = before.get("individuals") or {}, inputs["individuals"]
+    if any(old.get(uid) != fingerprint for uid, fingerprint in new.items()):
+        return False
+    members = {member.get("uid") for plan in previous.get("plans", [])
+               for member in plan.get("members", [])}
+    return members <= set(new)
 
 
 def species_scores(command: str = "engine/bin/pokesleep-engine",
