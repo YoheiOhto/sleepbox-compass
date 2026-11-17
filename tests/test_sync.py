@@ -324,7 +324,8 @@ class SyncTests(unittest.TestCase):
         return [dict(x) for x in self.items]
 
     def fake_run_engine(self, payload, command=None, on_progress=None):
-        self.calls.append("sp-check")
+        repair = any("|" in entry["uid"] for entry in payload["instances"])
+        self.calls.append("level-repair" if repair else "sp-check")
         if not self.engine_ok:
             raise EngineUnavailable("未ビルド")
         return fake_engine({"capture-b": 480})(payload)
@@ -345,7 +346,9 @@ class SyncTests(unittest.TestCase):
 
     def test_runs_every_step_in_order_into_private_paths(self):
         summary = self.sync()
-        self.assertEqual(self.calls, ["scan", "sp-check", "evaluate", "decide", "render"])
+        # The SP mismatch (capture-b) gets one batched level-repair call.
+        self.assertEqual(self.calls, ["scan", "sp-check", "level-repair", "evaluate", "decide",
+                                      "render"])
         self.assertEqual((summary["new_sources"], summary["new_individuals"],
                           summary["updated_individuals"]), (1, 2, 0))
         self.assertEqual((summary["sp_match"], summary["sp_mismatch"], summary["needs_review"]),

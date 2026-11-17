@@ -203,6 +203,41 @@ class VLMTests(unittest.TestCase):
         self.assertEqual([s[1] for s in stored], [10, 70, 80])
         db.close()
 
+    def test_subskill_unlocks_follow_slot_position(self):
+        from pokesleep_box.localization import normalize_individual
+        # Slot 5's Lv.80 badge misread as 60 and slot 2's as 50: ignored.
+        misread = [dict(slot) for slot in ANSWER["subskills"]]
+        misread[1]["unlock"], misread[4]["unlock"] = 50, 60
+        rows = merge_reads([parse_response(answer(subskills=misread))])
+        self.assertEqual([s[1] for s in rows[0]["subskills"]], [10, 25, 50, 70, 80])
+        five = [["Helping Bonus", 10], ["Berry Finding S", 25], ["Skill Trigger S", 50],
+                ["Inventory Up S", 70], ["Inventory Up L", 60]]
+        row = normalize_individual({"species": "PIPLUP", "nature": "Careful",
+                                    "main_skill": "Extra Helpful S", "subskills": five})
+        self.assertEqual([s[1] for s in row["subskills"]], [10, 25, 50, 70, 80])
+        # A partial list keeps its read (legacy-mapped) unlocks.
+        row = normalize_individual({"species": "PIPLUP", "nature": "Careful",
+                                    "main_skill": "Extra Helpful S",
+                                    "subskills": [["Helping Bonus", 10], ["Inventory Up S", 75]]})
+        self.assertEqual([s[1] for s in row["subskills"]], [10, 70])
+
+    def test_stored_misread_unlocks_are_migrated_even_when_confirmed(self):
+        path = self.root / "old.sqlite"
+        db = connect(path)
+        base = json.loads((Path(__file__).parents[1] /
+                           "data/example_individuals.json").read_text())["individuals"][0]
+        import_individuals(db, [dict(base, uid="confirmed", review_confirmed=True)])
+        misread = [["Helping Bonus", 10], ["Berry Finding S", 25], ["Skill Trigger S", 50],
+                   ["Inventory Up S", 70], ["Inventory Up L", 60]]
+        db.execute("UPDATE individual SET subskills_json=?", (json.dumps(misread),))
+        db.commit()
+        db.close()
+        db = connect(path)
+        row = db.execute("SELECT subskills_json, review_confirmed FROM individual").fetchone()
+        self.assertEqual([s[1] for s in json.loads(row[0])], [10, 25, 50, 70, 80])
+        self.assertEqual(row[1], 1)
+        db.close()
+
     def test_only_new_captures_are_read_on_the_next_scan(self):
         inbox = self.root / "inbox"
         inbox.mkdir()

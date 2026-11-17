@@ -16,8 +16,8 @@ from .ingest import audit, render_review
 from .localization import names
 from .paths import DEFAULT_PATHS as P, load_settings, private_paths
 from .render import render_site
-from .sync import (DEFAULT_VLM_MODEL, format_summary, import_checked, render_private, run_sync,
-                   scan_new)
+from .sync import (DEFAULT_VLM_MODEL, FALLBACK_VLM_MODEL, format_summary, import_checked,
+                   render_private, run_sync, scan_new)
 
 
 def archived_line(row) -> str:
@@ -119,6 +119,10 @@ def main() -> None:
     sync.add_argument("--ocr", choices=("auto", "qwen", "vision"), default="auto",
                       help="auto: mlx-vlmが入っていればqwen、なければvision")
     sync.add_argument("--vlm-model", default=DEFAULT_VLM_MODEL)
+    sync.add_argument("--fallback-vlm-model", default=FALLBACK_VLM_MODEL,
+                      help="SPが合わない静止画を読み直すモデル（noneで読み直さない）")
+    sync.add_argument("--recheck", action="store_true",
+                      help="登録済みのSP不一致の個体も、レベル補正と読み直しをやり直す")
     sync.add_argument("--interval", type=float, default=.8, help="動画OCRのフレーム間隔（秒）")
     sync.add_argument("--settings", type=Path, default=P.settings,
                       help="ローカル設定。\"paths\"で出力先を変更できます")
@@ -136,7 +140,9 @@ def main() -> None:
             parser.error(f"{args.reviewed} が見つかりません")
         summary = run_sync(args.path or paths.inbox, paths, settings, force=args.force,
                            ocr=args.ocr, vlm_model=args.vlm_model, interval=args.interval,
-                           reviewed=args.reviewed)
+                           reviewed=args.reviewed, recheck=args.recheck,
+                           fallback_vlm_model=(None if args.fallback_vlm_model.lower() == "none"
+                                               else args.fallback_vlm_model))
         print(format_summary(summary, paths.review))
         return
     args.db = args.db or P.db
