@@ -245,6 +245,11 @@ def merge_reads(reads: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
     for key in order:
         frames = groups[key]
         item: Dict[str, Any] = {"field_confidence": {}, "ocr_frames": len(frames)}
+        # Frames that show the ingredient row, for icon matching.
+        icon_frames = [f["frame"] for f in frames
+                       if f.get("frame") and any(a is not None for a in f.get("ingredient_amounts") or [])]
+        if icon_frames:
+            item["_icon_frames"] = icon_frames
         for field in ("species", "level", "sp", "nature", "main_skill", "skill_level"):
             value, agreement = _vote([f.get(field) for f in frames])
             if value is not None:
@@ -292,8 +297,10 @@ def finalize(item: Dict[str, Any], box_index: int) -> Dict[str, Any]:
 
 
 def scan(path: Path, reader: QwenReader, frames_dir: Path, interval: float = .8,
-         on_progress: Optional[Callable[[str], None]] = None) -> List[Dict[str, Any]]:
+         on_progress: Optional[Callable[[str], None]] = None,
+         match_icons_enabled: bool = True) -> List[Dict[str, Any]]:
     """Read one still image or video and return candidate individuals."""
+    from . import icons
     from .ingest import IMAGE_SUFFIXES, extract_frames
     from .ocr import enrich_with_species_data
 
@@ -303,8 +310,15 @@ def scan(path: Path, reader: QwenReader, frames_dir: Path, interval: float = .8,
         frames = drop_near_duplicates(extract_frames(path, frames_dir / path.stem, interval))
     reads = []
     for index, frame in enumerate(frames, start=1):
-        reads.append(reader.read(frame))
+        reads.append(dict(reader.read(frame), frame=str(frame)))
         if on_progress and len(frames) > 1:
             on_progress(f"フレーム{index}/{len(frames)}")
     items = [finalize(item, index + 1) for index, item in enumerate(merge_reads(reads))]
-    return enrich_with_species_data(items)
+
+    def match_icons(item: Dict[str, Any], options: list) -> List[Optional[str]]:
+        return icons.identify([Path(p) for p in item.get("_icon_frames", [])], options)
+
+    items = enrich_with_species_data(items, icon_matcher=match_icons if match_icons_enabled else None)
+    for item in items:
+        item.pop("_icon_frames", None)
+    return items

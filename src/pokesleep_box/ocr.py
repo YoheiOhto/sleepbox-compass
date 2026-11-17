@@ -40,29 +40,30 @@ def ensure_vision_binary() -> Path:
 def recognize_path(path: Path, interval: float = .8,
                    on_progress: Optional[Callable[[str], None]] = None) -> List[Dict[str, Any]]:
     binary = ensure_vision_binary()
-    proc = subprocess.Popen([str(binary), str(path), str(interval)], stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE, text=True)
-    # The binary writes the full JSON result to stdout only once, at the very
-    # end. Draining it concurrently avoids a deadlock: without a reader, a
-    # large result can fill the stdout pipe buffer and block the child while
-    # we are still waiting on stderr progress lines below.
-    stdout_chunks: List[str] = []
-    reader = threading.Thread(target=lambda: stdout_chunks.append(proc.stdout.read()), daemon=True)
-    reader.start()
-    stderr_lines: List[str] = []
-    last_percent = -1
-    for raw_line in proc.stderr:
-        line = raw_line.rstrip("\n")
-        if line.startswith("PROGRESS ") and on_progress:
-            frame, total, seconds = (int(x) for x in line.split(" ")[1:])
-            percent = min(100, round(frame / total * 100)) if total else 0
-            if percent != last_percent:
-                last_percent = percent
-                on_progress(f"{percent}%（{seconds}秒経過, フレーム{frame}/{total}）")
-        elif line:
-            stderr_lines.append(line)
-    reader.join()
-    proc.wait()
+    with subprocess.Popen([str(binary), str(path), str(interval)], stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE, text=True) as proc:
+        # The binary writes the full JSON result to stdout only once, at the
+        # very end. Draining it concurrently avoids a deadlock: without a
+        # reader, a large result can fill the stdout pipe buffer and block the
+        # child while we are still waiting on stderr progress lines below.
+        stdout_chunks: List[str] = []
+        reader = threading.Thread(target=lambda: stdout_chunks.append(proc.stdout.read()),
+                                  daemon=True)
+        reader.start()
+        stderr_lines: List[str] = []
+        last_percent = -1
+        for raw_line in proc.stderr:
+            line = raw_line.rstrip("\n")
+            if line.startswith("PROGRESS ") and on_progress:
+                frame, total, seconds = (int(x) for x in line.split(" ")[1:])
+                percent = min(100, round(frame / total * 100)) if total else 0
+                if percent != last_percent:
+                    last_percent = percent
+                    on_progress(f"{percent}%（{seconds}秒経過, フレーム{frame}/{total}）")
+            elif line:
+                stderr_lines.append(line)
+        reader.join()
+        proc.wait()
     if proc.returncode:
         raise RuntimeError("\n".join(stderr_lines).strip() or f"OCRに失敗しました: {path}")
     return json.loads("".join(stdout_chunks))
@@ -234,10 +235,48 @@ def align_amounts(amounts: Sequence[Optional[int]],
     return best[:len(options)]
 
 
+def resolve_ingredient_slots(options: Sequence[Mapping[str, Any]],
+                             amounts: Sequence[Optional[int]],
+                             names: Sequence[Optional[str]] = ()) -> Tuple[list, list]:
+    """Return (confident, provisional) [name, amount] per ingredient slot.
+
+    A slot is confident when its only legal option agrees with what was read,
+    when the read amount fits exactly one option, or when a matched icon name
+    fits an option whose amount does not contradict the read amount.
+    """
+    confident: list = []
+    provisional: list = []
+    for index, slot in enumerate(options):
+        choices = slot["choices"]
+        amount = amounts[index] if index < len(amounts) else None
+        name = names[index] if index < len(names) else None
+        matches = [c for c in choices if amount is not None and c[1] == amount]
+        named = [c for c in choices if name and c[0] == name]
+        if named:
+            # Icon and amount must agree; a contradiction is left for review.
+            value = named[0][:2] if amount is None or named[0][1] == amount else None
+        elif len(choices) == 1:
+            value = choices[0][:2] if amount is None or matches else None
+        elif len(matches) == 1:
+            value = matches[0][:2]
+        else:
+            value = None
+        confident.append(value)
+        provisional.append(value or (matches[0][:2] if matches else None))
+    return confident, provisional
+
+
 def enrich_with_species_data(items: List[Dict[str, Any]],
                              engine: str = "engine/bin/pokesleep-engine",
-                             pokemon_data: Optional[Mapping[str, Any]] = None) -> List[Dict[str, Any]]:
-    """Resolve deterministic berry and constrain icon-only ingredient fields."""
+                             pokemon_data: Optional[Mapping[str, Any]] = None,
+                             icon_matcher: Optional[Callable[[Dict[str, Any], list],
+                                                             Sequence[Optional[str]]]] = None,
+                             ) -> List[Dict[str, Any]]:
+    """Resolve deterministic berry and constrain icon-only ingredient fields.
+
+    ``icon_matcher(item, options)`` may return the ingredient name shown in
+    each slot; it is only consulted when the amounts leave a slot ambiguous.
+    """
     if pokemon_data is None:
         try:
             from .engine import run_engine
@@ -273,14 +312,14 @@ def enrich_with_species_data(items: List[Dict[str, Any]],
                 name, amount, _ = options[0]["choices"][0]
                 item["ingredients"] = [[name, amount]]
             amounts = align_amounts(item.get("ingredient_amounts", []), options)
-            inferred = []
-            provisional = []
-            for index, amount in enumerate(amounts[:len(options)]):
-                matches = [c for c in options[index]["choices"]
-                           if amount is not None and c[1] == amount]
-                inferred.append(matches[0][:2] if len(matches) == 1 else None)
-                provisional.append(matches[0][:2] if matches else None)
-            if inferred and len(inferred) == len(options) and all(inferred):
+            hints = list(item.get("ingredient_names", []))
+            inferred, provisional = resolve_ingredient_slots(options, amounts, hints)
+            if icon_matcher and not all(inferred) and not hints:
+                hints = list(icon_matcher(item, options) or [])
+                if any(hints):
+                    item["ingredient_names"] = hints
+                    inferred, provisional = resolve_ingredient_slots(options, amounts, hints)
+            if all(inferred):
                 ingredients_need_review = False
             # Resolve slot by slot: a confident read wins, then what OCR text
             # gave, then an option agreeing with the read amount, and finally
