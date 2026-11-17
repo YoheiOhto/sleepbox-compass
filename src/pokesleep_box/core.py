@@ -5,7 +5,7 @@ import json
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, Sequence
+from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
 
 ROLES = ("berry", "ingredient", "skill")
 ANCHORS = (60, 80)
@@ -73,6 +73,19 @@ def connect(path: Path) -> sqlite3.Connection:
         db.execute("ALTER TABLE individual ADD COLUMN final_evolution TEXT")
     db.commit()
     return db
+
+
+def synced_sources(db: sqlite3.Connection) -> set:
+    return {row["sha256"] for row in db.execute("SELECT sha256 FROM scan_source")}
+
+
+def record_synced_sources(db: sqlite3.Connection,
+                          sources: Iterable[Tuple[str, str, str, int]]) -> None:
+    """Remember (sha256, name, reader, items) captures that were imported."""
+    db.executemany(
+        "INSERT OR REPLACE INTO scan_source (sha256,name,reader,items,scanned_at) VALUES (?,?,?,?,?)",
+        [(*source, now()) for source in sources])
+    db.commit()
 
 
 def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]]) -> int:

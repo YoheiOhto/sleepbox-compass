@@ -6,6 +6,14 @@ CREATE TABLE IF NOT EXISTS capture (
     CHECK(kind IN ('detail_upper','detail_lower','box_list'))
 );
 
+-- Captures already read and imported by `scan`. Later scans skip them so only
+-- new screenshots/videos are read, and reviewed fields are never overwritten
+-- by a repeated OCR pass.
+CREATE TABLE IF NOT EXISTS scan_source (
+  sha256 TEXT PRIMARY KEY, name TEXT NOT NULL, reader TEXT NOT NULL,
+  items INTEGER NOT NULL, scanned_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS individual (
   uid TEXT PRIMARY KEY, species TEXT NOT NULL, display_name TEXT,
   level INTEGER, nature TEXT NOT NULL, pokemon_type TEXT,

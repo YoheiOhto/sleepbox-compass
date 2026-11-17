@@ -209,6 +209,31 @@ def finalize_candidate(item: Dict[str, Any], box_index: int) -> Dict[str, Any]:
     return normalize_individual(result)
 
 
+def align_amounts(amounts: Sequence[Optional[int]],
+                  options: Sequence[Mapping[str, Any]]) -> List[Optional[int]]:
+    """Undo a one-slot shift in read ingredient amounts.
+
+    Readers sometimes skip the first (partly hidden) ingredient or take the
+    berry count as the first one, shifting every amount by one slot. Choose
+    the shift whose amounts agree with the most legal options; ties keep the
+    amounts as read.
+    """
+    amounts = list(amounts)
+    if not amounts or not options:
+        return amounts
+
+    def fits(candidate: Sequence[Optional[int]]) -> int:
+        return sum(1 for index, amount in enumerate(candidate[:len(options)])
+                   if amount is not None and
+                   any(choice[1] == amount for choice in options[index]["choices"]))
+
+    best = amounts
+    for shifted in (amounts[1:], [None] + amounts):
+        if fits(shifted) > fits(best):
+            best = shifted
+    return best[:len(options)]
+
+
 def enrich_with_species_data(items: List[Dict[str, Any]],
                              engine: str = "engine/bin/pokesleep-engine",
                              pokemon_data: Optional[Mapping[str, Any]] = None) -> List[Dict[str, Any]]:
@@ -247,33 +272,30 @@ def enrich_with_species_data(items: List[Dict[str, Any]],
             if not item.get("ingredients") and len(options[0]["choices"]) == 1:
                 name, amount, _ = options[0]["choices"][0]
                 item["ingredients"] = [[name, amount]]
-            amounts = item.get("ingredient_amounts", [])
+            amounts = align_amounts(item.get("ingredient_amounts", []), options)
             inferred = []
+            provisional = []
             for index, amount in enumerate(amounts[:len(options)]):
-                matches = [choice for choice in options[index]["choices"] if choice[1] == amount]
-                if len(matches) == 1:
-                    inferred.append(matches[0][:2])
-                else:
-                    inferred.append(None)
-            if inferred:
-                ingredients = list(item.get("ingredients", []))
-                for index, value in enumerate(inferred):
-                    if value and index < len(ingredients):
-                        ingredients[index] = value
-                    elif value and index == len(ingredients):
-                        ingredients.append(value)
-                item["ingredients"] = ingredients
-                if len(inferred) == len(options) and all(inferred):
-                    ingredients_need_review = False
-            # Keep calculations runnable before review by filling unresolved
-            # slots with the species' first legal option. `ocr_missing` remains
-            # set, so these assumptions are always shown as provisional.
-            ingredients = list(item.get("ingredients", []))
-            while len(ingredients) < len(options):
-                choices = options[len(ingredients)]["choices"]
-                if not choices:
+                matches = [c for c in options[index]["choices"]
+                           if amount is not None and c[1] == amount]
+                inferred.append(matches[0][:2] if len(matches) == 1 else None)
+                provisional.append(matches[0][:2] if matches else None)
+            if inferred and len(inferred) == len(options) and all(inferred):
+                ingredients_need_review = False
+            # Resolve slot by slot: a confident read wins, then what OCR text
+            # gave, then an option agreeing with the read amount, and finally
+            # the species' first legal option so calculations stay runnable.
+            # `ocr_missing` keeps every unresolved slot marked provisional.
+            existing = list(item.get("ingredients", []))
+            ingredients = []
+            for index, slot in enumerate(options):
+                value = (inferred[index] if index < len(inferred) else None) or \
+                        (existing[index] if index < len(existing) else None) or \
+                        (provisional[index] if index < len(provisional) else None) or \
+                        (slot["choices"][0][:2] if slot["choices"] else None)
+                if value is None:
                     break
-                ingredients.append(choices[0][:2])
+                ingredients.append(value)
             item["ingredients"] = ingredients
         missing = [key for key in item.get("ocr_missing", [])
                    if key not in ("berry", "ingredients", "main_skill")]
