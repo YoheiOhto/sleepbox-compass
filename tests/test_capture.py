@@ -5,7 +5,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from pokesleep_box import engine
-from pokesleep_box.analytics import analyze, capture_species_rows, capture_tonight
+from pokesleep_box.analytics import (analyze, capture_all_fields, capture_species_rows,
+                                     capture_tonight)
 from pokesleep_box.core import capture_for_box, connect, import_individuals
 from pokesleep_box.engine import CAPTURE_BUILD, evaluate_capture, summarize_capture
 from pokesleep_box.render import render_site
@@ -132,6 +133,26 @@ class CaptureViewTests(unittest.TestCase):
         self.assertEqual(snooze["skip"], [])
         self.assertEqual(slumber["good"][0]["seen"], ["ピチュー"])
 
+    def test_all_fields_merges_areas_per_sleep_type(self):
+        row = lambda key, status, eff, seen: {
+            "species_key": key, "base_key": key, "status": status, "evolves_to": key,
+            "gain_per_10k_shards": eff, "gain_per_week": 10, "seen": seen, "others": []}
+        views = [
+            {"field": "A", "sleep_types": [
+                {"sleep_type": "ぐっすり", "good": [], "lucky": [], "skip": [row("X", "skip", None, ["x1"])]},
+                {"sleep_type": "うとうと", "good": [row("Y", "good", 5, ["y"])], "lucky": [], "skip": []}]},
+            {"field": "B", "sleep_types": [
+                {"sleep_type": "ぐっすり", "good": [row("Z", "good", 9, ["z"])], "lucky": [],
+                 "skip": [row("X", "skip", None, ["x2"])]}]}]
+        merged = capture_all_fields(views)
+        self.assertEqual([g["sleep_type"] for g in merged], ["うとうと", "ぐっすり"])
+        deep = merged[1]
+        self.assertEqual([r["species_key"] for r in deep["good"]], ["Z"])
+        self.assertEqual(deep["good"][0]["fields"], ["B"])
+        self.assertEqual(len(deep["skip"]), 1)
+        self.assertEqual(deep["skip"][0]["fields"], ["A", "B"])
+        self.assertEqual(deep["skip"][0]["seen"], ["x1", "x2"])
+
     def test_analyze_uses_capture_level_setting(self):
         result = analyze(self.items, {"captureLevel": 20}, encounters=ENCOUNTERS,
                          capture_plans=summarize_capture(response()))
@@ -216,6 +237,9 @@ class CaptureRenderTests(unittest.TestCase):
             page = (Path(tmp) / "index.html").read_text(encoding="utf-8")
         self.assertIn('"tonight": [{"field": "ゴールド旧発電所"', page)
         self.assertIn("今夜ねらうポケモン", page)
+        self.assertIn('"all_fields": [{"sleep_type": "すやすや"', page)
+        self.assertIn("すべての寝る場所をまとめて", page)
+        self.assertIn("出る場所：", page)
 
     def test_encounter_data_resolves_to_known_species_format(self):
         data = json.loads((ROOT / "data/seed_encounters.json").read_text(encoding="utf-8"))

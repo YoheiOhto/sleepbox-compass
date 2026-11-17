@@ -153,6 +153,12 @@ class TrainingRenderTests(unittest.TestCase):
             page = (Path(tmp) / "index.html").read_text(encoding="utf-8")
         self.assertIn('const TRAINING={"islands": [{"island": "シアンの砂浜"', page)
         self.assertIn("trainingSortKey", page)
+        # Island filter, per-viewer memory and the "show more" control.
+        self.assertIn('<span>行きたい島</span><select id="training-island">', page)
+        self.assertIn("すべての島", page)
+        self.assertIn("sleepbox.trainingIsland", page)
+        self.assertIn("const TRAINING_LIMIT=30", page)
+        self.assertIn("もっと見る", page)
 
 
 if __name__ == "__main__":
