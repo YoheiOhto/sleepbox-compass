@@ -1,0 +1,1188 @@
+{
+ "schema": 1,
+ "slug": "lv60-worth",
+ "title": "Lv60まで上げる価値はある？",
+ "provenance": {
+  "generated_on": "2026-11-17",
+  "generator": "pokesleep_box.columns.lv60_worth",
+  "game_version": "3.6.0",
+  "engine": "nerolis-lab@8a6566c5e824db51e9939e2929d3734c38de11f8",
+  "sources": [
+   "Neroli's Lab（計算エンジン、engine/src/cli.mjs の evaluate / metadata モード）",
+   "src/pokesleep_box/training_costs.json（アメ・かけらの表）"
+  ]
+ },
+ "assumptions": [
+  "1日のエナジーは計算エンジン（Neroli's Lab）の1匹ぶんの見積もりです。きのみ＋食材（素材の基本エナジー）＋メインスキルのエナジーの合計です。",
+  "きのみが好物になる島（好物2倍）、睡眠は22:00〜6:00、リボンなし、おてつだいサポートなしで計算しています。",
+  "食材は料理にしたときの倍率を入れていません。料理の倍率まで含めると、食材タイプの数字は変わります。",
+  "メインスキルは最大レベルです。メインスキルのレベルはLv50→70で変わらないものとしています。",
+  "サブスキルはLv10・25・50・70・80で開きます（Ver.3.6.0、レベル上限70）。Lv70で4つめが開きます。",
+  "コストはアメだけで育てたときの量です（EXP補正なしの性格、通常EXPタイプ）。",
+  "シミュレーションの回数は1000回です。"
+ ],
+ "data": {
+  "levels": [
+   50,
+   51,
+   52,
+   53,
+   54,
+   55,
+   56,
+   57,
+   58,
+   59,
+   60,
+   61,
+   62,
+   63,
+   64,
+   65,
+   66,
+   67,
+   68,
+   69,
+   70
+  ],
+  "iterations": 1000,
+  "subskill_unlocks": [
+   10,
+   25,
+   50,
+   70,
+   80
+  ],
+  "level_cap": 70,
+  "species": [
+   {
+    "species": "RAICHU",
+    "species_ja": "ライチュウ",
+    "specialty": "berry",
+    "main_skill": "エナジーチャージS",
+    "skill_level": 7,
+    "berry": "ウブ",
+    "island": "ゴールド旧発電所",
+    "nature": "いじっぱり",
+    "subskills": [
+     [
+      "きのみの数S",
+      10
+     ],
+     [
+      "おてつだいスピードM",
+      25
+     ],
+     [
+      "おてつだいスピードS",
+      50
+     ],
+     [
+      "おてつだいボーナス",
+      70
+     ],
+     [
+      "スキル確率アップM",
+      80
+     ]
+    ],
+    "ingredients": [
+     [
+      "とくせんリンゴ",
+      1
+     ],
+     [
+      "とくせんリンゴ",
+      2
+     ],
+     [
+      "とくせんリンゴ",
+      4
+     ]
+    ],
+    "energy": {
+     "50": {
+      "berry": 41446,
+      "ingredient": 2041,
+      "direct_skill": 9234,
+      "expected": 52721
+     },
+     "51": {
+      "berry": 42433,
+      "ingredient": 2041,
+      "direct_skill": 9234,
+      "expected": 53708
+     },
+     "52": {
+      "berry": 43420,
+      "ingredient": 2041,
+      "direct_skill": 9234,
+      "expected": 54694
+     },
+     "53": {
+      "berry": 44310,
+      "ingredient": 2065,
+      "direct_skill": 9345,
+      "expected": 55720
+     },
+     "54": {
+      "berry": 46345,
+      "ingredient": 2065,
+      "direct_skill": 9345,
+      "expected": 57755
+     },
+     "55": {
+      "berry": 47342,
+      "ingredient": 2065,
+      "direct_skill": 9345,
+      "expected": 58752
+     },
+     "56": {
+      "berry": 48338,
+      "ingredient": 2065,
+      "direct_skill": 9345,
+      "expected": 59748
+     },
+     "57": {
+      "berry": 49833,
+      "ingredient": 2065,
+      "direct_skill": 9345,
+      "expected": 61243
+     },
+     "58": {
+      "berry": 50830,
+      "ingredient": 2065,
+      "direct_skill": 9345,
+      "expected": 62240
+     },
+     "59": {
+      "berry": 52212,
+      "ingredient": 2089,
+      "direct_skill": 9457,
+      "expected": 63758
+     },
+     "60": {
+      "berry": 54181,
+      "ingredient": 3227,
+      "direct_skill": 9381,
+      "expected": 66789
+     },
+     "61": {
+      "berry": 55700,
+      "ingredient": 3227,
+      "direct_skill": 9381,
+      "expected": 68308
+     },
+     "62": {
+      "berry": 57219,
+      "ingredient": 3227,
+      "direct_skill": 9381,
+      "expected": 69827
+     },
+     "63": {
+      "berry": 58738,
+      "ingredient": 3227,
+      "direct_skill": 9381,
+      "expected": 71346
+     },
+     "64": {
+      "berry": 60459,
+      "ingredient": 3227,
+      "direct_skill": 9381,
+      "expected": 73067
+     },
+     "65": {
+      "berry": 61865,
+      "ingredient": 3265,
+      "direct_skill": 9492,
+      "expected": 74623
+     },
+     "66": {
+      "berry": 63399,
+      "ingredient": 3265,
+      "direct_skill": 9492,
+      "expected": 76157
+     },
+     "67": {
+      "berry": 65444,
+      "ingredient": 3265,
+      "direct_skill": 9492,
+      "expected": 78202
+     },
+     "68": {
+      "berry": 67764,
+      "ingredient": 3265,
+      "direct_skill": 9492,
+      "expected": 80522
+     },
+     "69": {
+      "berry": 69316,
+      "ingredient": 3265,
+      "direct_skill": 9492,
+      "expected": 82074
+     },
+     "70": {
+      "berry": 75738,
+      "ingredient": 3491,
+      "direct_skill": 10160,
+      "expected": 89389
+     }
+    },
+    "costs": [
+     {
+      "from": 50,
+      "to": 60,
+      "candies": 860,
+      "dream_shards": 371734
+     },
+     {
+      "from": 60,
+      "to": 70,
+      "candies": 1227,
+      "dream_shards": 1141655
+     }
+    ]
+   },
+   {
+    "species": "HOUNDOOM",
+    "species_ja": "ヘルガー",
+    "specialty": "berry",
+    "main_skill": "エナジーチャージM",
+    "skill_level": 7,
+    "berry": "ウイ",
+    "island": "ウノハナ雪原",
+    "nature": "いじっぱり",
+    "subskills": [
+     [
+      "きのみの数S",
+      10
+     ],
+     [
+      "おてつだいスピードM",
+      25
+     ],
+     [
+      "おてつだいスピードS",
+      50
+     ],
+     [
+      "おてつだいボーナス",
+      70
+     ],
+     [
+      "スキル確率アップM",
+      80
+     ]
+    ],
+    "ingredients": [
+     [
+      "げきからハーブ",
+      1
+     ],
+     [
+      "げきからハーブ",
+      2
+     ],
+     [
+      "げきからハーブ",
+      4
+     ]
+    ],
+    "energy": {
+     "50": {
+      "berry": 34584,
+      "ingredient": 1793,
+      "direct_skill": 15977,
+      "expected": 52354
+     },
+     "51": {
+      "berry": 36224,
+      "ingredient": 1793,
+      "direct_skill": 15977,
+      "expected": 53994
+     },
+     "52": {
+      "berry": 36901,
+      "ingredient": 1793,
+      "direct_skill": 15977,
+      "expected": 54671
+     },
+     "53": {
+      "berry": 37917,
+      "ingredient": 1793,
+      "direct_skill": 15977,
+      "expected": 55687
+     },
+     "54": {
+      "berry": 38932,
+      "ingredient": 1793,
+      "direct_skill": 15977,
+      "expected": 56702
+     },
+     "55": {
+      "berry": 39948,
+      "ingredient": 1793,
+      "direct_skill": 15977,
+      "expected": 57718
+     },
+     "56": {
+      "berry": 40964,
+      "ingredient": 1793,
+      "direct_skill": 15977,
+      "expected": 58733
+     },
+     "57": {
+      "berry": 41858,
+      "ingredient": 1825,
+      "direct_skill": 16262,
+      "expected": 59946
+     },
+     "58": {
+      "berry": 42871,
+      "ingredient": 1825,
+      "direct_skill": 16262,
+      "expected": 60958
+     },
+     "59": {
+      "berry": 44664,
+      "ingredient": 1825,
+      "direct_skill": 16262,
+      "expected": 62751
+     },
+     "60": {
+      "berry": 45456,
+      "ingredient": 2821,
+      "direct_skill": 16262,
+      "expected": 64540
+     },
+     "61": {
+      "berry": 46482,
+      "ingredient": 2821,
+      "direct_skill": 16262,
+      "expected": 65565
+     },
+     "62": {
+      "berry": 47849,
+      "ingredient": 2821,
+      "direct_skill": 16262,
+      "expected": 66932
+     },
+     "63": {
+      "berry": 48874,
+      "ingredient": 2821,
+      "direct_skill": 16262,
+      "expected": 67957
+     },
+     "64": {
+      "berry": 50241,
+      "ingredient": 2821,
+      "direct_skill": 16262,
+      "expected": 69324
+     },
+     "65": {
+      "berry": 52367,
+      "ingredient": 2870,
+      "direct_skill": 16548,
+      "expected": 71785
+     },
+     "66": {
+      "berry": 53407,
+      "ingredient": 2870,
+      "direct_skill": 16548,
+      "expected": 72826
+     },
+     "67": {
+      "berry": 54795,
+      "ingredient": 2870,
+      "direct_skill": 16548,
+      "expected": 74213
+     },
+     "68": {
+      "berry": 56182,
+      "ingredient": 2870,
+      "direct_skill": 16548,
+      "expected": 75600
+     },
+     "69": {
+      "berry": 57569,
+      "ingredient": 2870,
+      "direct_skill": 16548,
+      "expected": 76987
+     },
+     "70": {
+      "berry": 63394,
+      "ingredient": 3067,
+      "direct_skill": 17691,
+      "expected": 84152
+     }
+    },
+    "costs": [
+     {
+      "from": 50,
+      "to": 60,
+      "candies": 860,
+      "dream_shards": 371734
+     },
+     {
+      "from": 60,
+      "to": 70,
+      "candies": 1227,
+      "dream_shards": 1141655
+     }
+    ]
+   },
+   {
+    "species": "GENGAR",
+    "species_ja": "ゲンガー",
+    "specialty": "ingredient",
+    "main_skill": "エナジーチャージS",
+    "skill_level": 7,
+    "berry": "ブリー",
+    "island": "ゴールド旧発電所",
+    "nature": "うっかりや",
+    "subskills": [
+     [
+      "食材確率アップM",
+      10
+     ],
+     [
+      "おてつだいスピードM",
+      25
+     ],
+     [
+      "食材確率アップS",
+      50
+     ],
+     [
+      "最大所持数アップL",
+      70
+     ],
+     [
+      "おてつだいスピードS",
+      80
+     ]
+    ],
+    "ingredients": [
+     [
+      "げきからハーブ",
+      2
+     ],
+     [
+      "げきからハーブ",
+      5
+     ],
+     [
+      "げきからハーブ",
+      7
+     ]
+    ],
+    "energy": {
+     "50": {
+      "berry": 9965,
+      "ingredient": 10726,
+      "direct_skill": 7315,
+      "expected": 28006
+     },
+     "51": {
+      "berry": 10195,
+      "ingredient": 10726,
+      "direct_skill": 7315,
+      "expected": 28235
+     },
+     "52": {
+      "berry": 10538,
+      "ingredient": 10726,
+      "direct_skill": 7315,
+      "expected": 28579
+     },
+     "53": {
+      "berry": 10955,
+      "ingredient": 10726,
+      "direct_skill": 7315,
+      "expected": 28996
+     },
+     "54": {
+      "berry": 11188,
+      "ingredient": 10726,
+      "direct_skill": 7315,
+      "expected": 29229
+     },
+     "55": {
+      "berry": 11538,
+      "ingredient": 10726,
+      "direct_skill": 7315,
+      "expected": 29579
+     },
+     "56": {
+      "berry": 11771,
+      "ingredient": 10726,
+      "direct_skill": 7315,
+      "expected": 29812
+     },
+     "57": {
+      "berry": 12121,
+      "ingredient": 10726,
+      "direct_skill": 7315,
+      "expected": 30161
+     },
+     "58": {
+      "berry": 12289,
+      "ingredient": 10866,
+      "direct_skill": 7413,
+      "expected": 30567
+     },
+     "59": {
+      "berry": 12855,
+      "ingredient": 10866,
+      "direct_skill": 7413,
+      "expected": 31133
+     },
+     "60": {
+      "berry": 13242,
+      "ingredient": 13991,
+      "direct_skill": 7276,
+      "expected": 34508
+     },
+     "61": {
+      "berry": 13478,
+      "ingredient": 13991,
+      "direct_skill": 7276,
+      "expected": 34745
+     },
+     "62": {
+      "berry": 13833,
+      "ingredient": 13991,
+      "direct_skill": 7276,
+      "expected": 35100
+     },
+     "63": {
+      "berry": 14188,
+      "ingredient": 13991,
+      "direct_skill": 7276,
+      "expected": 35454
+     },
+     "64": {
+      "berry": 14713,
+      "ingredient": 14177,
+      "direct_skill": 7374,
+      "expected": 36264
+     },
+     "65": {
+      "berry": 15072,
+      "ingredient": 14177,
+      "direct_skill": 7374,
+      "expected": 36623
+     },
+     "66": {
+      "berry": 15431,
+      "ingredient": 14177,
+      "direct_skill": 7374,
+      "expected": 36982
+     },
+     "67": {
+      "berry": 15909,
+      "ingredient": 14177,
+      "direct_skill": 7374,
+      "expected": 37460
+     },
+     "68": {
+      "berry": 16268,
+      "ingredient": 14177,
+      "direct_skill": 7374,
+      "expected": 37819
+     },
+     "69": {
+      "berry": 16627,
+      "ingredient": 14177,
+      "direct_skill": 7374,
+      "expected": 38178
+     },
+     "70": {
+      "berry": 16852,
+      "ingredient": 15819,
+      "direct_skill": 7885,
+      "expected": 40556
+     }
+    },
+    "costs": [
+     {
+      "from": 50,
+      "to": 60,
+      "candies": 860,
+      "dream_shards": 371734
+     },
+     {
+      "from": 60,
+      "to": 70,
+      "candies": 1227,
+      "dream_shards": 1141655
+     }
+    ]
+   },
+   {
+    "species": "QUAQUAVAL",
+    "species_ja": "ウェーニバル",
+    "specialty": "ingredient",
+    "main_skill": "エナジーチャージM",
+    "skill_level": 7,
+    "berry": "クラボ",
+    "island": "ラピスラズリ湖畔",
+    "nature": "うっかりや",
+    "subskills": [
+     [
+      "食材確率アップM",
+      10
+     ],
+     [
+      "おてつだいスピードM",
+      25
+     ],
+     [
+      "食材確率アップS",
+      50
+     ],
+     [
+      "最大所持数アップL",
+      70
+     ],
+     [
+      "おてつだいスピードS",
+      80
+     ]
+    ],
+    "ingredients": [
+     [
+      "ワカクサ大豆",
+      2
+     ],
+     [
+      "ワカクサ大豆",
+      5
+     ],
+     [
+      "ワカクサ大豆",
+      7
+     ]
+    ],
+    "energy": {
+     "50": {
+      "berry": 7304,
+      "ingredient": 9753,
+      "direct_skill": 10579,
+      "expected": 27637
+     },
+     "51": {
+      "berry": 7571,
+      "ingredient": 9903,
+      "direct_skill": 10747,
+      "expected": 28221
+     },
+     "52": {
+      "berry": 7733,
+      "ingredient": 9903,
+      "direct_skill": 10747,
+      "expected": 28384
+     },
+     "53": {
+      "berry": 7978,
+      "ingredient": 9903,
+      "direct_skill": 10747,
+      "expected": 28628
+     },
+     "54": {
+      "berry": 8140,
+      "ingredient": 9903,
+      "direct_skill": 10747,
+      "expected": 28791
+     },
+     "55": {
+      "berry": 8303,
+      "ingredient": 9903,
+      "direct_skill": 10747,
+      "expected": 28954
+     },
+     "56": {
+      "berry": 8547,
+      "ingredient": 9903,
+      "direct_skill": 10747,
+      "expected": 29198
+     },
+     "57": {
+      "berry": 8792,
+      "ingredient": 9903,
+      "direct_skill": 10747,
+      "expected": 29442
+     },
+     "58": {
+      "berry": 9174,
+      "ingredient": 9903,
+      "direct_skill": 10747,
+      "expected": 29825
+     },
+     "59": {
+      "berry": 9425,
+      "ingredient": 9903,
+      "direct_skill": 10747,
+      "expected": 30075
+     },
+     "60": {
+      "berry": 9679,
+      "ingredient": 12860,
+      "direct_skill": 10669,
+      "expected": 33208
+     },
+     "61": {
+      "berry": 9929,
+      "ingredient": 12860,
+      "direct_skill": 10669,
+      "expected": 33458
+     },
+     "62": {
+      "berry": 10179,
+      "ingredient": 12860,
+      "direct_skill": 10669,
+      "expected": 33708
+     },
+     "63": {
+      "berry": 10680,
+      "ingredient": 12860,
+      "direct_skill": 10669,
+      "expected": 34208
+     },
+     "64": {
+      "berry": 10936,
+      "ingredient": 12860,
+      "direct_skill": 10669,
+      "expected": 34465
+     },
+     "65": {
+      "berry": 11192,
+      "ingredient": 12860,
+      "direct_skill": 10669,
+      "expected": 34721
+     },
+     "66": {
+      "berry": 11448,
+      "ingredient": 12860,
+      "direct_skill": 10669,
+      "expected": 34977
+     },
+     "67": {
+      "berry": 11790,
+      "ingredient": 12860,
+      "direct_skill": 10669,
+      "expected": 35319
+     },
+     "68": {
+      "berry": 12046,
+      "ingredient": 12860,
+      "direct_skill": 10669,
+      "expected": 35575
+     },
+     "69": {
+      "berry": 12554,
+      "ingredient": 13060,
+      "direct_skill": 10837,
+      "expected": 36451
+     },
+     "70": {
+      "berry": 12175,
+      "ingredient": 14406,
+      "direct_skill": 11541,
+      "expected": 38121
+     }
+    },
+    "costs": [
+     {
+      "from": 50,
+      "to": 60,
+      "candies": 860,
+      "dream_shards": 371734
+     },
+     {
+      "from": 60,
+      "to": 70,
+      "candies": 1227,
+      "dream_shards": 1141655
+     }
+    ]
+   },
+   {
+    "species": "AMPHAROS",
+    "species_ja": "デンリュウ",
+    "specialty": "skill",
+    "main_skill": "エナジーチャージM",
+    "skill_level": 7,
+    "berry": "ウブ",
+    "island": "ゴールド旧発電所",
+    "nature": "しんちょう",
+    "subskills": [
+     [
+      "スキル確率アップM",
+      10
+     ],
+     [
+      "おてつだいスピードM",
+      25
+     ],
+     [
+      "スキル確率アップS",
+      50
+     ],
+     [
+      "おてつだいスピードS",
+      70
+     ],
+     [
+      "おてつだいボーナス",
+      80
+     ]
+    ],
+    "ingredients": [
+     [
+      "げきからハーブ",
+      1
+     ],
+     [
+      "げきからハーブ",
+      2
+     ],
+     [
+      "げきからハーブ",
+      4
+     ]
+    ],
+    "energy": {
+     "50": {
+      "berry": 10687,
+      "ingredient": 1440,
+      "direct_skill": 40520,
+      "expected": 52647
+     },
+     "51": {
+      "berry": 10942,
+      "ingredient": 1440,
+      "direct_skill": 40520,
+      "expected": 52901
+     },
+     "52": {
+      "berry": 11354,
+      "ingredient": 1460,
+      "direct_skill": 41118,
+      "expected": 53933
+     },
+     "53": {
+      "berry": 11612,
+      "ingredient": 1460,
+      "direct_skill": 41118,
+      "expected": 54191
+     },
+     "54": {
+      "berry": 11999,
+      "ingredient": 1460,
+      "direct_skill": 41118,
+      "expected": 54578
+     },
+     "55": {
+      "berry": 12257,
+      "ingredient": 1460,
+      "direct_skill": 41118,
+      "expected": 54836
+     },
+     "56": {
+      "berry": 12515,
+      "ingredient": 1460,
+      "direct_skill": 41118,
+      "expected": 55094
+     },
+     "57": {
+      "berry": 12902,
+      "ingredient": 1460,
+      "direct_skill": 41118,
+      "expected": 55481
+     },
+     "58": {
+      "berry": 13343,
+      "ingredient": 1480,
+      "direct_skill": 41433,
+      "expected": 56257
+     },
+     "59": {
+      "berry": 13736,
+      "ingredient": 1480,
+      "direct_skill": 41433,
+      "expected": 56649
+     },
+     "60": {
+      "berry": 13997,
+      "ingredient": 2303,
+      "direct_skill": 41717,
+      "expected": 58017
+     },
+     "61": {
+      "berry": 14390,
+      "ingredient": 2303,
+      "direct_skill": 41717,
+      "expected": 58410
+     },
+     "62": {
+      "berry": 14782,
+      "ingredient": 2303,
+      "direct_skill": 41717,
+      "expected": 58802
+     },
+     "63": {
+      "berry": 15175,
+      "ingredient": 2303,
+      "direct_skill": 41717,
+      "expected": 59195
+     },
+     "64": {
+      "berry": 15648,
+      "ingredient": 2334,
+      "direct_skill": 42032,
+      "expected": 60014
+     },
+     "65": {
+      "berry": 16046,
+      "ingredient": 2334,
+      "direct_skill": 42032,
+      "expected": 60412
+     },
+     "66": {
+      "berry": 16443,
+      "ingredient": 2334,
+      "direct_skill": 42032,
+      "expected": 60810
+     },
+     "67": {
+      "berry": 16974,
+      "ingredient": 2334,
+      "direct_skill": 42032,
+      "expected": 61340
+     },
+     "68": {
+      "berry": 17372,
+      "ingredient": 2334,
+      "direct_skill": 42032,
+      "expected": 61738
+     },
+     "69": {
+      "berry": 17769,
+      "ingredient": 2334,
+      "direct_skill": 42316,
+      "expected": 62420
+     },
+     "70": {
+      "berry": 19886,
+      "ingredient": 2555,
+      "direct_skill": 45922,
+      "expected": 68363
+     }
+    },
+    "costs": [
+     {
+      "from": 50,
+      "to": 60,
+      "candies": 860,
+      "dream_shards": 371734
+     },
+     {
+      "from": 60,
+      "to": 70,
+      "candies": 1227,
+      "dream_shards": 1141655
+     }
+    ]
+   },
+   {
+    "species": "ESPEON",
+    "species_ja": "エーフィ",
+    "specialty": "skill",
+    "main_skill": "エナジーチャージM",
+    "skill_level": 7,
+    "berry": "マゴ",
+    "island": "ラピスラズリ湖畔",
+    "nature": "しんちょう",
+    "subskills": [
+     [
+      "スキル確率アップM",
+      10
+     ],
+     [
+      "おてつだいスピードM",
+      25
+     ],
+     [
+      "スキル確率アップS",
+      50
+     ],
+     [
+      "おてつだいスピードS",
+      70
+     ],
+     [
+      "おてつだいボーナス",
+      80
+     ]
+    ],
+    "ingredients": [
+     [
+      "モーモーミルク",
+      1
+     ],
+     [
+      "モーモーミルク",
+      2
+     ],
+     [
+      "モーモーミルク",
+      4
+     ]
+    ],
+    "energy": {
+     "50": {
+      "berry": 11187,
+      "ingredient": 1427,
+      "direct_skill": 39555,
+      "expected": 52169
+     },
+     "51": {
+      "berry": 11444,
+      "ingredient": 1427,
+      "direct_skill": 39801,
+      "expected": 52672
+     },
+     "52": {
+      "berry": 11989,
+      "ingredient": 1446,
+      "direct_skill": 40116,
+      "expected": 53551
+     },
+     "53": {
+      "berry": 12250,
+      "ingredient": 1446,
+      "direct_skill": 40116,
+      "expected": 53812
+     },
+     "54": {
+      "berry": 12511,
+      "ingredient": 1446,
+      "direct_skill": 40116,
+      "expected": 54073
+     },
+     "55": {
+      "berry": 12902,
+      "ingredient": 1446,
+      "direct_skill": 40116,
+      "expected": 54464
+     },
+     "56": {
+      "berry": 13162,
+      "ingredient": 1446,
+      "direct_skill": 40116,
+      "expected": 54724
+     },
+     "57": {
+      "berry": 13553,
+      "ingredient": 1446,
+      "direct_skill": 40116,
+      "expected": 55115
+     },
+     "58": {
+      "berry": 13998,
+      "ingredient": 1466,
+      "direct_skill": 40676,
+      "expected": 56140
+     },
+     "59": {
+      "berry": 14394,
+      "ingredient": 1466,
+      "direct_skill": 40676,
+      "expected": 56536
+     },
+     "60": {
+      "berry": 14795,
+      "ingredient": 2246,
+      "direct_skill": 40362,
+      "expected": 57403
+     },
+     "61": {
+      "berry": 15059,
+      "ingredient": 2246,
+      "direct_skill": 40362,
+      "expected": 57668
+     },
+     "62": {
+      "berry": 15456,
+      "ingredient": 2246,
+      "direct_skill": 40362,
+      "expected": 58064
+     },
+     "63": {
+      "berry": 15852,
+      "ingredient": 2246,
+      "direct_skill": 40362,
+      "expected": 58460
+     },
+     "64": {
+      "berry": 16494,
+      "ingredient": 2246,
+      "direct_skill": 40362,
+      "expected": 59103
+     },
+     "65": {
+      "berry": 16864,
+      "ingredient": 2276,
+      "direct_skill": 40923,
+      "expected": 60063
+     },
+     "66": {
+      "berry": 17265,
+      "ingredient": 2276,
+      "direct_skill": 40923,
+      "expected": 60464
+     },
+     "67": {
+      "berry": 17800,
+      "ingredient": 2276,
+      "direct_skill": 40923,
+      "expected": 60999
+     },
+     "68": {
+      "berry": 18202,
+      "ingredient": 2276,
+      "direct_skill": 40923,
+      "expected": 61401
+     },
+     "69": {
+      "berry": 18603,
+      "ingredient": 2276,
+      "direct_skill": 40923,
+      "expected": 61803
+     },
+     "70": {
+      "berry": 20953,
+      "ingredient": 2426,
+      "direct_skill": 43727,
+      "expected": 67106
+     }
+    },
+    "costs": [
+     {
+      "from": 50,
+      "to": 60,
+      "candies": 860,
+      "dream_shards": 371734
+     },
+     {
+      "from": 60,
+      "to": 70,
+      "candies": 1227,
+      "dream_shards": 1141655
+     }
+    ]
+   }
+  ]
+ }
+}

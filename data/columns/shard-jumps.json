@@ -1,0 +1,773 @@
+{
+ "schema": 1,
+ "slug": "shard-jumps",
+ "title": "ゆめのかけらはどこで急に増える？",
+ "provenance": {
+  "generated_on": "2026-11-17",
+  "generator": "pokesleep_box.columns.shard_jumps",
+  "game_version": "3.6.0",
+  "engine": null,
+  "sources": [
+   "src/pokesleep_box/training_costs.json（必要EXP・アメ1個のEXP・アメ1個あたりのかけら。公開データの出典はファイル内の _comment）"
+  ]
+ },
+ "assumptions": [
+  "通常のEXPタイプ（600）で、EXP補正のない性格（まじめ）の場合です。",
+  "アメだけで育てます。睡眠でもらうEXP、ばんのうアメの使い分け、ミニアメブーストは入れていません。",
+  "1レベルごとの数字は、そのレベルになったばかりの状態から1つ上げる量です。合計の数字はLv1から続けて育てた量で、余ったEXPを次のレベルに持ち越します。このため、1レベルごとの数字を足すと合計より少し多くなります。",
+  "Lv66以降の必要EXPとかけらはコミュニティの実測値です。"
+ ],
+ "data": {
+  "levels": [
+   {
+    "level": 1,
+    "exp_to_next": 54,
+    "candy_exp": 40,
+    "shards_per_candy": 14,
+    "candies": 2,
+    "shards": 28,
+    "cum_candies": 2,
+    "cum_shards": 28
+   },
+   {
+    "level": 2,
+    "exp_to_next": 71,
+    "candy_exp": 40,
+    "shards_per_candy": 18,
+    "candies": 2,
+    "shards": 36,
+    "cum_candies": 4,
+    "cum_shards": 64
+   },
+   {
+    "level": 3,
+    "exp_to_next": 108,
+    "candy_exp": 40,
+    "shards_per_candy": 22,
+    "candies": 3,
+    "shards": 66,
+    "cum_candies": 6,
+    "cum_shards": 108
+   },
+   {
+    "level": 4,
+    "exp_to_next": 128,
+    "candy_exp": 40,
+    "shards_per_candy": 27,
+    "candies": 4,
+    "shards": 108,
+    "cum_candies": 10,
+    "cum_shards": 216
+   },
+   {
+    "level": 5,
+    "exp_to_next": 164,
+    "candy_exp": 40,
+    "shards_per_candy": 30,
+    "candies": 5,
+    "shards": 150,
+    "cum_candies": 14,
+    "cum_shards": 336
+   },
+   {
+    "level": 6,
+    "exp_to_next": 202,
+    "candy_exp": 40,
+    "shards_per_candy": 34,
+    "candies": 6,
+    "shards": 204,
+    "cum_candies": 19,
+    "cum_shards": 506
+   },
+   {
+    "level": 7,
+    "exp_to_next": 244,
+    "candy_exp": 40,
+    "shards_per_candy": 39,
+    "candies": 7,
+    "shards": 273,
+    "cum_candies": 25,
+    "cum_shards": 740
+   },
+   {
+    "level": 8,
+    "exp_to_next": 274,
+    "candy_exp": 40,
+    "shards_per_candy": 44,
+    "candies": 7,
+    "shards": 308,
+    "cum_candies": 32,
+    "cum_shards": 1048
+   },
+   {
+    "level": 9,
+    "exp_to_next": 315,
+    "candy_exp": 40,
+    "shards_per_candy": 48,
+    "candies": 8,
+    "shards": 384,
+    "cum_candies": 39,
+    "cum_shards": 1384
+   },
+   {
+    "level": 10,
+    "exp_to_next": 345,
+    "candy_exp": 40,
+    "shards_per_candy": 50,
+    "candies": 9,
+    "shards": 450,
+    "cum_candies": 48,
+    "cum_shards": 1834
+   },
+   {
+    "level": 11,
+    "exp_to_next": 376,
+    "candy_exp": 40,
+    "shards_per_candy": 52,
+    "candies": 10,
+    "shards": 520,
+    "cum_candies": 58,
+    "cum_shards": 2354
+   },
+   {
+    "level": 12,
+    "exp_to_next": 407,
+    "candy_exp": 40,
+    "shards_per_candy": 53,
+    "candies": 11,
+    "shards": 583,
+    "cum_candies": 68,
+    "cum_shards": 2884
+   },
+   {
+    "level": 13,
+    "exp_to_next": 419,
+    "candy_exp": 40,
+    "shards_per_candy": 56,
+    "candies": 11,
+    "shards": 616,
+    "cum_candies": 78,
+    "cum_shards": 3444
+   },
+   {
+    "level": 14,
+    "exp_to_next": 429,
+    "candy_exp": 40,
+    "shards_per_candy": 59,
+    "candies": 11,
+    "shards": 649,
+    "cum_candies": 89,
+    "cum_shards": 4093
+   },
+   {
+    "level": 15,
+    "exp_to_next": 440,
+    "candy_exp": 40,
+    "shards_per_candy": 62,
+    "candies": 11,
+    "shards": 682,
+    "cum_candies": 100,
+    "cum_shards": 4775
+   },
+   {
+    "level": 16,
+    "exp_to_next": 454,
+    "candy_exp": 40,
+    "shards_per_candy": 66,
+    "candies": 12,
+    "shards": 792,
+    "cum_candies": 111,
+    "cum_shards": 5501
+   },
+   {
+    "level": 17,
+    "exp_to_next": 469,
+    "candy_exp": 40,
+    "shards_per_candy": 68,
+    "candies": 12,
+    "shards": 816,
+    "cum_candies": 123,
+    "cum_shards": 6317
+   },
+   {
+    "level": 18,
+    "exp_to_next": 483,
+    "candy_exp": 40,
+    "shards_per_candy": 71,
+    "candies": 13,
+    "shards": 923,
+    "cum_candies": 135,
+    "cum_shards": 7169
+   },
+   {
+    "level": 19,
+    "exp_to_next": 497,
+    "candy_exp": 40,
+    "shards_per_candy": 74,
+    "candies": 13,
+    "shards": 962,
+    "cum_candies": 147,
+    "cum_shards": 8057
+   },
+   {
+    "level": 20,
+    "exp_to_next": 515,
+    "candy_exp": 40,
+    "shards_per_candy": 78,
+    "candies": 13,
+    "shards": 1014,
+    "cum_candies": 160,
+    "cum_shards": 9071
+   },
+   {
+    "level": 21,
+    "exp_to_next": 537,
+    "candy_exp": 40,
+    "shards_per_candy": 81,
+    "candies": 14,
+    "shards": 1134,
+    "cum_candies": 174,
+    "cum_shards": 10205
+   },
+   {
+    "level": 22,
+    "exp_to_next": 558,
+    "candy_exp": 40,
+    "shards_per_candy": 85,
+    "candies": 14,
+    "shards": 1190,
+    "cum_candies": 188,
+    "cum_shards": 11395
+   },
+   {
+    "level": 23,
+    "exp_to_next": 579,
+    "candy_exp": 40,
+    "shards_per_candy": 88,
+    "candies": 15,
+    "shards": 1320,
+    "cum_candies": 202,
+    "cum_shards": 12627
+   },
+   {
+    "level": 24,
+    "exp_to_next": 600,
+    "candy_exp": 40,
+    "shards_per_candy": 92,
+    "candies": 15,
+    "shards": 1380,
+    "cum_candies": 217,
+    "cum_shards": 14007
+   },
+   {
+    "level": 25,
+    "exp_to_next": 622,
+    "candy_exp": 35,
+    "shards_per_candy": 95,
+    "candies": 18,
+    "shards": 1710,
+    "cum_candies": 235,
+    "cum_shards": 15717
+   },
+   {
+    "level": 26,
+    "exp_to_next": 643,
+    "candy_exp": 35,
+    "shards_per_candy": 100,
+    "candies": 19,
+    "shards": 1900,
+    "cum_candies": 253,
+    "cum_shards": 17517
+   },
+   {
+    "level": 27,
+    "exp_to_next": 665,
+    "candy_exp": 35,
+    "shards_per_candy": 105,
+    "candies": 19,
+    "shards": 1995,
+    "cum_candies": 272,
+    "cum_shards": 19512
+   },
+   {
+    "level": 28,
+    "exp_to_next": 686,
+    "candy_exp": 35,
+    "shards_per_candy": 111,
+    "candies": 20,
+    "shards": 2220,
+    "cum_candies": 292,
+    "cum_shards": 21732
+   },
+   {
+    "level": 29,
+    "exp_to_next": 708,
+    "candy_exp": 35,
+    "shards_per_candy": 117,
+    "candies": 21,
+    "shards": 2457,
+    "cum_candies": 312,
+    "cum_shards": 24072
+   },
+   {
+    "level": 30,
+    "exp_to_next": 729,
+    "candy_exp": 25,
+    "shards_per_candy": 122,
+    "candies": 30,
+    "shards": 3660,
+    "cum_candies": 341,
+    "cum_shards": 27610
+   },
+   {
+    "level": 31,
+    "exp_to_next": 748,
+    "candy_exp": 25,
+    "shards_per_candy": 126,
+    "candies": 30,
+    "shards": 3780,
+    "cum_candies": 371,
+    "cum_shards": 31390
+   },
+   {
+    "level": 32,
+    "exp_to_next": 766,
+    "candy_exp": 25,
+    "shards_per_candy": 130,
+    "candies": 31,
+    "shards": 4030,
+    "cum_candies": 402,
+    "cum_shards": 35420
+   },
+   {
+    "level": 33,
+    "exp_to_next": 785,
+    "candy_exp": 25,
+    "shards_per_candy": 136,
+    "candies": 32,
+    "shards": 4352,
+    "cum_candies": 433,
+    "cum_shards": 39636
+   },
+   {
+    "level": 34,
+    "exp_to_next": 803,
+    "candy_exp": 25,
+    "shards_per_candy": 143,
+    "candies": 33,
+    "shards": 4719,
+    "cum_candies": 465,
+    "cum_shards": 44212
+   },
+   {
+    "level": 35,
+    "exp_to_next": 821,
+    "candy_exp": 25,
+    "shards_per_candy": 151,
+    "candies": 33,
+    "shards": 4983,
+    "cum_candies": 498,
+    "cum_shards": 49195
+   },
+   {
+    "level": 36,
+    "exp_to_next": 839,
+    "candy_exp": 25,
+    "shards_per_candy": 160,
+    "candies": 34,
+    "shards": 5440,
+    "cum_candies": 532,
+    "cum_shards": 54635
+   },
+   {
+    "level": 37,
+    "exp_to_next": 857,
+    "candy_exp": 25,
+    "shards_per_candy": 167,
+    "candies": 35,
+    "shards": 5845,
+    "cum_candies": 566,
+    "cum_shards": 60313
+   },
+   {
+    "level": 38,
+    "exp_to_next": 875,
+    "candy_exp": 25,
+    "shards_per_candy": 174,
+    "candies": 35,
+    "shards": 6090,
+    "cum_candies": 601,
+    "cum_shards": 66403
+   },
+   {
+    "level": 39,
+    "exp_to_next": 893,
+    "candy_exp": 25,
+    "shards_per_candy": 184,
+    "candies": 36,
+    "shards": 6624,
+    "cum_candies": 637,
+    "cum_shards": 73027
+   },
+   {
+    "level": 40,
+    "exp_to_next": 910,
+    "candy_exp": 25,
+    "shards_per_candy": 192,
+    "candies": 37,
+    "shards": 7104,
+    "cum_candies": 673,
+    "cum_shards": 79939
+   },
+   {
+    "level": 41,
+    "exp_to_next": 928,
+    "candy_exp": 25,
+    "shards_per_candy": 201,
+    "candies": 38,
+    "shards": 7638,
+    "cum_candies": 710,
+    "cum_shards": 87376
+   },
+   {
+    "level": 42,
+    "exp_to_next": 945,
+    "candy_exp": 25,
+    "shards_per_candy": 211,
+    "candies": 38,
+    "shards": 8018,
+    "cum_candies": 748,
+    "cum_shards": 95394
+   },
+   {
+    "level": 43,
+    "exp_to_next": 963,
+    "candy_exp": 25,
+    "shards_per_candy": 221,
+    "candies": 39,
+    "shards": 8619,
+    "cum_candies": 786,
+    "cum_shards": 103792
+   },
+   {
+    "level": 44,
+    "exp_to_next": 980,
+    "candy_exp": 25,
+    "shards_per_candy": 227,
+    "candies": 40,
+    "shards": 9080,
+    "cum_candies": 826,
+    "cum_shards": 112872
+   },
+   {
+    "level": 45,
+    "exp_to_next": 997,
+    "candy_exp": 25,
+    "shards_per_candy": 236,
+    "candies": 40,
+    "shards": 9440,
+    "cum_candies": 866,
+    "cum_shards": 122312
+   },
+   {
+    "level": 46,
+    "exp_to_next": 1015,
+    "candy_exp": 25,
+    "shards_per_candy": 250,
+    "candies": 41,
+    "shards": 10250,
+    "cum_candies": 906,
+    "cum_shards": 132312
+   },
+   {
+    "level": 47,
+    "exp_to_next": 1032,
+    "candy_exp": 25,
+    "shards_per_candy": 264,
+    "candies": 42,
+    "shards": 11088,
+    "cum_candies": 947,
+    "cum_shards": 143136
+   },
+   {
+    "level": 48,
+    "exp_to_next": 1049,
+    "candy_exp": 25,
+    "shards_per_candy": 279,
+    "candies": 42,
+    "shards": 11718,
+    "cum_candies": 989,
+    "cum_shards": 154854
+   },
+   {
+    "level": 49,
+    "exp_to_next": 1066,
+    "candy_exp": 25,
+    "shards_per_candy": 295,
+    "candies": 43,
+    "shards": 12685,
+    "cum_candies": 1032,
+    "cum_shards": 167539
+   },
+   {
+    "level": 50,
+    "exp_to_next": 1362,
+    "candy_exp": 25,
+    "shards_per_candy": 309,
+    "candies": 55,
+    "shards": 16995,
+    "cum_candies": 1086,
+    "cum_shards": 184225
+   },
+   {
+    "level": 51,
+    "exp_to_next": 1562,
+    "candy_exp": 25,
+    "shards_per_candy": 323,
+    "candies": 63,
+    "shards": 20349,
+    "cum_candies": 1149,
+    "cum_shards": 204574
+   },
+   {
+    "level": 52,
+    "exp_to_next": 1747,
+    "candy_exp": 25,
+    "shards_per_candy": 338,
+    "candies": 70,
+    "shards": 23660,
+    "cum_candies": 1219,
+    "cum_shards": 228234
+   },
+   {
+    "level": 53,
+    "exp_to_next": 1946,
+    "candy_exp": 25,
+    "shards_per_candy": 356,
+    "candies": 78,
+    "shards": 27768,
+    "cum_candies": 1297,
+    "cum_shards": 256002
+   },
+   {
+    "level": 54,
+    "exp_to_next": 2195,
+    "candy_exp": 25,
+    "shards_per_candy": 372,
+    "candies": 88,
+    "shards": 32736,
+    "cum_candies": 1384,
+    "cum_shards": 288366
+   },
+   {
+    "level": 55,
+    "exp_to_next": 2279,
+    "candy_exp": 25,
+    "shards_per_candy": 391,
+    "candies": 92,
+    "shards": 35972,
+    "cum_candies": 1476,
+    "cum_shards": 324338
+   },
+   {
+    "level": 56,
+    "exp_to_next": 2404,
+    "candy_exp": 25,
+    "shards_per_candy": 437,
+    "candies": 97,
+    "shards": 42389,
+    "cum_candies": 1572,
+    "cum_shards": 366290
+   },
+   {
+    "level": 57,
+    "exp_to_next": 2533,
+    "candy_exp": 25,
+    "shards_per_candy": 486,
+    "candies": 102,
+    "shards": 49572,
+    "cum_candies": 1673,
+    "cum_shards": 415376
+   },
+   {
+    "level": 58,
+    "exp_to_next": 2666,
+    "candy_exp": 25,
+    "shards_per_candy": 538,
+    "candies": 107,
+    "shards": 57566,
+    "cum_candies": 1780,
+    "cum_shards": 472942
+   },
+   {
+    "level": 59,
+    "exp_to_next": 2806,
+    "candy_exp": 25,
+    "shards_per_candy": 593,
+    "candies": 113,
+    "shards": 67009,
+    "cum_candies": 1892,
+    "cum_shards": 539358
+   },
+   {
+    "level": 60,
+    "exp_to_next": 2865,
+    "candy_exp": 25,
+    "shards_per_candy": 651,
+    "candies": 115,
+    "shards": 74865,
+    "cum_candies": 2007,
+    "cum_shards": 614223
+   },
+   {
+    "level": 61,
+    "exp_to_next": 2922,
+    "candy_exp": 25,
+    "shards_per_candy": 698,
+    "candies": 117,
+    "shards": 81666,
+    "cum_candies": 2123,
+    "cum_shards": 695191
+   },
+   {
+    "level": 62,
+    "exp_to_next": 2977,
+    "candy_exp": 25,
+    "shards_per_candy": 750,
+    "candies": 120,
+    "shards": 90000,
+    "cum_candies": 2243,
+    "cum_shards": 785191
+   },
+   {
+    "level": 63,
+    "exp_to_next": 3029,
+    "candy_exp": 25,
+    "shards_per_candy": 804,
+    "candies": 122,
+    "shards": 98088,
+    "cum_candies": 2364,
+    "cum_shards": 882475
+   },
+   {
+    "level": 64,
+    "exp_to_next": 3077,
+    "candy_exp": 25,
+    "shards_per_candy": 866,
+    "candies": 124,
+    "shards": 107384,
+    "cum_candies": 2487,
+    "cum_shards": 988993
+   },
+   {
+    "level": 65,
+    "exp_to_next": 3095,
+    "candy_exp": 25,
+    "shards_per_candy": 932,
+    "candies": 124,
+    "shards": 115568,
+    "cum_candies": 2611,
+    "cum_shards": 1104561
+   },
+   {
+    "level": 66,
+    "exp_to_next": 3116,
+    "candy_exp": 25,
+    "shards_per_candy": 1004,
+    "candies": 125,
+    "shards": 125500,
+    "cum_candies": 2735,
+    "cum_shards": 1229057
+   },
+   {
+    "level": 67,
+    "exp_to_next": 3144,
+    "candy_exp": 25,
+    "shards_per_candy": 1084,
+    "candies": 126,
+    "shards": 136584,
+    "cum_candies": 2861,
+    "cum_shards": 1365641
+   },
+   {
+    "level": 68,
+    "exp_to_next": 3189,
+    "candy_exp": 25,
+    "shards_per_candy": 1173,
+    "candies": 128,
+    "shards": 150144,
+    "cum_candies": 2989,
+    "cum_shards": 1515785
+   },
+   {
+    "level": 69,
+    "exp_to_next": 3255,
+    "candy_exp": 25,
+    "shards_per_candy": 1272,
+    "candies": 131,
+    "shards": 166632,
+    "cum_candies": 3119,
+    "cum_shards": 1681145
+   }
+  ],
+  "jumps": [
+   {
+    "level": 25,
+    "ratio": 1.239,
+    "shards_before": 1380,
+    "shards": 1710,
+    "reasons": [
+     "アメ1個のEXPが40→35に減る"
+    ]
+   },
+   {
+    "level": 30,
+    "ratio": 1.49,
+    "shards_before": 2457,
+    "shards": 3660,
+    "reasons": [
+     "アメ1個のEXPが35→25に減る"
+    ]
+   },
+   {
+    "level": 50,
+    "ratio": 1.34,
+    "shards_before": 12685,
+    "shards": 16995,
+    "reasons": [
+     "次のレベルまでの必要EXPが1,066→1,362に増える"
+    ]
+   }
+  ],
+  "brackets": [
+   {
+    "from": 1,
+    "to": 30,
+    "candies": 312,
+    "shards": 24072
+   },
+   {
+    "from": 30,
+    "to": 50,
+    "candies": 721,
+    "shards": 143660
+   },
+   {
+    "from": 50,
+    "to": 60,
+    "candies": 860,
+    "shards": 371734
+   },
+   {
+    "from": 60,
+    "to": 70,
+    "candies": 1227,
+    "shards": 1141655
+   }
+  ],
+  "jump_rule": {
+   "ratio": 1.2,
+   "from_level": 10
+  }
+ }
+}

@@ -1,0 +1,430 @@
+{
+ "schema": 1,
+ "slug": "exp-types",
+ "title": "経験値タイプで育成コストはどれだけ変わる？",
+ "provenance": {
+  "generated_on": "2026-11-17",
+  "generator": "pokesleep_box.columns.exp_types",
+  "game_version": "3.6.0",
+  "engine": null,
+  "sources": [
+   "src/pokesleep_box/training_costs.json（EXPタイプ・性格・アメのEXP・かけらの表。公開データの出典はファイル内の _comment）"
+  ]
+ },
+ "assumptions": [
+  "Lv1から（または今のレベルになったばかりの状態から）アメだけで育てた量です。睡眠EXP、ミニアメブーストは入れていません。",
+  "EXPアップの性格はアメ1個のEXPが約1.18倍、EXPダウンは約0.82倍です（端数はゲームの表どおり）。",
+  "伝説・幻のポケモンはLv1で出会うことはありませんが、比べやすいようにLv1からの量も載せています。",
+  "ミュウツーのEXPタイプは1つの情報源でしか確かめられていません。"
+ ],
+ "data": {
+  "types": [
+   {
+    "exp_type": 600,
+    "label": "通常",
+    "multiplier": 1.0
+   },
+   {
+    "exp_type": 900,
+    "label": "600族",
+    "multiplier": 1.5
+   },
+   {
+    "exp_type": 1080,
+    "label": "伝説",
+    "multiplier": 1.8
+   },
+   {
+    "exp_type": 1320,
+    "label": "幻",
+    "multiplier": 2.2
+   }
+  ],
+  "natures": {
+   "up": [
+    "おくびょう",
+    "せっかち",
+    "ようき",
+    "むじゃき"
+   ],
+   "down": [
+    "ゆうかん",
+    "のんき",
+    "れいせい",
+    "なまいき"
+   ]
+  },
+  "candy_exp": [
+   {
+    "below_level": 25,
+    "neutral": 40,
+    "up": 47,
+    "down": 33
+   },
+   {
+    "below_level": 30,
+    "neutral": 35,
+    "up": 41,
+    "down": 29
+   },
+   {
+    "below_level": null,
+    "neutral": 25,
+    "up": 30,
+    "down": 21
+   }
+  ],
+  "members": {
+   "900": [
+    "ミニリュウ",
+    "ハクリュー",
+    "カイリュー",
+    "ヨーギラス",
+    "サナギラス",
+    "バンギラス",
+    "タツベイ",
+    "コモルー",
+    "ボーマンダ"
+   ],
+   "1080": [
+    "ライコウ",
+    "エンテイ",
+    "スイクン",
+    "ラティアス",
+    "ラティオス",
+    "クレセリア",
+    "ミュウツー"
+   ],
+   "1320": [
+    "ミュウ",
+    "ダークライ"
+   ]
+  },
+  "costs": [
+   {
+    "exp_type": 600,
+    "effect": "up",
+    "from": 1,
+    "to": 50,
+    "candies": 866,
+    "shards": 140138,
+    "exp": 29993
+   },
+   {
+    "exp_type": 600,
+    "effect": "up",
+    "from": 1,
+    "to": 60,
+    "candies": 1582,
+    "shards": 449707,
+    "exp": 51493
+   },
+   {
+    "exp_type": 600,
+    "effect": "up",
+    "from": 50,
+    "to": 60,
+    "candies": 717,
+    "shards": 309927,
+    "exp": 21500
+   },
+   {
+    "exp_type": 600,
+    "effect": "neutral",
+    "from": 1,
+    "to": 50,
+    "candies": 1032,
+    "shards": 167539,
+    "exp": 29993
+   },
+   {
+    "exp_type": 600,
+    "effect": "neutral",
+    "from": 1,
+    "to": 60,
+    "candies": 1892,
+    "shards": 539358,
+    "exp": 51493
+   },
+   {
+    "exp_type": 600,
+    "effect": "neutral",
+    "from": 50,
+    "to": 60,
+    "candies": 860,
+    "shards": 371734,
+    "exp": 21500
+   },
+   {
+    "exp_type": 600,
+    "effect": "down",
+    "from": 1,
+    "to": 50,
+    "candies": 1235,
+    "shards": 200019,
+    "exp": 29993
+   },
+   {
+    "exp_type": 600,
+    "effect": "down",
+    "from": 1,
+    "to": 60,
+    "candies": 2258,
+    "shards": 642308,
+    "exp": 51493
+   },
+   {
+    "exp_type": 600,
+    "effect": "down",
+    "from": 50,
+    "to": 60,
+    "candies": 1024,
+    "shards": 442598,
+    "exp": 21500
+   },
+   {
+    "exp_type": 900,
+    "effect": "up",
+    "from": 1,
+    "to": 50,
+    "candies": 1298,
+    "shards": 209969,
+    "exp": 44990
+   },
+   {
+    "exp_type": 900,
+    "effect": "up",
+    "from": 1,
+    "to": 60,
+    "candies": 2373,
+    "shards": 674652,
+    "exp": 77240
+   },
+   {
+    "exp_type": 900,
+    "effect": "up",
+    "from": 50,
+    "to": 60,
+    "candies": 1075,
+    "shards": 464683,
+    "exp": 32250
+   },
+   {
+    "exp_type": 900,
+    "effect": "neutral",
+    "from": 1,
+    "to": 50,
+    "candies": 1548,
+    "shards": 251391,
+    "exp": 44990
+   },
+   {
+    "exp_type": 900,
+    "effect": "neutral",
+    "from": 1,
+    "to": 60,
+    "candies": 2838,
+    "shards": 809320,
+    "exp": 77240
+   },
+   {
+    "exp_type": 900,
+    "effect": "neutral",
+    "from": 50,
+    "to": 60,
+    "candies": 1290,
+    "shards": 557661,
+    "exp": 32250
+   },
+   {
+    "exp_type": 900,
+    "effect": "down",
+    "from": 1,
+    "to": 50,
+    "candies": 1852,
+    "shards": 299865,
+    "exp": 44990
+   },
+   {
+    "exp_type": 900,
+    "effect": "down",
+    "from": 1,
+    "to": 60,
+    "candies": 3388,
+    "shards": 964037,
+    "exp": 77240
+   },
+   {
+    "exp_type": 900,
+    "effect": "down",
+    "from": 50,
+    "to": 60,
+    "candies": 1536,
+    "shards": 664057,
+    "exp": 32250
+   },
+   {
+    "exp_type": 1080,
+    "effect": "up",
+    "from": 1,
+    "to": 50,
+    "candies": 1558,
+    "shards": 252054,
+    "exp": 53987
+   },
+   {
+    "exp_type": 1080,
+    "effect": "up",
+    "from": 1,
+    "to": 60,
+    "candies": 2848,
+    "shards": 809715,
+    "exp": 92687
+   },
+   {
+    "exp_type": 1080,
+    "effect": "up",
+    "from": 50,
+    "to": 60,
+    "candies": 1290,
+    "shards": 557645,
+    "exp": 38700
+   },
+   {
+    "exp_type": 1080,
+    "effect": "neutral",
+    "from": 1,
+    "to": 50,
+    "candies": 1857,
+    "shards": 301482,
+    "exp": 53987
+   },
+   {
+    "exp_type": 1080,
+    "effect": "neutral",
+    "from": 1,
+    "to": 60,
+    "candies": 3405,
+    "shards": 970726,
+    "exp": 92687
+   },
+   {
+    "exp_type": 1080,
+    "effect": "neutral",
+    "from": 50,
+    "to": 60,
+    "candies": 1548,
+    "shards": 669178,
+    "exp": 38700
+   },
+   {
+    "exp_type": 1080,
+    "effect": "down",
+    "from": 1,
+    "to": 50,
+    "candies": 2222,
+    "shards": 359828,
+    "exp": 53987
+   },
+   {
+    "exp_type": 1080,
+    "effect": "down",
+    "from": 1,
+    "to": 60,
+    "candies": 4065,
+    "shards": 1156637,
+    "exp": 92687
+   },
+   {
+    "exp_type": 1080,
+    "effect": "down",
+    "from": 50,
+    "to": 60,
+    "candies": 1843,
+    "shards": 796774,
+    "exp": 38700
+   },
+   {
+    "exp_type": 1320,
+    "effect": "up",
+    "from": 1,
+    "to": 50,
+    "candies": 1904,
+    "shards": 308077,
+    "exp": 65985
+   },
+   {
+    "exp_type": 1320,
+    "effect": "up",
+    "from": 1,
+    "to": 60,
+    "candies": 3481,
+    "shards": 989878,
+    "exp": 113285
+   },
+   {
+    "exp_type": 1320,
+    "effect": "up",
+    "from": 50,
+    "to": 60,
+    "candies": 1577,
+    "shards": 681782,
+    "exp": 47300
+   },
+   {
+    "exp_type": 1320,
+    "effect": "neutral",
+    "from": 1,
+    "to": 50,
+    "candies": 2270,
+    "shards": 368616,
+    "exp": 65985
+   },
+   {
+    "exp_type": 1320,
+    "effect": "neutral",
+    "from": 1,
+    "to": 60,
+    "candies": 4162,
+    "shards": 1186628,
+    "exp": 113285
+   },
+   {
+    "exp_type": 1320,
+    "effect": "neutral",
+    "from": 50,
+    "to": 60,
+    "candies": 1892,
+    "shards": 817908,
+    "exp": 47300
+   },
+   {
+    "exp_type": 1320,
+    "effect": "down",
+    "from": 1,
+    "to": 50,
+    "candies": 2716,
+    "shards": 439778,
+    "exp": 65985
+   },
+   {
+    "exp_type": 1320,
+    "effect": "down",
+    "from": 1,
+    "to": 60,
+    "candies": 4969,
+    "shards": 1413948,
+    "exp": 113285
+   },
+   {
+    "exp_type": 1320,
+    "effect": "down",
+    "from": 50,
+    "to": 60,
+    "candies": 2253,
+    "shards": 974099,
+    "exp": 47300
+   }
+  ]
+ }
+}

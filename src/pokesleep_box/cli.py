@@ -111,6 +111,15 @@ def main() -> None:
     tier = commands.add_parser("tier-compare")
     tier.add_argument("--engine", default=P.engine)
     tier.add_argument("--out", type=Path, default=Path("data/species_tier_compare.json"))
+    columns_data = commands.add_parser(
+        "columns-data", help="コラムの数値を計算してJSONに書く（計算エンジンが必要。公開データだけを使う）")
+    columns_data.add_argument("--out", type=Path, default=Path("data/columns"))
+    columns_data.add_argument("--engine", default=P.engine)
+    columns_data.add_argument("--only", nargs="+", metavar="SLUG", help="このコラムだけ計算する")
+    columns_cmd = commands.add_parser("columns", help="コラムのJSONからHTMLページを作る")
+    columns_cmd.add_argument("--data", type=Path, default=None,
+                             help="コラムのJSONの場所（既定: data/columns）")
+    columns_cmd.add_argument("--out", type=Path, default=Path("site/columns"))
     commands.add_parser("validate-names")
     arch = commands.add_parser("archive", help="博士に送った個体をボックスから外す")
     arch.add_argument("uids", nargs="+", help="個体ID（全体、または先頭・末尾の4文字以上）")
@@ -137,6 +146,20 @@ def main() -> None:
     sync.add_argument("--settings", type=Path, default=P.settings,
                       help="ローカル設定。\"paths\"で出力先を変更できます")
     args = parser.parse_args()
+    # Columns use public data only and never open the private database.
+    if args.command == "columns-data":
+        from .columns import generate_columns
+        try:
+            written = generate_columns(args.out, args.engine, args.only)
+        except (EngineUnavailable, ValueError) as exc:
+            parser.error(str(exc))
+        print(json.dumps([str(p) for p in written], ensure_ascii=False))
+        return
+    if args.command == "columns":
+        from .columns import DEFAULT_DATA_DIR, render_columns
+        written = render_columns(args.out, args.data or DEFAULT_DATA_DIR)
+        print(json.dumps([str(p) for p in written], ensure_ascii=False))
+        return
     if args.command == "sync":
         settings = load_settings(args.settings)
         try:

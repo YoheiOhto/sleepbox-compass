@@ -411,6 +411,36 @@ training_cost("DRAGONITE", "Bashful", 1, 30)
 コミュニティの実測値で、確認できた情報源が少ないです。表と出典は
 [src/pokesleep_box/training_costs.json](src/pokesleep_box/training_costs.json)にあります。
 
+### コラム（データで解説）
+
+サイトの「コラム」は、育成の迷いどころ（Lv60まで上げるか、かけらはどこで増えるか など）を
+図と実際の数字で説明する短い記事です。数字は育成コスト表と計算エンジンで出したもので、
+自分のボックスのデータは使いません。
+
+計算と表示は2段階に分かれています。CIには計算エンジンがないため、数字はローカルで計算して
+JSONとしてコミットし、HTMLはそのJSONから作ります。
+
+```sh
+# 1. 数字を計算して data/columns/<slug>.json に書く（計算エンジンが必要）
+pokesleep-box columns-data                 # 全部
+pokesleep-box columns-data --only lv60-worth
+# 2. JSONからページを作る（エンジン不要。demo / render / sync でも site/columns/ に作られる）
+pokesleep-box columns --out site/columns
+```
+
+各JSONには、計算した日、ゲームのバージョン、エンジンのコミット、前提、出典が入ります。
+コラムを1本足すときは、次の2つのファイルだけを追加します（他のコラムとぶつかりません）。
+
+1. `src/pokesleep_box/columns/<名前>.py` に `COLUMN = Column(slug=..., order=..., title=..., generate=..., build=...)`
+   を書きます。`generate(ctx)` は数字を計算して `{"data", "assumptions", "sources"}` を返します
+   （エンジンは `ctx.engine(payload)`）。`build(doc)` はJSONだけを使って `Article`
+   （結論、図と表のセクション、見方、限界）を返します。図は `columns/svg.py` の
+   `line_chart` / `bar_chart` で作るインラインSVGです。
+2. `pokesleep-box columns-data --only <slug>` で `data/columns/<slug>.json` を作ってコミットします。
+
+モジュールは自動で見つかります。`tests/test_columns.py` が、すべてのコラムにJSONがあり
+ページが作れることと、エンジンを使わないコラムのJSONが今のコスト表と一致することを確かめます。
+
 ## プライバシー
 
 次は `.gitignore` により公開されません。
