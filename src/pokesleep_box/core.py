@@ -667,7 +667,8 @@ def attach_training_costs(training: Mapping[str, Any],
     level to the option's target) and ``gain_per_10k_shards`` (weekly gain per
     10,000 dream shards). An entry's ``best`` becomes its most cost-efficient
     option, and entries are ordered by that efficiency; options whose cost is
-    unknown keep ``None`` and sort after the priced ones.
+    unknown keep ``None`` and sort after the priced ones. Individuals whose
+    decision is ``send`` are left out.
     """
     from .costs import training_cost
 
@@ -675,6 +676,9 @@ def attach_training_costs(training: Mapping[str, Any],
     entries = []
     for entry in training.get("entries", []):
         item = by_uid.get(entry.get("uid"))
+        if item and item.get("verdict") == "send":
+            # A same-species peer is at least as good: train that one instead.
+            continue
         options = []
         for option in entry.get("options", []):
             cost = None
