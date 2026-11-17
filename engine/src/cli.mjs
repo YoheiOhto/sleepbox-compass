@@ -238,6 +238,8 @@ const metadata = () => ({pokemon: Object.fromEntries(COMPLETE_POKEDEX.map(p => [
   main_skill: p.skill.name.replace(/^.*\((.+)\)$/, '$1'),
   specialty: p.specialty,
   pokedex_number: p.pokedexNumber,
+  // Previous form, used to recognize a re-captured individual after it evolved.
+  evolves_from: p.evolvesFrom ?? null,
   ingredients: [p.ingredient0, p.ingredient30, p.ingredient60].map((choices, index) => ({
     level: [1, 30, 60][index],
     choices: choices.filter(x => x.amount > 0).map(x => [x.ingredient.name, x.amount])

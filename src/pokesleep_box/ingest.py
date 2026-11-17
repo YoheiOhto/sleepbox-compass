@@ -104,7 +104,9 @@ def ingest_path(path: Path, frames_dir: Path, ocr_command: Optional[str] = None,
                 if source.suffix.lower() in IMAGE_SUFFIXES:
                     # Two helpers can legitimately have the same species and
                     # build. Keep still captures distinct while making a
-                    # repeated import of the same screenshot idempotent.
+                    # repeated import of the same screenshot idempotent. A
+                    # later re-capture of a stored individual is matched to
+                    # it in `core.import_individuals`.
                     capture_hash = source_hash
                     item.setdefault("capture_sha256", capture_hash)
                     item.setdefault("uid", f"capture-{capture_hash[:20]}")
@@ -170,15 +172,24 @@ def audit(items: Iterable[Dict[str, Any]], path: Path) -> Dict[str, int]:
     rows = list(items)
     low = [x for x in rows if float(x.get("confidence", 0)) < .995]
     unverified = [x for x in rows if not x.get("verified")]
+    recaptured = [x for x in rows if x.get("recaptured")]
+    duplicates = [x for x in rows if x.get("possible_duplicates")]
     lines = ["# 取り込み監査レポート", "", f"- 総個体数: {len(rows)}",
-             f"- 低信頼: {len(low)}", f"- 未検証: {len(unverified)}", "",
+             f"- 低信頼: {len(low)}", f"- 未検証: {len(unverified)}",
+             f"- 登録済み個体の更新（再取り込み）: {len(recaptured)}",
+             f"- 重複の可能性: {len(duplicates)}", "",
              "未検証個体は博士へ送る候補になりません。", ""]
     for item in low or unverified:
         missing = "、".join(item.get("ocr_missing", []))
         suffix = f"（不足: {missing}）" if missing else ""
         lines.append(f"- BOX {item.get('box_index', '-')} / {item.get('species_ja', item.get('species'))}: 要確認{suffix}")
+    for item in duplicates:
+        lines.append(f"- BOX {item.get('box_index', '-')} / {item.get('species_ja', item.get('species'))}: "
+                     f"同じ構成の登録済み個体が{item['possible_duplicates']}体あり、どれの再取り込みか"
+                     "決められないため新しい個体として登録しました（重複の可能性）")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    return {"total": len(rows), "low_confidence": len(low), "unverified": len(unverified)}
+    return {"total": len(rows), "low_confidence": len(low), "unverified": len(unverified),
+            "recaptured": len(recaptured), "possible_duplicates": len(duplicates)}
 
 
 def render_review(items: Iterable[Dict[str, Any]], path: Path) -> None:
