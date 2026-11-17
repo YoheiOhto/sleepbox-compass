@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from .core import (build_team_plans, connect, decide, decide_options, import_individuals, load_archived, load_dashboard,
                    merge_exact_duplicates,
-                   plans_for_box, training_for_box,
+                   plans_for_box, training_for_box, attach_training_costs,
                    record_synced_sources, synced_sources)
 from .paths import PrivatePaths
 
@@ -156,7 +156,8 @@ def render_private(db: sqlite3.Connection, out: Path, settings: Dict[str, Any],
                 read(tier_compare, "rows", []), plans_for_box(read(seed_plans, "plans", []), active),
                 plans_for_box(read(main_seed_plans, "plans", []), active),
                 archived=load_archived(db),
-                training=training_for_box(read(training, None, {}) if training else {}, active))
+                training=attach_training_costs(
+                    training_for_box(read(training, None, {}) if training else {}, active), dashboard))
     return out / "index.html"
 
 
