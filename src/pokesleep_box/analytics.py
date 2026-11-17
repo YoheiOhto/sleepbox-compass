@@ -156,13 +156,16 @@ def analyze(items: Sequence[Mapping[str, Any]], settings: Mapping[str, Any] = {}
                "low_confidence": sum(not x.get("verified") and
                                      float(x.get("confidence", 0) or 0) < .8 for x in items),
                "sp_match": sum(x.get("sp_diff") == 0 and x.get("sp_computed") is not None for x in items)}
+    tonight = capture_tonight(capture_plans, items, encounters,
+                              int(settings.get("captureLevel") or CAPTURE_LEVEL))
     return {"forecasts": forecasts, "growth": growth, "coverage": coverage,
             "capture": {"general": general, "tailored": tailored, "favorites": favorites,
                         "by_island": by_island,
                         "encounter_updated": encounters.get("updated"),
                         # Engine-simulated capture candidates (see capture_tonight).
-                        "tonight": capture_tonight(capture_plans, items, encounters,
-                                                   int(settings.get("captureLevel") or CAPTURE_LEVEL)),
+                        "tonight": tonight,
+                        # The same candidates merged over every research area.
+                        "all_fields": capture_all_fields(tonight),
                         "catch_level": int(settings.get("captureLevel") or CAPTURE_LEVEL),
                         "build": capture_plans.get("build"),
                         "sample": bool(capture_plans.get("sample"))}, "quality": quality}
@@ -173,6 +176,7 @@ def analyze(items: Sequence[Mapping[str, Any]], settings: Mapping[str, Any] = {}
 # estimate changes little between Lv5 and Lv20.
 CAPTURE_LEVEL = 10
 CAPTURE_STATUS_ORDER = ("good", "lucky", "skip")
+SLEEP_TYPE_ORDER = ("うとうと", "すやすや", "ぐっすり")
 
 
 def capture_species_rows(capture: Mapping[str, Any], items: Sequence[Mapping[str, Any]],
@@ -283,6 +287,47 @@ def capture_tonight(capture: Mapping[str, Any], items: Sequence[Mapping[str, Any
                                 "skip": [r for r in picked if r["status"] == "skip"]})
         views.append({"field": field, "sleep_types": sleep_types})
     return views
+
+
+def capture_all_fields(views: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    """Merge the per-area capture views into one list per sleep type.
+
+    Each evolution line appears once per sleep type, using its best row by
+    the same order as the per-area lists. ``fields`` lists the research
+    areas where the line appears with that sleep type, and ``seen`` and
+    ``others`` are merged over those areas.
+    """
+    merged: Dict[str, Dict[str, Dict[str, Any]]] = {}
+    for view in views:
+        for group in view.get("sleep_types", []):
+            lines = merged.setdefault(group["sleep_type"], {})
+            for status in CAPTURE_STATUS_ORDER:
+                for row in group.get(status, []):
+                    key = row.get("base_key") or row["species_key"]
+                    found = lines.get(key)
+                    if found is None:
+                        lines[key] = found = {"rows": [], "fields": [], "seen": [], "others": []}
+                    found["rows"].append(row)
+                    if view["field"] not in found["fields"]:
+                        found["fields"].append(view["field"])
+                    found["seen"] += [s for s in row.get("seen", []) if s not in found["seen"]]
+                    found["others"] += [o for o in row.get("others", []) if o not in found["others"]]
+    order = {name: i for i, name in enumerate(SLEEP_TYPE_ORDER)}
+    result = []
+    for sleep_type, lines in sorted(merged.items(),
+                                    key=lambda kv: order.get(kv[0], len(order))):
+        picked = []
+        for found in lines.values():
+            best = dict(min(found["rows"], key=_capture_order))
+            best["fields"] = found["fields"]
+            best["seen"] = found["seen"]
+            best["others"] = [o for o in found["others"] if o != best.get("evolves_to")]
+            picked.append(best)
+        picked.sort(key=_capture_order)
+        result.append({"sleep_type": sleep_type,
+                       **{status: [r for r in picked if r["status"] == status]
+                          for status in CAPTURE_STATUS_ORDER}})
+    return result
 
 
 def _capture_order(row: Mapping[str, Any]) -> tuple:
