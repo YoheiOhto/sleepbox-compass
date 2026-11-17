@@ -20,7 +20,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence
 
 from .localization import SUBSKILL_UNLOCKS, base_main_skill, names
 
-DEFAULT_MODEL = "mlx-community/Qwen3.5-9B-8bit"
+DEFAULT_MODEL = "mlx-community/Qwen3.5-4B-4bit"
 DEFAULT_CACHE = Path("data/private/vlm_cache")
 # Bump when the prompt or parser changes so stale cached reads are not reused.
 PROMPT_VERSION = "3"

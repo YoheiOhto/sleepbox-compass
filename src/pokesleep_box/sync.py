@@ -15,7 +15,7 @@ from .core import (build_team_plans, connect, decide, import_individuals, load_a
                    record_synced_sources, synced_sources)
 from .paths import PrivatePaths
 
-DEFAULT_VLM_MODEL = "mlx-community/Qwen3.5-9B-8bit"
+DEFAULT_VLM_MODEL = "mlx-community/Qwen3.5-4B-4bit"
 REVIEWED_READER = "reviewed-json"
 
 Progress = Callable[[str], None]

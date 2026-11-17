@@ -157,7 +157,7 @@ Lv1/30/60候補だけをレビュー画面に表示するので、画像を見�
 レビュー画面では現在レベル・SP・性格・メインスキルLv・食材を直接修正してから照合済みにできます。
 ### Qwen VLMによる読み取り（推奨）
 
-Apple Silicon（Python 3.10以上）では、ローカルのQwen3.5-9B（mlx-vlm）で読み取れます。
+Apple Silicon（Python 3.10以上）では、ローカルのQwen3.5-4B（4bit、mlx-vlm）で読み取れます。
 雑に撮った画像やスクロール途中の動画でも、見えている項目だけを読み、同じ個体のフレームを
 項目ごとの多数決でまとめます。食材は画面の個数を読み、種族の食材候補と照らして決めます。
 同じ個数の候補が2つある枠は、食材アイコンを固定したNeroli's Labの食材画像
@@ -173,8 +173,9 @@ python3.12 -m venv .venv && .venv/bin/pip install -e '.[qwen]'
 検証用の30枚（詳細画面のスクリーンショット）では、種族・Lv・SP・性格・メインスキル・
 サブスキル5枠のすべてが正しかったのはVisionで14枚、Qwenで30枚でした。食材（3枠の種類と個数）は
 Vision 0枚、Qwenとアイコン照合で30枚が正しく、要確認になった個体はありませんでした。同じ30枚を並べた動画でも、Qwenは30個体すべてを同じ精度で
-取り出しました。速度は1枚あたり約23秒（M5・8bit）で、Vision（約0.4秒）よりかなり遅いため、
-動画は同じに見えるフレームを読み飛ばします。
+取り出しました。既定のQwen3.5-4B（4bit）は同じ30枚で9B（8bit）と同じく全項目が正しく、速度は1枚あたり
+約7秒（M5、9B・8bitは約23秒、2B・8bitは14/30しか正しくありませんでした）です。Vision（約0.4秒）よりは
+遅いため、動画は同じに見えるフレームを読み飛ばします。`--vlm-model`で別のモデルも指定できます。
 
 種族で決まる値は画面から読まずにゲームデータから補完します。きのみの種類、メインスキル、
 Lv1の食材と各枠の食材候補・個数、1回のおてつだいで取れるきのみの数（1個、きのみタイプは2個、
@@ -205,12 +206,12 @@ Qwenの読み取り結果は画像ごとに`data/private/vlm_cache/`へ保存さ
 1. 画像をzipにしてGoogleドライブの`マイドライブ/sleepbox-colab/inbox.zip`に置く。
 2. VS CodeにGoogle公式の「Colab」拡張機能を入れ、ノートブックのカーネルで「Colab」を選んでログインし、
    GPU（A100またはL4）のランタイムで「すべて実行」する（ブラウザのColabで開いても同じです）。
-3. ドライブの`sleepbox-colab/mlx-community_Qwen3.5-9B-8bit-p3/`にできた結果を手元のキャッシュへ
+3. ドライブの`sleepbox-colab/mlx-community_Qwen3.5-4B-4bit-p3/`にできた結果を手元のキャッシュへ
    コピーして`sync`する。読み取り済みの画像はキャッシュに当たり、推論なしで終わります。
 
 ```sh
-cp "<Googleドライブ>/マイドライブ/sleepbox-colab/mlx-community_Qwen3.5-9B-8bit-p3/"*.json \
-   data/private/vlm_cache/mlx-community_Qwen3.5-9B-8bit-p3/
+cp "<Googleドライブ>/マイドライブ/sleepbox-colab/mlx-community_Qwen3.5-4B-4bit-p3/"*.json \
+   data/private/vlm_cache/mlx-community_Qwen3.5-4B-4bit-p3/
 pokesleep-box sync
 ```
 
