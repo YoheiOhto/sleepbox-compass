@@ -8,7 +8,7 @@ through two steps:
    fields unchanged) in one batched engine call. When exactly one shift gives
    the shown SP exactly, the level is corrected, ``repaired`` is set,
    ``repair_note`` records 「Lv 16→14（SPで補正）」 and the row is SP-checked
-   again with the normal rules (so Lv56+ rows are still never auto-verified).
+   again with the normal rules.
    No match or several matches leave the row unchanged.
 2. Escalation: rows still mismatched whose source is a still image read by
    Qwen are read again with a larger fallback model (same cache directory),
@@ -22,7 +22,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence
 
-from .spcheck import MISMATCH, check_items
+from .spcheck import STRICT_BELOW_LEVEL, MISMATCH, check_items
 
 LEVEL_SHIFTS = (-2, -1, 1, 2)
 # Fields assumed unread for a stored row whose scan-time read is unknown
@@ -56,7 +56,7 @@ def _mismatched_rows(db: sqlite3.Connection, items: Sequence[Dict[str, Any]]) ->
 
 
 def repair_levels(db: sqlite3.Connection, items: Sequence[Dict[str, Any]], command: str,
-                  strict_below_level: int = 56,
+                  strict_below_level: int = STRICT_BELOW_LEVEL,
                   on_progress: Optional[Progress] = None) -> List[Dict[str, Any]]:
     """Correct the level of SP-mismatched items when one level shift fits exactly.
 
@@ -239,7 +239,7 @@ def row_item(row: Mapping[str, Any]) -> Dict[str, Any]:
 
 def flagged_items(db: sqlite3.Connection, source: Path, vlm_cache: Optional[Path],
                   fallback_model: Optional[str], frames: Path) -> Dict[str, Any]:
-    """Collect the SP-mismatched and never-checked rows for `sync --recheck`.
+    """Collect the unverified, unconfirmed rows for `sync --recheck`.
 
     Returns ``items`` (one per row; see ``row_item``) and ``images`` (stored
     uid -> still image for rows eligible for a re-read). A still row
@@ -250,12 +250,12 @@ def flagged_items(db: sqlite3.Connection, source: Path, vlm_cache: Optional[Path
     stored field values always win. Only captures read by a Qwen model other
     than ``fallback_model`` are eligible for a re-read.
     """
-    # SP mismatches, plus rows that were never SP-checked (e.g. imported before
-    # the automatic check existed); `check_items` checks them first and only
-    # the mismatches go on to repair.
+    # Every unverified row: SP mismatches, rows never SP-checked (imported
+    # before the automatic check existed) and partial matches, so a rule change
+    # (e.g. exact matches at Lv56+) reaches stored rows. `check_items` checks
+    # them first and only the mismatches go on to repair.
     rows = db.execute("""SELECT * FROM individual WHERE archived=0 AND review_confirmed=0
-                         AND verified=0 AND (sp_flag LIKE 'SP不一致%' OR sp_computed IS NULL)
-                         ORDER BY box_index, uid""").fetchall()
+                         AND verified=0 ORDER BY box_index, uid""").fetchall()
     sources = {row["sha256"][:20]: row for row in db.execute("SELECT * FROM scan_source")}
     items, images = [], {}
     for row in rows:

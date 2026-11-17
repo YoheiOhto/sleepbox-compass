@@ -126,11 +126,11 @@ class SpCheckTests(unittest.TestCase):
         self.assertIn("SP不一致（画面 400 / 計算 412）", listed[0])
         self.assertIn("不足: subskills", listed[1])
 
-    def test_level_56_and_above_is_not_auto_verified(self):
+    def test_exact_match_auto_verifies_at_level_56_and_above(self):
         item = scanned("a", level=60)
         counts = self.check([item])
-        self.assertEqual(counts["unchecked"], 1)
-        self.assertEqual(self.row("capture-a")["verified"], 0)
+        self.assertEqual(counts["match"], 1)
+        self.assertEqual(self.row("capture-a")["verified"], 1)
 
     def test_human_confirmed_rows_are_untouched(self):
         import_individuals(self.db, [scanned("a", review_confirmed=True)])
