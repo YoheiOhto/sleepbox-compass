@@ -18,6 +18,14 @@ produces no files the engine needs. The bridge's `metadata` mode reports each
 species' berry, specialty, base main skill (variants such as
 `Psystrike (Berry Zone)` are reduced to `Berry Zone`) and ingredient options.
 
+To move to a newer upstream release: run
+`NEROLI_COMMIT=<sha> ./engine/install.sh`, then update the pin in
+`engine/install.sh` and `nerolis_commit` in `src/pokesleep_box/names_ja.json`,
+regenerate `ABSOLUTE_REFERENCES` in `src/pokesleep_box/core.py` with
+`echo '{"mode":"score-references","anchors":[60,80]}' | engine/bin/pokesleep-engine`,
+and re-run `pokesleep-box sync`. Evaluations record the checked-out commit
+(`engineVersion`), so the new engine re-evaluates every individual.
+
 `engine/bin/pokesleep-engine` then exposes batched `verify`, `evaluate`, and
 `benchmark` modes. Evaluation uses Neroli’s Lab's simulation for berry,
 ingredient/cooking energy, direct-strength energy, team skill interactions,

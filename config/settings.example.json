@@ -28,6 +28,6 @@
   },
   "engine": {
     "command": "engine/bin/pokesleep-engine",
-    "commit": "a033942b699854a80507e48b5246199afec17e01"
+    "commit": "8a6566c5e824db51e9939e2929d3734c38de11f8"
   }
 }
