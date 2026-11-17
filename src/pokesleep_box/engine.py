@@ -7,7 +7,7 @@ import threading
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional
 
-from .core import ANCHORS, ROLES, absolute_role_scores, now
+from .core import ANCHORS, LEVEL_SCORE_ANCHORS, ROLES, absolute_role_scores, now
 
 SUBSKILL_UPGRADES = {
     "Helping Speed S": "Helping Speed M", "Ingredient Finder S": "Ingredient Finder M",
@@ -92,7 +92,7 @@ def evaluate(db, command: str = "engine/bin/pokesleep-engine",
 
     rows = db.execute("SELECT * FROM individual WHERE archived=0 ORDER BY box_index").fetchall()
     computable = [row for row in rows if row["species"] != "UNKNOWN"]
-    response = run_engine({"mode": "evaluate", "anchors": list(ANCHORS),
+    response = run_engine({"mode": "evaluate", "anchors": list(LEVEL_SCORE_ANCHORS),
                            "islands": {name: list(berries) for name, berries in ISLANDS.items()},
                            "iterations": 500,
                            "instances": [{"uid": r["uid"], "instance": individual_to_engine(dict(r))}
