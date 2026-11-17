@@ -126,7 +126,12 @@ class CaptureViewTests(unittest.TestCase):
     def test_views_follow_encounters_and_merge_lines(self):
         views = capture_tonight(summarize_capture(response()), self.items, ENCOUNTERS)
         self.assertEqual([v["field"] for v in views], ["ゴールド旧発電所"])
-        snooze, slumber = views[0]["sleep_types"]
+        merged, snooze, slumber = views[0]["sleep_types"]
+        # The first group merges every sleep type of the area.
+        self.assertEqual((merged["sleep_type"], merged["all"]), ("すべて", True))
+        raichu = next(r for r in merged["good"] if r["species_key"] == "RAICHU")
+        self.assertEqual(raichu["sleep_types"], ["すやすや", "ぐっすり"])
+        self.assertNotIn("すべて", [g["sleep_type"] for g in capture_all_fields(views)])
         self.assertEqual(snooze["sleep_type"], "すやすや")
         self.assertEqual([r["species_key"] for r in snooze["good"]], ["RAICHU"])
         self.assertEqual(snooze["good"][0]["seen"], ["ライチュウ"])

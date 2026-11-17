@@ -295,8 +295,36 @@ def capture_tonight(capture: Mapping[str, Any], items: Sequence[Mapping[str, Any
                                 "good": [r for r in picked if r["status"] == "good"],
                                 "lucky": [r for r in picked if r["status"] == "lucky"],
                                 "skip": [r for r in picked if r["status"] == "skip"]})
+        if len(sleep_types) > 1:
+            sleep_types.insert(0, _merge_sleep_types(sleep_types))
         views.append({"field": field, "sleep_types": sleep_types})
     return views
+
+
+def _merge_sleep_types(groups: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
+    """One "すべて" group for a research area: every sleep type merged.
+
+    Each evolution line appears once with its best row; ``sleep_types``
+    lists the sleep types where it appears in this area.
+    """
+    lines: Dict[str, Dict[str, Any]] = {}
+    for group in groups:
+        for status in CAPTURE_STATUS_ORDER:
+            for row in group.get(status, []):
+                key = row.get("base_key") or row["species_key"]
+                found = lines.setdefault(key, {"rows": [], "sleep_types": []})
+                found["rows"].append(row)
+                if group["sleep_type"] not in found["sleep_types"]:
+                    found["sleep_types"].append(group["sleep_type"])
+    picked = []
+    for found in lines.values():
+        best = dict(min(found["rows"], key=_capture_order))
+        best["sleep_types"] = found["sleep_types"]
+        picked.append(best)
+    picked.sort(key=_capture_order)
+    return {"sleep_type": "すべて", "all": True,
+            **{status: [r for r in picked if r["status"] == status]
+               for status in CAPTURE_STATUS_ORDER}}
 
 
 def capture_all_fields(views: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
@@ -310,6 +338,8 @@ def capture_all_fields(views: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any
     merged: Dict[str, Dict[str, Dict[str, Any]]] = {}
     for view in views:
         for group in view.get("sleep_types", []):
+            if group.get("all"):
+                continue  # the per-area "すべて" group repeats the others
             lines = merged.setdefault(group["sleep_type"], {})
             for status in CAPTURE_STATUS_ORDER:
                 for row in group.get(status, []):
