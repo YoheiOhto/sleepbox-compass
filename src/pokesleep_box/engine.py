@@ -99,6 +99,11 @@ def evaluate(db, command: str = "engine/bin/pokesleep-engine",
     version = response.get("engineVersion", "nerolis-lab")
     valuation = response.get("valuationHash", "default")
     count = 0
+    # Scores from another engine or valuation would otherwise sit next to the
+    # new ones under a different primary key, and readers (which key only on
+    # uid/anchor/role) would pick one of them arbitrarily.
+    db.execute("DELETE FROM evaluation WHERE engine_version!=? OR valuation_hash!=?",
+               (version, valuation))
     for result in response.get("results", []):
         if result.get("finalEvolution"):
             db.execute("UPDATE individual SET final_evolution=? WHERE uid=?",

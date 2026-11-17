@@ -586,3 +586,28 @@ class CoreTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class EvaluateVersionTests(unittest.TestCase):
+    def test_new_engine_version_replaces_old_scores(self):
+        from pokesleep_box import engine
+        with tempfile.TemporaryDirectory() as tmp:
+            db = connect(Path(tmp) / "box.sqlite")
+            items = json.loads((ROOT / "data/example_individuals.json").read_text())["individuals"]
+            import_individuals(db, items[:1])
+            uid = db.execute("SELECT uid FROM individual").fetchone()["uid"]
+
+            def fake(version, score):
+                def run(payload, *args, **kwargs):
+                    if payload["mode"] == "team-evaluate":
+                        return {"engineVersion": version, "plans": []}
+                    return {"engineVersion": version, "valuationHash": "v",
+                            "results": [{"uid": uid, "scores": {"60": {"berry": score}}}]}
+                return run
+
+            for version, score in (("old", 1.0), ("new", 2.0)):
+                with patch.object(engine, "run_engine", fake(version, score)):
+                    engine.evaluate(db, team_out=Path(tmp) / "teams.json")
+            rows = db.execute("SELECT engine_version, score FROM evaluation").fetchall()
+            self.assertEqual([(r["engine_version"], r["score"]) for r in rows], [("new", 2.0)])
+            db.close()
