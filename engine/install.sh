@@ -6,7 +6,8 @@ VENDOR="$ROOT/engine/vendor/nerolis-lab"
 if [ -x "$ROOT/.cache/node/bin/npm" ]; then
   PATH="$ROOT/.cache/node/bin:$PATH"
 fi
-COMMIT=8a6566c5e824db51e9939e2929d3734c38de11f8
+# Override with NEROLI_COMMIT=<sha> to try another upstream commit.
+COMMIT=${NEROLI_COMMIT:-8a6566c5e824db51e9939e2929d3734c38de11f8}
 if [ ! -d "$VENDOR/.git" ]; then
   git clone https://github.com/nerolis-lab/nerolis-lab.git "$VENDOR"
 fi

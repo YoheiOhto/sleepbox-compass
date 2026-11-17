@@ -7,6 +7,14 @@ import {
 import { calculatePokemonProduction, calculateTeam } from '../vendor/nerolis-lab/backend/dist/services/api-service/production/production-service.js';
 import { defaultUserRecipes } from '../vendor/nerolis-lab/backend/dist/services/simulation-service/team-simulator/cooking-state/cooking-utils.js';
 
+// Report the Neroli's Lab commit actually checked out (install.sh leaves the
+// vendor clone on a detached HEAD), so stored evaluations name the real engine.
+const ENGINE_VERSION = (() => {
+  try {
+    const head = fs.readFileSync(new URL('../vendor/nerolis-lab/.git/HEAD', import.meta.url), 'utf8').trim();
+    return `nerolis-lab@${head.startsWith('ref:') ? 'unknown' : head}`;
+  } catch { return 'nerolis-lab@unknown'; }
+})();
 const input = JSON.parse(fs.readFileSync(0, 'utf8'));
 const recipeLevel = Math.max(1, Math.min(60, input.recipeLevel ?? 1));
 const userRecipes = Object.fromEntries(Object.entries(defaultUserRecipes()).map(([type, recipes]) =>
@@ -70,7 +78,7 @@ const evaluate = () => {
     process.stderr.write(`PROGRESS evaluate ${index + 1} ${total}\n`);
     return row;
   });
-  return {engineVersion: 'nerolis-lab@a033942b699854a80507e48b5246199afec17e01',
+  return {engineVersion: ENGINE_VERSION,
     valuationHash: 'rp-components-v1', results};
 };
 
@@ -219,12 +227,12 @@ const teamEvaluate = () => {
       process.stderr.write(`PROGRESS team-evaluate ${done} ${total}\n`);
       return plan;
     }).filter(Boolean));
-  return {engineVersion: 'nerolis-lab@a033942b699854a80507e48b5246199afec17e01', plans};
+  return {engineVersion: ENGINE_VERSION, plans};
 };
 const customTeam = () => {
   if (!input.island?.name || !Array.isArray(input.island.berries)) throw new Error('custom-team requires island');
   if (!Array.isArray(input.instances) || input.instances.length !== 5) throw new Error('custom-team requires exactly 5 instances');
-  return {engineVersion:'nerolis-lab@a033942b699854a80507e48b5246199afec17e01',
+  return {engineVersion:ENGINE_VERSION,
     plan:optimizeTeam(input.instances,input.island.name,input.island.berries,String(input.teamMode||'current'))};
 };
 const benchmark = () => ({benchmarks: OPTIMAL_POKEDEX.filter(p=>!p.evolvesInto.length).map(p=>({
