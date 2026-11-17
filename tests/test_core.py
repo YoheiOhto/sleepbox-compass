@@ -661,3 +661,20 @@ class TeamPlanReuseTests(unittest.TestCase):
         self.db.commit()
         self.run_evaluate(self.uids[1])
         self.assertEqual(self.team_runs, 3)
+
+
+class LevelScoreTests(unittest.TestCase):
+    def test_level_scores_use_each_levels_reference(self):
+        from pokesleep_box.core import ABSOLUTE_REFERENCES, level_scores
+        refs = ABSOLUTE_REFERENCES
+        evaluations = {50: {"berry": refs[50]["berry"] / 2, "ingredient": 0.0, "skill": 0.0},
+                       60: {"berry": refs[60]["berry"], "ingredient": 0.0, "skill": 0.0},
+                       80: {"berry": 0.0, "ingredient": refs[80]["ingredient"] * 2, "skill": 0.0}}
+        result = level_scores(evaluations)
+        self.assertEqual(result["50"]["score"], 50.0)
+        self.assertEqual(result["60"]["score"], 100.0)
+        self.assertEqual(result["80"]["by_role"]["ingredient"], 100.0)
+
+    def test_missing_level_is_left_out(self):
+        from pokesleep_box.core import level_scores
+        self.assertEqual(level_scores({60: {"berry": 1.0, "ingredient": 1.0, "skill": 1.0}}).keys(), {"60"})
