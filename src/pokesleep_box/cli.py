@@ -126,7 +126,7 @@ def main() -> None:
     sync.add_argument("--fallback-vlm-model", default=FALLBACK_VLM_MODEL,
                       help="SPが合わない静止画を読み直すモデル（noneで読み直さない）")
     sync.add_argument("--recheck", action="store_true",
-                      help="登録済みのSP不一致の個体も、レベル補正と読み直しをやり直す")
+                      help="登録済みのSP不一致・未検算の個体も、SP確認・レベル補正・読み直しをやり直す")
     sync.add_argument("--interval", type=float, default=.8, help="動画OCRのフレーム間隔（秒）")
     sync.add_argument("--settings", type=Path, default=P.settings,
                       help="ローカル設定。\"paths\"で出力先を変更できます")

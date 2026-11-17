@@ -201,6 +201,22 @@ class RecheckTests(unittest.TestCase):
                                        "mlx-community/Qwen3.5-4B-4bit",
                                        self.paths.frames)["images"], {})
 
+    def test_never_checked_rows_are_rechecked_but_checked_rows_are_not(self):
+        flagged_uid, _ = self.store("one.png", b"one")
+        unchecked_uid, _ = self.store("two.png", b"two", nature="Mild")
+        checked_uid, _ = self.store("three.png", b"three", nature="Lonely")
+        verified_uid, _ = self.store("four.png", b"four", nature="Bold")
+        self.db.execute("UPDATE individual SET sp_flag=NULL, sp_computed=NULL WHERE uid=?",
+                        (unchecked_uid,))
+        self.db.execute("UPDATE individual SET sp_flag=NULL, sp_computed=500 WHERE uid=?",
+                        (checked_uid,))
+        self.db.execute("UPDATE individual SET sp_flag=NULL, sp_computed=NULL, verified=1 WHERE uid=?",
+                        (verified_uid,))
+        found = flagged_items(self.db, self.paths.inbox, self.paths.vlm_cache,
+                              FALLBACK_VLM_MODEL, self.paths.frames)
+        self.assertEqual(sorted(item["stored_uid"] for item in found["items"]),
+                         sorted([flagged_uid, unchecked_uid]))
+
     def test_sync_recheck_repairs_stored_rows_then_evaluates(self):
         uid, path = self.store("one.png", b"one")
         calls, rereads = [], []
