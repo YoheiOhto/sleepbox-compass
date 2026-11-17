@@ -34,9 +34,12 @@ def scan_new(db: sqlite3.Connection, path: Path, frames: Path, vlm_cache: Path,
     """Read captures not synced before, import them and record their hashes.
 
     Returns ``items`` (the imported dicts, with ``stored_uid``), ``done``
-    (synced sources), ``imported`` and ``qwen`` (the reader, if any).
+    (synced sources), ``imported``, ``qwen`` (the reader, if any) and
+    ``low_resolution`` (names of new still images whose shorter side is below
+    ``ingest.LOW_RESOLUTION_SHORT_SIDE``). Those images are still read; each
+    gets a progress line and their items get ``low_resolution``.
     """
-    from .ingest import ingest_path
+    from .ingest import LOW_RESOLUTION_SHORT_SIDE, ingest_path, low_resolution_size
 
     reader_name = ocr
     if reader_name == "auto":
@@ -49,15 +52,41 @@ def scan_new(db: sqlite3.Connection, path: Path, frames: Path, vlm_cache: Path,
         qwen = QwenReader(vlm_model, vlm_cache)
         reader_name = f"qwen:{vlm_model}"
     done: List[tuple] = []
+    low_resolution: List[str] = []
+
+    def source_done(source: Path, digest: str, count: int) -> None:
+        done.append((digest, source.name, reader_name, count))
+        size = low_resolution_size(source)
+        if size is not None:
+            low_resolution.append(source.name)
+            on_progress(f"{source.name}: 低解像度の画像です（{size[0]}x{size[1]}、"
+                        f"短い辺が{LOW_RESOLUTION_SHORT_SIDE}px未満）。読み間違いが増えます")
+
     items = ingest_path(path, frames, ocr_command,
                         vision=reader_name == "vision", interval=interval,
                         on_progress=on_progress, qwen=qwen,
                         skip_hashes=set() if rescan else synced_sources(db),
-                        on_source_done=lambda source, digest, count: done.append(
-                            (digest, source.name, reader_name, count)))
+                        on_source_done=source_done)
+    if low_resolution:
+        names = set(low_resolution)
+        for item in items:
+            if names & set(item.get("ocr_sources") or []):
+                item["low_resolution"] = True
     imported = import_individuals(db, items)
     record_synced_sources(db, done)
-    return {"items": items, "done": done, "imported": imported, "qwen": qwen}
+    return {"items": items, "done": done, "imported": imported, "qwen": qwen,
+            "low_resolution": low_resolution}
+
+
+def low_resolution_message(names: List[str], limit: int = 10) -> str:
+    """Japanese advice to re-export low-resolution images, naming at most ``limit``."""
+    from .ingest import LOW_RESOLUTION_SHORT_SIDE
+
+    listed = "、".join(names[:limit])
+    if len(names) > limit:
+        listed += f" ほか{len(names) - limit}枚"
+    return (f"低解像度の画像が{len(names)}枚あります（短い辺が{LOW_RESOLUTION_SHORT_SIDE}px未満）。"
+            f"読み間違いが増えるので、写真アプリから元のサイズで書き出し直してください: {listed}")
 
 
 def import_checked(db: sqlite3.Connection, items: List[Dict[str, Any]], engine: str,
@@ -180,6 +209,9 @@ def run_sync(source: Path, paths: PrivatePaths, settings: Optional[Dict[str, Any
         summary.update(new_sources=len(done),
                        new_individuals=len(touched - before),
                        updated_individuals=len(touched & before))
+        summary["low_resolution"] = len(scanned["low_resolution"])
+        if scanned["low_resolution"]:
+            summary["messages"].append(low_resolution_message(scanned["low_resolution"]))
         changed = bool(done) or bool(summary.get("reviewed_imported")) or recheck
         engine_ok = True
         images: Dict[str, Path] = {}

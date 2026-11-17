@@ -3,14 +3,19 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+import struct
 import subprocess
 from pathlib import Path
-from typing import Any, Callable, Collection, Dict, Iterable, List, Mapping, Optional
+from typing import Any, Callable, Collection, Dict, Iterable, List, Mapping, Optional, Tuple
 
 from .localization import normalize_individual
 
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".heic", ".webp"}
 VIDEO_SUFFIXES = {".mov", ".mp4", ".m4v"}
+# A still image whose shorter side is below this many pixels is "low
+# resolution". Shrunk exports (e.g. 359x780 instead of 1179x2556 from the iOS
+# Photos app) are still read, but levels and badge numbers are often misread.
+LOW_RESOLUTION_SHORT_SIDE = 720
 
 
 def file_sha256(path: Path) -> str:
@@ -19,6 +24,69 @@ def file_sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1 << 20), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def image_size(path: Path) -> Optional[Tuple[int, int]]:
+    """Pixel size (width, height) of a still image, or ``None`` when unknown.
+
+    Uses Pillow when installed (it only reads the header). Without Pillow,
+    PNG and JPEG headers are parsed directly; other formats are then unknown.
+    """
+    try:
+        from PIL import Image
+    except ImportError:
+        Image = None
+    if Image is not None:
+        try:
+            with Image.open(path) as image:
+                return image.size
+        except Exception:
+            pass
+    try:
+        with Path(path).open("rb") as handle:
+            return _header_size(handle.read(1 << 16))
+    except OSError:
+        return None
+
+
+def _header_size(data: bytes) -> Optional[Tuple[int, int]]:
+    """Size from the first bytes of a PNG or JPEG file (no decoding)."""
+    if data[:8] == b"\x89PNG\r\n\x1a\n" and data[12:16] == b"IHDR":
+        return struct.unpack(">II", data[16:24])
+    if data[:2] != b"\xff\xd8":
+        return None
+    index = 2
+    while index + 9 < len(data):
+        if data[index] != 0xFF:
+            return None
+        marker = data[index + 1]
+        if marker == 0xFF:
+            index += 1
+            continue
+        if marker in (0x01, 0xD8) or 0xD0 <= marker <= 0xD7:
+            index += 2
+            continue
+        length = struct.unpack(">H", data[index + 2:index + 4])[0]
+        # SOF0-SOF15 carry the frame size, except DHT (C4), JPG (C8) and DAC (CC).
+        if 0xC0 <= marker <= 0xCF and marker not in (0xC4, 0xC8, 0xCC):
+            height, width = struct.unpack(">HH", data[index + 5:index + 9])
+            return width, height
+        index += 2 + length
+    return None
+
+
+def low_resolution_size(path: Path, threshold: int = LOW_RESOLUTION_SHORT_SIDE
+                        ) -> Optional[Tuple[int, int]]:
+    """The size of a still image whose shorter side is below ``threshold``, else ``None``.
+
+    Videos and images of unknown size are never reported.
+    """
+    if Path(path).suffix.lower() not in IMAGE_SUFFIXES:
+        return None
+    size = image_size(path)
+    if size is None or min(size) >= threshold:
+        return None
+    return size
 
 
 def discover_inputs(inbox: Path) -> List[Path]:
@@ -267,7 +335,7 @@ const todo=x=>x.review_fields??x.ocr_missing??[],need=(x,k)=>todo(x).includes(k)
 const ingredientFields=(x,i)=>(x.ingredient_options||[]).map((slot,j)=>`<label class="wide${{need(x,'ingredients')}}"><span>Lv.${{slot.level}} 食材${{flag(x,'ingredients')}}</span><select data-i="${{i}}" data-slot="${{j}}"><option value="">画像を見て選択</option>${{slot.choices.map(c=>`<option value="${{esc(JSON.stringify(c.slice(0,2)))}}" ${{x.ingredients?.[j]?.[0]===c[0]?'selected':''}}>${{esc(c[2])}} ×${{c[1]}}</option>`).join('')}}</select></label>`).join('');
 const ready=x=>!x.review_confirmed&&!x.sp_flag&&x.sp_check!=='mismatch'&&!todo(x).length,shot=x=>x.capture_image?`<a class="shot" href="${{esc(x.capture_image)}}" target="_blank" rel="noopener"><img src="${{esc(x.capture_image)}}" alt="取り込んだ画像" loading="lazy" onerror="this.parentElement.style.display='none'"></a>`:'';
 const natureOptions=x=>Object.entries(NATURES).map(([v,n])=>`<option value="${{v}}" ${{x.nature===v?'selected':''}}>${{esc(n)}}</option>`).join('');
-main.innerHTML=rows.map((x,i)=>`<article class="card${{todo(x).length||x.sp_flag?' needs':''}}"><div class="card-head"><span class="box-no">BOX ${{x.box_index??'-'}}</span><div><h2>${{esc(x.species_ja||x.species)}}</h2><div class="meta">きのみ ${{esc(x.berry_ja||x.berry||'-')}} · メインスキル ${{esc(MAINSKILLS[x.main_skill]||x.main_skill||'-')}}</div></div></div><p class="status${{todo(x).length||x.sp_flag?' warn':''}}">${{x.repair_note?`<strong>${{esc(x.repair_note)}}</strong> · `:''}}${{x.sp_flag?`<strong class="spflag">${{esc(x.sp_flag)}}</strong> · `:''}}${{x.auto_verified?'SP一致で自動確定 · ':''}}${{todo(x).length?`<strong>要確認:</strong> ${{todo(x).map(k=>esc(FIELD_NAMES[k]||k)).join('、')}}`:'主要項目を取得済み'}}${{x.ocr_sources?.length?` · ${{x.ocr_sources.length}}本の動画をSPで統合`:''}}</p><div class="body"><div class="fields"><label class="wide"><span>ニックネーム</span><input data-i="${{i}}" data-k="display_name" value="${{esc(x.display_name||'')}}"></label><label><span>現在レベル</span><input type="number" inputmode="numeric" min="1" max="100" data-i="${{i}}" data-k="level" value="${{x.level??''}}"></label><label><span>画面のSP</span><input type="number" inputmode="numeric" data-i="${{i}}" data-k="sp" value="${{x.sp??''}}"></label><label><span>メインスキルLv</span><input type="number" inputmode="numeric" min="1" max="7" data-i="${{i}}" data-k="skill_level" value="${{x.skill_level??1}}"></label><label class="wide${{need(x,'nature')}}"><span>性格${{flag(x,'nature')}}</span><select data-i="${{i}}" data-k="nature">${{natureOptions(x)}}</select></label>${{ingredientFields(x,i)}}</div>${{shot(x)}}</div><label class="check"><input type="checkbox" data-i="${{i}}" data-k="verified"> 内容を動画と照合済みにする</label><details><summary>抽出JSONを確認・編集</summary><label><span>抽出JSON</span><textarea data-i="${{i}}">${{esc(JSON.stringify(x,null,2))}}</textarea></label></details></article>`).join('');
+main.innerHTML=rows.map((x,i)=>`<article class="card${{todo(x).length||x.sp_flag?' needs':''}}"><div class="card-head"><span class="box-no">BOX ${{x.box_index??'-'}}</span><div><h2>${{esc(x.species_ja||x.species)}}</h2><div class="meta">きのみ ${{esc(x.berry_ja||x.berry||'-')}} · メインスキル ${{esc(MAINSKILLS[x.main_skill]||x.main_skill||'-')}}</div></div></div><p class="status${{todo(x).length||x.sp_flag||x.low_resolution?' warn':''}}">${{x.low_resolution?'<strong>低解像度の画像</strong> · ':''}}${{x.repair_note?`<strong>${{esc(x.repair_note)}}</strong> · `:''}}${{x.sp_flag?`<strong class="spflag">${{esc(x.sp_flag)}}</strong> · `:''}}${{x.auto_verified?'SP一致で自動確定 · ':''}}${{todo(x).length?`<strong>要確認:</strong> ${{todo(x).map(k=>esc(FIELD_NAMES[k]||k)).join('、')}}`:'主要項目を取得済み'}}${{x.ocr_sources?.length?` · ${{x.ocr_sources.length}}本の動画をSPで統合`:''}}</p><div class="body"><div class="fields"><label class="wide"><span>ニックネーム</span><input data-i="${{i}}" data-k="display_name" value="${{esc(x.display_name||'')}}"></label><label><span>現在レベル</span><input type="number" inputmode="numeric" min="1" max="100" data-i="${{i}}" data-k="level" value="${{x.level??''}}"></label><label><span>画面のSP</span><input type="number" inputmode="numeric" data-i="${{i}}" data-k="sp" value="${{x.sp??''}}"></label><label><span>メインスキルLv</span><input type="number" inputmode="numeric" min="1" max="7" data-i="${{i}}" data-k="skill_level" value="${{x.skill_level??1}}"></label><label class="wide${{need(x,'nature')}}"><span>性格${{flag(x,'nature')}}</span><select data-i="${{i}}" data-k="nature">${{natureOptions(x)}}</select></label>${{ingredientFields(x,i)}}</div>${{shot(x)}}</div><label class="check"><input type="checkbox" data-i="${{i}}" data-k="verified"> 内容を動画と照合済みにする</label><details><summary>抽出JSONを確認・編集</summary><label><span>抽出JSON</span><textarea data-i="${{i}}">${{esc(JSON.stringify(x,null,2))}}</textarea></label></details></article>`).join('');
 const readyRows=rows.map((x,i)=>ready(x)?i:-1).filter(i=>i>=0),bulk=document.querySelector('#bulk');if(readyRows.length){{bulk.textContent=`まとめて照合済み（${{readyRows.length}}件）`;bulk.parentElement.hidden=false;bulk.onclick=()=>readyRows.forEach(i=>{{const c=document.querySelector(`[data-i="${{i}}"][data-k="review_confirmed"]`);if(c)c.checked=true}})}}
 document.querySelector('#save').onclick=()=>{{document.querySelectorAll('textarea').forEach(t=>rows[+t.dataset.i]=JSON.parse(t.value));document.querySelectorAll('[data-slot]').forEach(s=>{{if(s.value){{const i=+s.dataset.i,j=+s.dataset.slot;rows[i].ingredients??=[];rows[i].ingredients[j]=JSON.parse(s.value)}}}});document.querySelectorAll('[data-k]').forEach(n=>{{const x=rows[+n.dataset.i],k=n.dataset.k;if(k==='verified'||k==='review_confirmed')x[k]=n.checked;else if(k==='level'||k==='sp'||k==='skill_level')x[k]=Number(n.value);else x[k]=n.value}});rows.forEach((x,i)=>{{const o=JSON.parse(ORIG[i]);x.human_edited=[...new Set([...(o.human_edited||[]),...Object.keys(FIELD_NAMES).filter(k=>JSON.stringify(x[k])!==JSON.stringify(o[k]))])]}});const b=new Blob([JSON.stringify({{individuals:rows}},null,2)],{{type:'application/json'}}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='reviewed_individuals.json';a.click();URL.revokeObjectURL(a.href)}};</script></body></html>'''
     page = page.replace('data-k="verified"> 内容を動画と照合済みにする',
