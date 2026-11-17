@@ -69,6 +69,8 @@ def connect(path: Path) -> sqlite3.Connection:
         db.execute("ALTER TABLE individual ADD COLUMN review_confirmed INTEGER NOT NULL DEFAULT 0")
     if "archived" not in columns:
         db.execute("ALTER TABLE individual ADD COLUMN archived INTEGER NOT NULL DEFAULT 0")
+    if "archived_at" not in columns:
+        db.execute("ALTER TABLE individual ADD COLUMN archived_at TEXT")
     if "final_evolution" not in columns:
         db.execute("ALTER TABLE individual ADD COLUMN final_evolution TEXT")
     if "auto_verified" not in columns:
@@ -431,6 +433,91 @@ def load_dashboard(db: sqlite3.Connection) -> List[Dict[str, Any]]:
                        "absolute_score": max(role_scores.values(), default=0.0),
                        "review_confirmed": bool(row["review_confirmed"])})
     return result
+
+
+UID_MIN_FRAGMENT = 4
+
+
+def resolve_uids(db: sqlite3.Connection, fragments: Iterable[str],
+                 archived: Optional[bool] = None) -> List[str]:
+    """Resolve full uids, or unambiguous uid prefixes/suffixes, to full uids.
+
+    The page shows the last 6 characters of a uid as the individual ID, so a
+    fragment may match either end. `archived` limits the search to archived
+    (True) or boxed (False) individuals; None searches both.
+    """
+    where = "" if archived is None else f" WHERE archived={1 if archived else 0}"
+    known = [row["uid"] for row in db.execute(f"SELECT uid FROM individual{where}")]
+    resolved: List[str] = []
+    for raw in fragments:
+        fragment = str(raw).strip()
+        if fragment in known:
+            matches = [fragment]
+        elif len(fragment) < UID_MIN_FRAGMENT:
+            raise ValueError(f"個体ID「{fragment}」が短すぎます（{UID_MIN_FRAGMENT}文字以上）")
+        else:
+            matches = [uid for uid in known if uid.startswith(fragment) or uid.endswith(fragment)]
+        if not matches:
+            hint = ""
+            if archived is not None and resolve_uids_or_none(db, fragment):
+                hint = ("（すでにボックスから外した個体です）" if not archived
+                        else "（この個体はボックスにあります）")
+            raise ValueError(f"個体ID「{fragment}」に一致する個体がありません{hint}")
+        if len(matches) > 1:
+            raise ValueError(f"個体ID「{fragment}」は複数の個体に一致します: {', '.join(sorted(matches))}")
+        if matches[0] not in resolved:
+            resolved.append(matches[0])
+    return resolved
+
+
+def resolve_uids_or_none(db: sqlite3.Connection, fragment: str) -> Optional[str]:
+    """Resolve one fragment across all individuals, or None when it fails."""
+    try:
+        return resolve_uids(db, [fragment])[0]
+    except ValueError:
+        return None
+
+
+def archive_individuals(db: sqlite3.Connection, uids: Iterable[str]) -> int:
+    """Mark individuals as sent to the Professor; keeps rows for un-archiving."""
+    timestamp = now()
+    count = sum(db.execute("UPDATE individual SET archived=1,archived_at=? WHERE uid=? AND archived=0",
+                           (timestamp, uid)).rowcount for uid in uids)
+    db.commit()
+    return count
+
+
+def unarchive_individuals(db: sqlite3.Connection, uids: Iterable[str]) -> int:
+    """Return previously archived individuals to the box."""
+    count = sum(db.execute("UPDATE individual SET archived=0,archived_at=NULL WHERE uid=? AND archived=1",
+                           (uid,)).rowcount for uid in uids)
+    db.commit()
+    return count
+
+
+def load_archived(db: sqlite3.Connection) -> List[Dict[str, Any]]:
+    """List archived individuals, most recently archived first."""
+    from .localization import to_japanese
+    rows = db.execute("""SELECT uid,species,display_name,level,sp,box_index,archived_at FROM individual
+                         WHERE archived=1 ORDER BY archived_at DESC, box_index""").fetchall()
+    return [{**dict(row), "species_ja": to_japanese("species", row["species"])} for row in rows]
+
+
+def plans_for_box(plans: Sequence[Mapping[str, Any]], uids: Iterable[str]) -> List[Dict[str, Any]]:
+    """Drop stored team/seed plans that mention individuals no longer in the box.
+
+    Team plans are computed by the engine as a whole, so a plan that lost a
+    member is dropped rather than patched; the next recalculation rebuilds it.
+    """
+    active = set(uids)
+    kept = []
+    for plan in plans:
+        members = [m.get("uid") for m in plan.get("members", [])]
+        if "uid" in plan:
+            members.append(plan["uid"])
+        if all(uid in active for uid in members):
+            kept.append(dict(plan))
+    return kept
 
 
 def build_team_plans(items: Sequence[Mapping[str, Any]], team_size: int = 5) -> List[Dict[str, Any]]:

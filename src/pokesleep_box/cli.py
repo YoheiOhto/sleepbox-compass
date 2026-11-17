@@ -3,10 +3,12 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
 
-from .core import (build_team_plans, compare_species_tiers, connect, decide, import_individuals,
-                   load_dashboard)
+from .core import (archive_individuals, build_team_plans, compare_species_tiers, connect, decide,
+                   import_individuals, load_archived, load_dashboard, resolve_uids,
+                   unarchive_individuals)
 from .analytics import analyze
 from .engine import (EngineUnavailable, evaluate, evaluate_main_seed_upgrades,
                      evaluate_seed_upgrades, run_engine, species_scores, verify)
@@ -16,6 +18,20 @@ from .paths import DEFAULT_PATHS as P, load_settings, private_paths
 from .render import render_site
 from .sync import (DEFAULT_VLM_MODEL, format_summary, import_checked, render_private, run_sync,
                    scan_new)
+
+
+def archived_line(row) -> str:
+    """One tab-separated line of `archived`: name, Lv, SP, local archive time, uid."""
+    name = row["species_ja"] + (f"（{row['display_name']}）" if row.get("display_name") else "")
+    when = "日時不明"
+    if row.get("archived_at"):
+        try:
+            when = datetime.fromisoformat(row["archived_at"]).astimezone().strftime("%Y-%m-%d %H:%M")
+        except ValueError:
+            when = row["archived_at"]
+    level = row["level"] if row.get("level") is not None else "-"
+    sp = row["sp"] if row.get("sp") is not None else "-"
+    return f"{name}\tLv{level}\tSP {sp}\t{when}\t{row['uid']}"
 
 
 def main() -> None:
@@ -86,6 +102,10 @@ def main() -> None:
     tier.add_argument("--engine", default=P.engine)
     tier.add_argument("--out", type=Path, default=Path("data/species_tier_compare.json"))
     commands.add_parser("validate-names")
+    arch = commands.add_parser("archive", help="博士に送った個体をボックスから外す")
+    arch.add_argument("uids", nargs="+", help="個体ID（全体、または先頭・末尾の4文字以上）")
+    arch.add_argument("--undo", action="store_true", help="外した個体をボックスに戻す")
+    commands.add_parser("archived", help="博士に送った（外した）個体の一覧")
     ocr_demo = commands.add_parser("make-ocr-demo")
     ocr_demo.add_argument("--out", type=Path, default=P.inbox / "ocr-demo.png")
     sync = commands.add_parser(
@@ -150,7 +170,8 @@ def main() -> None:
         tier_rows = (json.loads(args.tier_compare.read_text()).get("rows", [])
                      if args.tier_compare.exists() else [])
         render_site(dashboard, args.out, build_team_plans(dashboard),
-                    analyze(dashboard, {}, benchmarks, encounters=encounters), tier_rows)
+                    analyze(dashboard, {}, benchmarks, encounters=encounters), tier_rows,
+                    archived=load_archived(db))
         print(args.out / "index.html")
     elif args.command in ("ingest", "scan"):
         scanned = scan_new(db, args.path, args.frames, args.vlm_cache, args.ocr, args.vlm_model,
@@ -234,6 +255,21 @@ def main() -> None:
             parser.error(f"日本語名の逆引き衝突があります: {problems}")
         print(json.dumps({key: len(table) for key, table in tables.items()
                           if isinstance(table, dict)}, ensure_ascii=False))
+    elif args.command == "archive":
+        try:
+            uids = resolve_uids(db, args.uids, archived=args.undo)
+        except ValueError as exc:
+            parser.error(str(exc))
+        changed = (unarchive_individuals if args.undo else archive_individuals)(db, uids)
+        decide(db)
+        print(f"{changed}匹を{'ボックスに戻しました' if args.undo else 'ボックスから外しました（博士に送った）'}。"
+              "ページへの反映は render（または serve の画面）で行います。")
+    elif args.command == "archived":
+        rows = load_archived(db)
+        if not rows:
+            print("博士に送った個体はありません。")
+        for row in rows:
+            print(archived_line(row))
     elif args.command == "make-ocr-demo":
         from .ocr import make_demo
         print(make_demo(args.out))

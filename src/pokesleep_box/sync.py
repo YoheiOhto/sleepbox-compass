@@ -10,7 +10,8 @@ import sys
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from .core import (build_team_plans, connect, decide, import_individuals, load_dashboard,
+from .core import (build_team_plans, connect, decide, import_individuals, load_archived, load_dashboard,
+                   plans_for_box,
                    record_synced_sources, synced_sources)
 from .paths import PrivatePaths
 
@@ -111,12 +112,17 @@ def render_private(db: sqlite3.Connection, out: Path, settings: Dict[str, Any],
         return data.get(key, default) if key else data
 
     dashboard = load_dashboard(db)
-    team_plans = read(teams, "plans", []) if teams.exists() else build_team_plans(dashboard)
+    # Stored plans may name individuals that were sent to the Professor since;
+    # drop those plans until the next recalculation rebuilds them.
+    active = [item["uid"] for item in dashboard]
+    team_plans = (plans_for_box(read(teams, "plans", []), active) if teams.exists()
+                  else build_team_plans(dashboard))
     render_site(dashboard, out, team_plans,
                 analyze(dashboard, settings, read(benchmarks, "benchmarks", []),
                         team_plans=team_plans, encounters=read(encounters, None, {})),
-                read(tier_compare, "rows", []), read(seed_plans, "plans", []),
-                read(main_seed_plans, "plans", []))
+                read(tier_compare, "rows", []), plans_for_box(read(seed_plans, "plans", []), active),
+                plans_for_box(read(main_seed_plans, "plans", []), active),
+                archived=load_archived(db))
     return out / "index.html"
 
 
