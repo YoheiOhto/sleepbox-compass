@@ -107,7 +107,7 @@ class CoreTests(unittest.TestCase):
                         nature=("Mild", "Calm", "Sassy")[index - 1], sp=700 + index)
             item["scores"] = {
                 str(anchor): {role: score for role in ("berry", "ingredient", "skill")}
-                for anchor in (60, 80)
+                for anchor in (50, 60)
             }
             items.append(item)
         import_individuals(self.db, items)
@@ -260,11 +260,12 @@ class CoreTests(unittest.TestCase):
 
     def test_absolute_score_uses_fixed_reference(self):
         references = {level: {role: 1000 for role in ("berry", "ingredient", "skill")}
-                      for level in (60, 80)}
-        evaluations = {level: {role: 500 for role in ("berry", "ingredient", "skill")}
-                       for level in (60, 80)}
+                      for level in (50, 60)}
+        evaluations = {50: {"berry": 500, "ingredient": 300, "skill": 500},
+                       60: {"berry": 400, "ingredient": 800, "skill": 500}}
+        # Each role takes its better level (ingredient types peak at Lv60).
         self.assertEqual(absolute_role_scores(evaluations, references),
-                         {"berry": 50.0, "ingredient": 50.0, "skill": 50.0})
+                         {"berry": 50.0, "ingredient": 80.0, "skill": 50.0})
 
     def test_missing_anchor_has_no_absolute_score(self):
         evaluations = {60: {"berry": 250}}
