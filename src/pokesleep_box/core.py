@@ -77,20 +77,27 @@ def connect(path: Path) -> sqlite3.Connection:
         db.execute("ALTER TABLE individual ADD COLUMN auto_verified INTEGER NOT NULL DEFAULT 0")
     if "sp_flag" not in columns:
         db.execute("ALTER TABLE individual ADD COLUMN sp_flag TEXT")
+    if "repair_note" not in columns:
+        db.execute("ALTER TABLE individual ADD COLUMN repair_note TEXT")
     migrate_subskill_unlocks(db)
     db.commit()
     return db
 
 
 def migrate_subskill_unlocks(db: sqlite3.Connection) -> int:
-    """Move stored Lv75/Lv100 subskill unlocks to the Ver.3.6.0 Lv70/Lv80."""
-    from .localization import current_unlock
+    """Rewrite stored subskill unlocks to the current game rules.
+
+    Pre-3.6.0 Lv75/Lv100 unlocks become Lv70/Lv80, and a complete five-slot
+    list gets the position-based Lv10/25/50/70/80 (``slot_unlocks``), which
+    fixes misread unlock badges. This is a game rule, not a judgement, so
+    human-confirmed rows are fixed too.
+    """
+    from .localization import slot_unlocks
 
     changed = 0
-    for row in db.execute("SELECT uid, subskills_json FROM individual "
-                          "WHERE subskills_json LIKE '%75]%' OR subskills_json LIKE '%100]%'").fetchall():
-        subskills = json.loads(row["subskills_json"])
-        updated = [[entry[0], current_unlock(entry[1]), *entry[2:]] for entry in subskills]
+    for row in db.execute("SELECT uid, subskills_json FROM individual").fetchall():
+        subskills = json.loads(row["subskills_json"] or "[]")
+        updated = slot_unlocks(subskills)
         if updated != subskills:
             db.execute("UPDATE individual SET subskills_json=? WHERE uid=?",
                        (json.dumps(updated, ensure_ascii=False), row["uid"]))
@@ -314,7 +321,7 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
               verified=MAX(individual.review_confirmed,excluded.verified,excluded.review_confirmed),
               auto_verified=CASE WHEN excluded.verified=1 AND excluded.review_confirmed=0
                 AND individual.review_confirmed=0 THEN individual.auto_verified ELSE 0 END,
-              sp_flag=NULL""",
+              sp_flag=NULL,repaired=0,repair_note=NULL""",
             (uid, item["species"], item.get("display_name"), item.get("level"),
              item["nature"], item.get("pokemon_type"),
              item.get("berry"), json.dumps(item.get("production_scores", {}), ensure_ascii=False),

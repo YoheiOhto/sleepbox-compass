@@ -145,7 +145,10 @@ def parse_frame(frame: Mapping[str, Any]) -> Dict[str, Any]:
             if name not in seen_subskills:
                 unique_subskills.append((name, unlock))
                 seen_subskills.add(name)
-        result["subskills"] = [[name, unlock or defaults[i]]
+        # A complete list gets the position-based unlocks of the game rules
+        # (see ``localization.slot_unlocks``); read badges count only when
+        # some slots were not read and the position is uncertain.
+        result["subskills"] = [[name, defaults[i] if len(unique_subskills) >= 5 else unlock or defaults[i]]
                                for i, (name, unlock) in enumerate(unique_subskills[:5])]
 
     ingredients = []
