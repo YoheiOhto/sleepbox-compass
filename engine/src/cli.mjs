@@ -354,7 +354,47 @@ const scoreReferences = () => {
     species: Object.fromEntries(bySpecies.map(x=>[x.species, x.scores]))};
 };
 
+// Main skill output of single individuals (used by the columns). Each item
+// gives a raw individual already at its final form, the level to simulate,
+// an optional exact skill level (default: skillLevelFor without evolving),
+// and the favored berries. Energy from skill-made berries/ingredients is
+// split out of the regular produce so callers can see what the skill adds.
+const skillOutput = () => ({engineVersion: ENGINE_VERSION, iterations: input.iterations || 500,
+  results: input.instances.map(({uid, instance: raw, level, skillLevel, berries = []}) => {
+    const pokemon = byName(COMPLETE_POKEDEX, raw.species);
+    const subskills = activeSubskills(raw, level);
+    const sl = Math.min(pokemon.skill.maxLevel, skillLevel ?? skillLevelFor(raw, pokemon, level, false));
+    const stats = {level, ribbon: raw.ribbon ?? 0, nature: getNature(raw.nature), subskills, skillLevel: sl,
+      inventoryLimit: CarrySizeUtils.calculateCarrySize({baseWithEvolutions: CarrySizeUtils.baseCarrySize(pokemon),
+        subskillsLevelLimited: subskills, ribbon: raw.ribbon ?? 0, camp: false}),
+      e4eProcs:0,e4eLevel:1,cheer:0,extraHelpful:0,helperBoostProcs:0,helperBoostUnique:0,helperBoostLevel:1,
+      helpingBonus:0,camp:false,erb:0,incense:false,mainBedtime:parseTime('22:00'),mainWakeup:parseTime('06:00'),maxPotSize:15};
+    let s;
+    // Some species-specific skill variants are not supported by the
+    // single-individual simulator; report them instead of failing the run.
+    try { s = calculatePokemonProduction(pokemon, stats, raw.ingredients.map(x => x[0]), false, input.iterations || 500).summary; }
+    catch (error) { return {uid, species: pokemon.name, error: String(error.message || error)}; }
+    const berryEnergy = xs => xs.reduce((sum, x) => sum + x.amount *
+      berryPowerForLevel(x.berry, level) * (berries.includes(x.berry.name) ? 2 : 1), 0);
+    const ingredientEnergy = xs => xs.reduce((sum, x) => sum + x.amount * x.ingredient.value, 0);
+    const skillBerry = berryEnergy(s.skillProduceValue?.berries || []);
+    const skillIngredient = ingredientEnergy(s.skillProduceValue?.ingredients || []);
+    const amounts = Object.fromEntries(Object.entries(pokemon.skill.activations || {}).map(([unit, act]) =>
+      [unit, typeof act.amount === 'function' ? act.amount({skillLevel: sl}) : null]));
+    return {uid, species: pokemon.name, specialty: pokemon.specialty, main_skill: baseSkillName(pokemon),
+      skill_variant: pokemon.skill.name, skill_level: sl, skill_max_level: pokemon.skill.maxLevel,
+      amount_per_proc: amounts, skill_procs: s.skillProcs, helps: s.nrOfHelps,
+      berry: berryEnergy(s.totalProduce.berries) - skillBerry,
+      ingredient: ingredientEnergy(s.totalProduce.ingredients) - skillIngredient,
+      skill_strength: s.skillStrengthValue || 0, skill_berry: skillBerry, skill_ingredient: skillIngredient,
+      skill_energy_self: s.skillEnergySelfValue || 0, skill_energy_team: s.skillEnergyOthersValue || 0,
+      skill_dream_shards: s.skillDreamShardValue || 0, skill_helps: s.skillHelpsValue || 0,
+      skill_pot_size: s.skillPotSizeValue || 0, skill_tasty_chance: s.skillTastyChanceValue || 0,
+      skill_team_berries: s.skillBerriesOtherValue || 0};
+  })});
+
 process.stdout.write(JSON.stringify(input.mode === 'verify' ? verify()
+  : input.mode === 'skill-output' ? skillOutput()
   : input.mode === 'benchmark' ? benchmark()
   : input.mode === 'team-evaluate' ? teamEvaluate()
   : input.mode === 'custom-team' ? customTeam()
