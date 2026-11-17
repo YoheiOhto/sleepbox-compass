@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS individual (
   verify_mode TEXT CHECK(verify_mode IN ('strict','tolerant','skipped','failed')),
   repaired INTEGER NOT NULL DEFAULT 0,
   archived INTEGER NOT NULL DEFAULT 0,
+  archived_at TEXT,
   final_evolution TEXT
 );
 

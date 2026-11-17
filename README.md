@@ -150,6 +150,25 @@ pokesleep-box render
 PYTHONPATH=src python3 -m pokesleep_box.cli --db data/box.sqlite serve --site site/private
 ```
 
+### 博士に送った個体をボックスから外す
+
+ゲームで博士に送ったら、`serve`で開いた画面でポケモンの詳細を開き、
+「博士に送った（ボックスから外す）」を押して確認します。外した個体は一覧・編成・自由編成・
+整理判定から外れ、整理判定はその場で更新されます。データは消えず、「整理」タブの
+「送った個体」から「戻す」で元に戻せます。保存済みの編成にその個体が入っていた場合は、
+その編成を表示から外すので、「状態」タブの一括再計算で作り直してください。
+静的ファイル（GitHub Pagesのデモなど）で開いた場合はAPIがないため、ボタンは押せません。
+
+コマンドでも同じことができます。個体IDは画面の「個体ID」（末尾6文字）か、先頭・末尾の
+4文字以上で、1匹に決まる場合に使えます。
+
+```sh
+PYTHONPATH=src python3 -m pokesleep_box.cli --db data/box.sqlite archive 1a2b3c 4d5e6f
+PYTHONPATH=src python3 -m pokesleep_box.cli --db data/box.sqlite archived          # 送った個体の一覧
+PYTHONPATH=src python3 -m pokesleep_box.cli --db data/box.sqlite archive --undo 1a2b3c
+PYTHONPATH=src python3 -m pokesleep_box.cli --db data/box.sqlite render --out site/private
+```
+
 `pokemon_type` にタイプ、`berry` にその個体のきのみ、`production_scores` に計算エンジンが
 算出した現在値とLv60/Lv80の総生産・きのみ生産を渡します。画面で好みのきのみ3種を
 選ぶたび、好物ボーナスを加えて同一個体を重複させず上位5匹を再計算します。固定島を選ぶと
