@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from .localization import names
 from .ocr import berries_per_help, species_metadata
 
 
@@ -170,13 +171,15 @@ def render_site(items: List[Dict[str, Any]], out: Path, teams: Optional[List[Dic
                                                "sp", "box_index", "archived_at")}
                      for row in archived or []]
     archived_data = json.dumps(archived_rows, ensure_ascii=False).replace("</", "<\\/")
+    # Every base main skill the species metadata can report, from names_ja.json.
+    mainskill_data = json.dumps(names()["mainskills"], ensure_ascii=False).replace("</", "<\\/")
     page = rf'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="theme-color" content="#f5f7f5" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#0e1411" media="(prefers-color-scheme: dark)"><title>Sleepbox Compass</title><style>{CSS}</style></head>
 <body><main><header class="hero"><div class="eyebrow">Pokémon Sleep box planner</div><h1>Sleepbox Compass</h1><p>手持ちを比べて、育てる5匹を決める。</p></header><nav class="tabs" aria-label="メインメニュー"><button id="box-tab" onclick="showBox()">ボックス<span>手持ち</span></button><button data-tab="energy">島予測<span>エナジー</span></button><button data-tab="teams">編成<span>自動選出</span></button><button id="custom-tab" onclick="showCustomTeam()">自由編成<span>任意の5匹</span></button><button data-tab="keep">育成<span>優先順位</span></button><button data-tab="send">整理<span>送る候補</span></button><button data-tab="capture">捕獲<span>次に探す</span></button><button data-tab="tiers">外部評価<span>役割・Tier</span></button><button data-tab="analysis">状態<span>計算・OCR</span></button><button data-tab="guide">使い方<span>評価方法</span></button></nav><section id="list" aria-live="polite"></section><dialog id="pokemon-dialog" class="detail-dialog" onclick="if(event.target===this)this.close()"></dialog></main><div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <script>const DATA={data};const TEAMS={team_data};const INSIGHTS={insight_data};const TIERS={tier_data};const SEED_PLANS={seed_data};const MAIN_SEED_PLANS={main_seed_data};const ARCHIVED={archived_data};const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[c]));
 const BERRIES={{PAMTRE:'シーヤ',LUM:'ラム',GREPA:'ウブ',BLUK:'ブリー',PECHA:'モモン',MAGO:'マゴ',LEPPA:'ヒメリ',CHERI:'クラボ',PERSIM:'キー',FIGY:'フィラ',DURIN:'ドリ',SITRUS:'オボン',ORAN:'オレン',WIKI:'ウイ',CHESTO:'カゴ',RAWST:'チーゴ',BELUE:'ベリブ',YACHE:'ヤチェ'}};
 const INGREDIENTS={{Apple:'とくせんリンゴ',Milk:'モーモーミルク',Honey:'あまいミツ',Sausage:'マメミート',Cacao:'リラックスカカオ',Ginger:'あったかジンジャー',Tomato:'あんみんトマト',Potato:'ほっこりポテト',Soybean:'ワカクサ大豆',Corn:'ワカクサコーン',Oil:'ピュアなオイル',Egg:'とくせんエッグ',Herb:'げきからハーブ',Mushroom:'あじわいキノコ',Leek:'ふといながねぎ',Tail:'おいしいシッポ','Slowpoke Tail':'おいしいシッポ',Coffee:'めざましコーヒー',Avocado:'つやつやアボカド',Pumpkin:'ずっしりカボチャ'}};
 const SUBSKILLS={{'Berry Finding S':'きのみの数S','Energy Recovery Bonus':'げんき回復ボーナス','Helping Bonus':'おてつだいボーナス','Helping Speed S':'おてつだいスピードS','Helping Speed M':'おてつだいスピードM','Ingredient Finder S':'食材確率アップS','Ingredient Finder M':'食材確率アップM','Inventory Up S':'最大所持数アップS','Inventory Up M':'最大所持数アップM','Inventory Up L':'最大所持数アップL','Skill Level Up S':'スキルレベルアップS','Skill Level Up M':'スキルレベルアップM','Skill Trigger S':'スキル確率アップS','Skill Trigger M':'スキル確率アップM','Sleep EXP Bonus':'睡眠EXPボーナス','Dream Shard Bonus':'ゆめのかけらボーナス','Research EXP Bonus':'リサーチEXPボーナス'}};
-const MAINSKILLS={{'Charge Strength S':'エナジーチャージS','Charge Strength M':'エナジーチャージM','Dream Shard Magnet S':'ゆめのかけらゲットS','Energizing Cheer S':'げんきエールS','Charge Energy S':'げんきチャージS','Energy For Everyone S':'げんきオールS','Extra Helpful S':'おてつだいサポートS','Ingredient Magnet S':'食材ゲットS','Cooking Power-Up S':'料理パワーアップS','Tasty Chance S':'料理チャンスS',Metronome:'ゆびをふる','Helper Boost':'おてつだいブースト','Berry Burst':'きのみバースト','Cooking Assist S':'料理サポートS','Ingredient Draw S':'食材セレクトS','Skill Copy':'ものまね',Versatile:'へんげんじざい'}};
+const MAINSKILLS={mainskill_data};
 const NATURE_EFFECTS={{さみしがり:['おてつだいスピード','げんき回復量'],いじっぱり:['おてつだいスピード','食材おてつだい確率'],やんちゃ:['おてつだいスピード','メインスキル発生確率'],ゆうかん:['おてつだいスピード','EXP獲得量'],ずぶとい:['げんき回復量','おてつだいスピード'],わんぱく:['げんき回復量','食材おてつだい確率'],のうてんき:['げんき回復量','メインスキル発生確率'],のんき:['げんき回復量','EXP獲得量'],ひかえめ:['食材おてつだい確率','おてつだいスピード'],おっとり:['食材おてつだい確率','げんき回復量'],うっかりや:['食材おてつだい確率','メインスキル発生確率'],れいせい:['食材おてつだい確率','EXP獲得量'],おだやか:['メインスキル発生確率','おてつだいスピード'],おとなしい:['メインスキル発生確率','げんき回復量'],しんちょう:['メインスキル発生確率','食材おてつだい確率'],なまいき:['メインスキル発生確率','EXP獲得量'],おくびょう:['EXP獲得量','おてつだいスピード'],せっかち:['EXP獲得量','げんき回復量'],ようき:['EXP獲得量','食材おてつだい確率'],むじゃき:['EXP獲得量','メインスキル発生確率']}};
 const natureEffect=n=>NATURE_EFFECTS[n]||null;
 const bestRole=x=>Object.entries(x.absolute_by_role||{{}}).sort((a,b)=>b[1]-a[1])[0]?.[0],ROLE_NAMES={{berry:'きのみ',ingredient:'食材',skill:'スキル'}};

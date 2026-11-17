@@ -19,7 +19,7 @@ Pokémon Sleepの手持ちを、Lv60とLv80の両方で評価し、育成候補�
 - 「現在」は実際のレベル・進化段階、「育成後」は指定レベル・最終進化と残り進化回数ぶんのメインスキルLv上昇を前提に比較
 - 現行246個体キー、性格25種、サブスキル17種、食材19種、きのみ18種の日本語双方向解決
 - ローカルQwen VLM（推奨）またはmacOS Visionによる日本語OCR（画像・動画）、差し替え可能なOCR、監査レポート、オフラインレビュー画面
-- 取り込み済みの画像・動画は記録され、次の`scan`では新しいものだけを読む差分同期
+- 取り込み済みの画像・動画は記録され、次の`scan`では新しいものだけを読む差分同期。登録済みの個体を育成後に撮り直すと、新しい個体を増やさずにその個体を更新
 - 固定6島（ワカクサ除外）のきのみ・食材基礎エナジー・直接スキルによる日次・週次予測
 - 5匹同時シミュレーションによる、元気回復・おてつだい支援・全体スキル・サブスキル込みの編成探索と限界貢献
 - ローカルAPIで任意の5匹を選ぶ、料理・スキル込みのカスタム編成シミュレーション
@@ -43,23 +43,95 @@ python3 -m http.server 8000 --directory site
 
 計算ブリッジを使う場合はNode.js 20以上、動画を使う場合はffmpegも必要です。
 
-ブラウザで `http://localhost:8000` を開きます。実データは次のように処理します。
+ブラウザで `http://localhost:8000` を開きます。
+
+## いつもの使い方（`sync`）
+
+自分のボックスは、次の4手順だけで更新できます。
+
+1. ポケモンの詳細画面のスクリーンショットや画面収録を`inbox/`へ置く
+2. `pokesleep-box sync` を実行する
+3. 「レビューが必要な個体」が出たら`frames/review.html`を開き、直して保存する
+4. 保存した`reviewed_individuals.json`を`pokesleep-box import-json reviewed_individuals.json`で取り込む
+
+```sh
+pokesleep-box sync                 # inbox/ の新しい画像・動画だけを処理
+pokesleep-box import-json reviewed_individuals.json
+pokesleep-box sync --force         # 取り込んだ修正で評価・判定・サイトを作り直す
+python3 -m http.server 8000 --directory site/private
+```
+
+`sync`は次の順に動きます。
+
+1. 取り込み: `inbox/`のうち、まだ取り込んでいない画像・動画だけを読みます（`scan --ocr auto`と同じく、
+   mlx-vlmがあればQwen、なければVision）。撮り直した個体は新しい個体ではなく更新として扱います。
+2. SP確認: 今回取り込んだ・更新した個体だけ、画面のSPと計算エンジンのSPを比べます（下記）。
+3. 評価（`evaluate`）、4. 判定（`decide`）、5. 非公開サイトの生成（`site/private/`）。
+
+新しい画像・動画がないときは、SP確認・評価・判定を省き、そのことを表示します（`--force`で実行）。
+計算エンジンを使えないときは、SP確認と評価を省いてメッセージを出し、判定とサイト生成は行います。
+最後に、新しい画像・動画の数、新しい個体と更新した個体の数、SP一致・SP不一致・要確認の数、
+レビュー画面とサイトの場所、次にすることを表示します。
+
+手順3〜4は`pokesleep-box sync --reviewed reviewed_individuals.json`でもまとめて実行できます。
+このときは修正JSONを取り込んでから評価・判定・サイト生成まで進みます。同じ内容のJSONは
+SHA-256で記録し、二度目は取り込みません。`sync`がJSONを自動で探して取り込むことはありません。
+
+### SPによる自動確定（解放済みのみ確定）
+
+SPはNeroli's Labの式で、種族・現在レベル・性格・メインスキルLv・現在レベルで解放済みの
+サブスキル・解放済みの食材枠（Lv1/30/60）から決まります。まだ解放されていないサブスキルや
+食材枠、メインスキル名はSPに影響しません。そこで`sync`は次のように扱います。
+
+- 画面のSPと計算SPが完全一致（`verify_mode=strict`、Lv55以下）: 解放済みの部分は確定です。
+  未解放のサブスキル・食材枠もOCRがはっきり読めていれば（`ocr_missing`に入っていない、食材は個数か
+  アイコンで決まり推測ではない）、その個体を自動で検証済みにします（`auto_verified=1`。人の確認
+  `review_confirmed`とは区別します）。はっきりしない未解放部分が残るときは未検証のままで、レビュー画面と
+  監査レポートにはその項目だけを出します。SPで区別できない読み取り（効果のない性格どうし、
+  スキルレベルアップS/Mや同じ係数のボーナス系サブスキル）が`ocr_missing`にあるときも同じです。
+- SP不一致: 未検証のまま「SP不一致（画面 X / 計算 Y）」を付け、レビュー画面と監査レポートの先頭に出します。
+- 画面のSPがない、計算エンジンを使えない、Lv56以上（計算が近似）: これまでどおり未検証です。
+  Lv56以上は、画面のSPと計算SPが完全に一致しても自動では確定しません。
+- 人が確認した個体（`review_confirmed`）は変更しません。未検証の個体は博士へ送る候補になりません。
+
+レビュー画面で直した（または`import-json`で取り込んだ）が「照合済み」にチェックしていない個体も、
+`import-json`と`sync --reviewed`の取り込み後に同じ規則でSP確認をします。レビュー画面は保存時に、
+読み取り時から値を変えた項目を`human_edited`に記録します。この項目は`ocr_missing`に残っていても
+読み取り済みとして扱い、値を変えていない項目はOCRの結果のまま扱います（保存しただけでは確定しません）。
+SP一致なら`auto_verified=1`で検証済みにし、SP不一致なら「SP不一致」を付けます。`import-json`で
+計算エンジンを使えないときは、これまでどおり取り込みだけを行い、SP確認を省いたことを表示します。
+
+メインスキル名は種族で決まるため、OCRで読めなかったときは種族データの（基本の）メインスキルで
+補います。種族データを使えないときだけ仮の値を入れ、`ocr_missing`に残して要確認にします。
+
+### 出力先
+
+`sync`の出力はすべてGit管理外の場所で、`src/pokesleep_box/paths.py`の1か所で決めています。
+`config/settings.local.json`の`"paths"`で変更できます（公開用の`site/`は指定できません）。
+
+| 内容 | 既定の場所 |
+| --- | --- |
+| 取り込む画像・動画 | `inbox/` |
+| DB | `data/box.sqlite` |
+| 抽出フレーム・監査レポート・レビュー画面 | `frames/`、`frames/audit_report.md`、`frames/review.html` |
+| 編成計画・Qwenキャッシュ | `data/private/team_plans.json`、`data/private/vlm_cache/` |
+| 非公開サイト | `site/private/index.html` |
+
+```json
+{"paths": {"db": "data/box.sqlite", "site": "site/private"}}
+```
+
+### 個別のコマンド
+
+JSONから取り込む場合や、手順を分けて実行したい場合は個別のコマンドも使えます。
 
 ```sh
 cp config/settings.example.json config/settings.local.json
 pokesleep-box init-db
 pokesleep-box import-json data/private/my-box.json
+pokesleep-box evaluate
 pokesleep-box decide --keep-top-n 2
-pokesleep-box render
-```
-
-実データのページは、公開デモの`site/`と分けてGit管理外の`site/private/`へ生成できます。
-
-```sh
-pokesleep-box --db data/box.sqlite decide
-pokesleep-box --db data/box.sqlite evaluate
-pokesleep-box --db data/box.sqlite render --out site/private
-python3 -m http.server 8000 --directory site/private
+pokesleep-box render --out site/private
 ```
 
 日本語JSONもそのまま取り込めます。macOSでは、ポケモンの詳細画面を撮った画像または
@@ -71,13 +143,8 @@ python3 -m http.server 8000 --directory site/private
 pokesleep-box make-ocr-demo
 pokesleep-box --db data/demo-ocr.sqlite scan inbox/ocr-demo.png
 
-# 自分の画像・動画を読み込む（inbox/の中身はGit管理外）
+# 取り込みだけを行う（SP確認・評価・サイト生成まで行うなら sync）
 pokesleep-box scan inbox
-
-# frames/review.htmlで画像と照合し、「照合済み」にチェックして保存
-pokesleep-box import-json reviewed_individuals.json
-pokesleep-box decide --keep-top-n 2
-pokesleep-box render
 ```
 
 認識結果は安全のため最初は必ず未検証になり、確認前の個体を博士へ送る候補にはしません。
@@ -118,12 +185,20 @@ Lv1の食材と各枠の食材候補・個数、1回のおてつだいで取れ�
 
 `scan`は読み込んだ画像・動画のSHA-256をDBに記録し、次回からは新しく増えたものだけを読みます。
 レビューで直した値が再読み取りで上書きされることもありません。読み直したいときは`--rescan`を付けます。
+登録済みの個体をあとで撮り直した画像・動画は、新しい個体ではなくその個体の更新として取り込みます
+（評価・判定・レビュー済みの印はそのまま残ります）。同じ個体とみなすのは、性格、進化系統（進化前から
+進化後への変化だけ）、各枠の食材の種類が同じで、5つのサブスキル枠が同じか、たねで上位に変えたもの
+（例: おてつだいスピードS→M）であり、レベル・メインスキルLvが下がっていないときです。SPも
+下がる方向には更新しません。同じ`scan`で取り込んだ複数の画像を同じ既存個体にまとめることはありません。
+同じ構成の個体が複数登録されていて、どれの撮り直しか決められないとき（レベル・SPが今の値以下の個体が
+一体に絞れず、レベル・SPが完全に一致する個体もないとき）は、新しい個体として登録し、監査レポートに
+「重複の可能性」として表示します。
 Qwenの読み取り結果は画像ごとに`data/private/vlm_cache/`へ保存されるので、途中で止めた動画の
 再開や`--rescan`でも、同じフレームを二度推論しません。
 
 macOS Visionを使えない環境では`--ocr sidecar --ocr-command /path/to/extractor`で従来の
 ローカル抽出器を利用できます（sidecar方式の動画抽出にはffmpegが必要です）。取り込み後の
-`audit_report.md`、`frames/review.html`、OCR画像、DBはすべてGit管理外です。
+`frames/audit_report.md`、`frames/review.html`、OCR画像、DBはすべてGit管理外です。
 
 ## 計算と検証
 

@@ -104,7 +104,9 @@ def ingest_path(path: Path, frames_dir: Path, ocr_command: Optional[str] = None,
                 if source.suffix.lower() in IMAGE_SUFFIXES:
                     # Two helpers can legitimately have the same species and
                     # build. Keep still captures distinct while making a
-                    # repeated import of the same screenshot idempotent.
+                    # repeated import of the same screenshot idempotent. A
+                    # later re-capture of a stored individual is matched to
+                    # it in `core.import_individuals`.
                     capture_hash = source_hash
                     item.setdefault("capture_sha256", capture_hash)
                     item.setdefault("uid", f"capture-{capture_hash[:20]}")
@@ -170,31 +172,56 @@ def audit(items: Iterable[Dict[str, Any]], path: Path) -> Dict[str, int]:
     rows = list(items)
     low = [x for x in rows if float(x.get("confidence", 0)) < .995]
     unverified = [x for x in rows if not x.get("verified")]
+    recaptured = [x for x in rows if x.get("recaptured")]
+    duplicates = [x for x in rows if x.get("possible_duplicates")]
+    mismatched = [x for x in rows if x.get("sp_check") == "mismatch"]
+    auto_verified = [x for x in rows if x.get("auto_verified")]
     lines = ["# 取り込み監査レポート", "", f"- 総個体数: {len(rows)}",
-             f"- 低信頼: {len(low)}", f"- 未検証: {len(unverified)}", "",
-             "未検証個体は博士へ送る候補になりません。", ""]
-    for item in low or unverified:
-        missing = "、".join(item.get("ocr_missing", []))
+             f"- 低信頼: {len(low)}", f"- 未検証: {len(unverified)}",
+             f"- 登録済み個体の更新（再取り込み）: {len(recaptured)}",
+             f"- 重複の可能性: {len(duplicates)}"]
+    if any("sp_check" in x for x in rows):
+        lines += [f"- SP一致で自動確定: {len(auto_verified)}", f"- SP不一致: {len(mismatched)}"]
+    lines += ["", "未検証個体は博士へ送る候補になりません。", ""]
+    # SP mismatches first; an SP-confirmed individual needs no further check.
+    listed = low or unverified
+    listed = mismatched + [x for x in listed if x not in mismatched and not x.get("auto_verified")]
+    for item in listed:
+        # After an SP check, only the fields the SP could not confirm remain.
+        missing = "、".join(item.get("review_fields", item.get("ocr_missing", [])))
         suffix = f"（不足: {missing}）" if missing else ""
-        lines.append(f"- BOX {item.get('box_index', '-')} / {item.get('species_ja', item.get('species'))}: 要確認{suffix}")
+        flag = f" {item['sp_flag']}" if item.get("sp_flag") else ""
+        lines.append(f"- BOX {item.get('box_index', '-')} / {item.get('species_ja', item.get('species'))}: 要確認{flag}{suffix}")
+    for item in duplicates:
+        lines.append(f"- BOX {item.get('box_index', '-')} / {item.get('species_ja', item.get('species'))}: "
+                     f"同じ構成の登録済み個体が{item['possible_duplicates']}体あり、どれの再取り込みか"
+                     "決められないため新しい個体として登録しました（重複の可能性）")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    return {"total": len(rows), "low_confidence": len(low), "unverified": len(unverified)}
+    return {"total": len(rows), "low_confidence": len(low), "unverified": len(unverified),
+            "recaptured": len(recaptured), "possible_duplicates": len(duplicates),
+            "sp_mismatch": len(mismatched), "auto_verified": len(auto_verified)}
 
 
 def render_review(items: Iterable[Dict[str, Any]], path: Path) -> None:
-    """Create an offline review page; corrected JSON is downloaded, never uploaded."""
+    """Create an offline review page; corrected JSON is downloaded, never uploaded.
+
+    On save, each row gets ``human_edited``: the fields (keys of the page's
+    FIELD_NAMES) whose values differ from the scan, which the SP check then
+    treats as resolved (see ``spcheck.unresolved_fields``).
+    """
     data = json.dumps(list(items), ensure_ascii=False).replace("</", "<\\/")
     from .localization import names
     nature_data = json.dumps(names()["natures"], ensure_ascii=False).replace("</", "<\\/")
+    skill_data = json.dumps(names()["mainskills"], ensure_ascii=False).replace("</", "<\\/")
     page = f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark">
 <title>取り込みレビュー</title><style>
-:root{{color-scheme:light dark;--bg:#f5f7f5;--surface:#fff;--surface-2:#eff3f0;--ink:#15231c;--muted:#56665d;--line:#dce4de;--line-strong:#c3cfc7;--brand:#13774e;--brand-soft:#dff1e7;--on-brand:#fff;--warn:#8a5a00;--warn-soft:#fdf1d6;--warn-line:#e7c675;--focus:#1b7a52;--shadow:0 1px 2px rgba(20,40,30,.05),0 3px 10px rgba(20,40,30,.04)}}
-@media (prefers-color-scheme:dark){{:root{{--bg:#0e1411;--surface:#171f1b;--surface-2:#202a25;--ink:#e6eee9;--muted:#a0b1a7;--line:#2b3731;--line-strong:#3c4a43;--brand:#62cc99;--brand-soft:#1b3829;--on-brand:#05140c;--warn:#f0c060;--warn-soft:#352b12;--warn-line:#6d5a25;--focus:#86e0b4;--shadow:0 1px 2px rgba(0,0,0,.3)}}}}
+:root{{color-scheme:light dark;--bg:#f5f7f5;--surface:#fff;--surface-2:#eff3f0;--ink:#15231c;--muted:#56665d;--line:#dce4de;--line-strong:#c3cfc7;--brand:#13774e;--brand-soft:#dff1e7;--on-brand:#fff;--warn:#8a5a00;--warn-soft:#fdf1d6;--warn-line:#e7c675;--focus:#1b7a52;--danger:#b3261e;--shadow:0 1px 2px rgba(20,40,30,.05),0 3px 10px rgba(20,40,30,.04)}}
+@media (prefers-color-scheme:dark){{:root{{--bg:#0e1411;--surface:#171f1b;--surface-2:#202a25;--ink:#e6eee9;--muted:#a0b1a7;--line:#2b3731;--line-strong:#3c4a43;--brand:#62cc99;--brand-soft:#1b3829;--on-brand:#05140c;--warn:#f0c060;--warn-soft:#352b12;--warn-line:#6d5a25;--focus:#86e0b4;--danger:#ff8a80;--shadow:0 1px 2px rgba(0,0,0,.3)}}}}
 *{{box-sizing:border-box;min-width:0}}body{{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums;overflow-wrap:break-word;-webkit-font-smoothing:antialiased}}
 header,main{{max-width:760px;margin:auto;padding:0 16px}}header{{padding-top:24px}}h1{{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.25;margin:0 0 6px}}header p{{color:var(--muted);margin:0 0 6px;font-size:14px}}
 .card{{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin:14px 0;box-shadow:var(--shadow)}}.card.needs{{border-left:4px solid var(--warn-line)}}
 .card-head{{display:flex;align-items:center;gap:12px}}.box-no{{flex:0 0 auto;padding:4px 9px;border-radius:9px;background:var(--surface-2);color:var(--muted);font-size:12px;font-weight:700}}.card-head h2{{margin:0;font-size:18px;line-height:1.3}}.card-head .meta{{color:var(--muted);font-size:13px}}
-.status{{margin:12px 0 4px;padding:9px 12px;border-radius:12px;font-size:13px;background:var(--brand-soft);color:var(--ink)}}.status.warn{{background:var(--warn-soft);border:1px solid var(--warn-line)}}.status.warn strong{{color:var(--warn)}}
+.status{{margin:12px 0 4px;padding:9px 12px;border-radius:12px;font-size:13px;background:var(--brand-soft);color:var(--ink)}}.status.warn{{background:var(--warn-soft);border:1px solid var(--warn-line)}}.status.warn strong{{color:var(--warn)}}.status .spflag{{color:var(--danger)}}
 .fields{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 10px;margin-top:12px}}.fields .wide{{grid-column:1/-1}}
 label{{display:grid;gap:5px;align-content:end}}label>span{{font-size:12px;font-weight:700;color:var(--muted)}}
 .flag{{display:inline-block;margin-left:6px;padding:0 7px;border-radius:99px;background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn-line);font-size:11px;font-weight:700}}label.need input,label.need select{{border-color:var(--warn-line);box-shadow:0 0 0 2px var(--warn-soft)}}
@@ -207,12 +234,12 @@ details{{margin-top:8px}}summary{{cursor:pointer;padding:10px 0;color:var(--bran
 @media(max-width:420px){{.fields{{gap:10px 8px}}label>span{{font-size:11.5px}}}}
 </style></head><body>
 <header><h1>取り込みレビュー</h1><p>低信頼・未検証の個体を確認してください。画像や内容は外部送信されません。</p></header><main></main><div class="savebar"><button id="save">修正JSONを保存</button></div>
-<script>const rows={data},NATURES={nature_data},main=document.querySelector('main');const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}}[c]));
-const MISSING_LABELS={{species:'種族',nature:'性格',ingredients:'食材',subskills:'サブスキル',main_skill:'メインスキル'}},need=(x,k)=>x.ocr_missing?.includes(k)?' need':'',flag=(x,k)=>x.ocr_missing?.includes(k)?'<b class="flag">要確認</b>':'';
+<script>const rows={data},ORIG=rows.map(x=>JSON.stringify(x)),NATURES={nature_data},MAINSKILLS={skill_data},FIELD_NAMES={{species:'ポケモン',level:'レベル',nature:'性格',ingredients:'食材',subskills:'サブスキル',main_skill:'メインスキル',skill_level:'スキルLv'}},main=document.querySelector('main');const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}}[c]));
+const todo=x=>x.review_fields??x.ocr_missing??[],need=(x,k)=>todo(x).includes(k)?' need':'',flag=(x,k)=>todo(x).includes(k)?'<b class="flag">要確認</b>':'';
 const ingredientFields=(x,i)=>(x.ingredient_options||[]).map((slot,j)=>`<label class="wide${{need(x,'ingredients')}}"><span>Lv.${{slot.level}} 食材${{flag(x,'ingredients')}}</span><select data-i="${{i}}" data-slot="${{j}}"><option value="">画像を見て選択</option>${{slot.choices.map(c=>`<option value="${{esc(JSON.stringify(c.slice(0,2)))}}" ${{x.ingredients?.[j]?.[0]===c[0]?'selected':''}}>${{esc(c[2])}} ×${{c[1]}}</option>`).join('')}}</select></label>`).join('');
 const natureOptions=x=>Object.entries(NATURES).map(([v,n])=>`<option value="${{v}}" ${{x.nature===v?'selected':''}}>${{esc(n)}}</option>`).join('');
-main.innerHTML=rows.map((x,i)=>`<article class="card${{x.ocr_missing?.length?' needs':''}}"><div class="card-head"><span class="box-no">BOX ${{x.box_index??'-'}}</span><div><h2>${{esc(x.species_ja||x.species)}}</h2><div class="meta">きのみ ${{esc(x.berry_ja||x.berry||'-')}}</div></div></div><p class="status${{x.ocr_missing?.length?' warn':''}}">${{x.ocr_missing?.length?`<strong>要確認:</strong> ${{x.ocr_missing.map(k=>esc(MISSING_LABELS[k]||k)).join('、')}}`:'主要項目を取得済み'}}${{x.ocr_sources?.length?` · ${{x.ocr_sources.length}}本の動画をSPで統合`:''}}</p><div class="fields"><label class="wide"><span>ニックネーム</span><input data-i="${{i}}" data-k="display_name" value="${{esc(x.display_name||'')}}"></label><label><span>現在レベル</span><input type="number" inputmode="numeric" min="1" max="100" data-i="${{i}}" data-k="level" value="${{x.level??''}}"></label><label><span>画面のSP</span><input type="number" inputmode="numeric" data-i="${{i}}" data-k="sp" value="${{x.sp??''}}"></label><label><span>メインスキルLv</span><input type="number" inputmode="numeric" min="1" max="7" data-i="${{i}}" data-k="skill_level" value="${{x.skill_level??1}}"></label><label class="wide${{need(x,'nature')}}"><span>性格${{flag(x,'nature')}}</span><select data-i="${{i}}" data-k="nature">${{natureOptions(x)}}</select></label>${{ingredientFields(x,i)}}</div><label class="check"><input type="checkbox" data-i="${{i}}" data-k="verified"> 内容を動画と照合済みにする</label><details><summary>抽出JSONを確認・編集</summary><label><span>抽出JSON</span><textarea data-i="${{i}}">${{esc(JSON.stringify(x,null,2))}}</textarea></label></details></article>`).join('');
-document.querySelector('#save').onclick=()=>{{document.querySelectorAll('textarea').forEach(t=>rows[+t.dataset.i]=JSON.parse(t.value));document.querySelectorAll('[data-slot]').forEach(s=>{{if(s.value){{const i=+s.dataset.i,j=+s.dataset.slot;rows[i].ingredients??=[];rows[i].ingredients[j]=JSON.parse(s.value)}}}});document.querySelectorAll('[data-k]').forEach(n=>{{const x=rows[+n.dataset.i],k=n.dataset.k;if(k==='verified'||k==='review_confirmed')x[k]=n.checked;else if(k==='level'||k==='sp'||k==='skill_level')x[k]=Number(n.value);else x[k]=n.value}});const b=new Blob([JSON.stringify({{individuals:rows}},null,2)],{{type:'application/json'}}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='reviewed_individuals.json';a.click();URL.revokeObjectURL(a.href)}};</script></body></html>'''
+main.innerHTML=rows.map((x,i)=>`<article class="card${{todo(x).length||x.sp_flag?' needs':''}}"><div class="card-head"><span class="box-no">BOX ${{x.box_index??'-'}}</span><div><h2>${{esc(x.species_ja||x.species)}}</h2><div class="meta">きのみ ${{esc(x.berry_ja||x.berry||'-')}} · メインスキル ${{esc(MAINSKILLS[x.main_skill]||x.main_skill||'-')}}</div></div></div><p class="status${{todo(x).length||x.sp_flag?' warn':''}}">${{x.sp_flag?`<strong class="spflag">${{esc(x.sp_flag)}}</strong> · `:''}}${{x.auto_verified?'SP一致で自動確定 · ':''}}${{todo(x).length?`<strong>要確認:</strong> ${{todo(x).map(k=>esc(FIELD_NAMES[k]||k)).join('、')}}`:'主要項目を取得済み'}}${{x.ocr_sources?.length?` · ${{x.ocr_sources.length}}本の動画をSPで統合`:''}}</p><div class="fields"><label class="wide"><span>ニックネーム</span><input data-i="${{i}}" data-k="display_name" value="${{esc(x.display_name||'')}}"></label><label><span>現在レベル</span><input type="number" inputmode="numeric" min="1" max="100" data-i="${{i}}" data-k="level" value="${{x.level??''}}"></label><label><span>画面のSP</span><input type="number" inputmode="numeric" data-i="${{i}}" data-k="sp" value="${{x.sp??''}}"></label><label><span>メインスキルLv</span><input type="number" inputmode="numeric" min="1" max="7" data-i="${{i}}" data-k="skill_level" value="${{x.skill_level??1}}"></label><label class="wide${{need(x,'nature')}}"><span>性格${{flag(x,'nature')}}</span><select data-i="${{i}}" data-k="nature">${{natureOptions(x)}}</select></label>${{ingredientFields(x,i)}}</div><label class="check"><input type="checkbox" data-i="${{i}}" data-k="verified"> 内容を動画と照合済みにする</label><details><summary>抽出JSONを確認・編集</summary><label><span>抽出JSON</span><textarea data-i="${{i}}">${{esc(JSON.stringify(x,null,2))}}</textarea></label></details></article>`).join('');
+document.querySelector('#save').onclick=()=>{{document.querySelectorAll('textarea').forEach(t=>rows[+t.dataset.i]=JSON.parse(t.value));document.querySelectorAll('[data-slot]').forEach(s=>{{if(s.value){{const i=+s.dataset.i,j=+s.dataset.slot;rows[i].ingredients??=[];rows[i].ingredients[j]=JSON.parse(s.value)}}}});document.querySelectorAll('[data-k]').forEach(n=>{{const x=rows[+n.dataset.i],k=n.dataset.k;if(k==='verified'||k==='review_confirmed')x[k]=n.checked;else if(k==='level'||k==='sp'||k==='skill_level')x[k]=Number(n.value);else x[k]=n.value}});rows.forEach((x,i)=>{{const o=JSON.parse(ORIG[i]);x.human_edited=[...new Set([...(o.human_edited||[]),...Object.keys(FIELD_NAMES).filter(k=>JSON.stringify(x[k])!==JSON.stringify(o[k]))])]}});const b=new Blob([JSON.stringify({{individuals:rows}},null,2)],{{type:'application/json'}}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='reviewed_individuals.json';a.click();URL.revokeObjectURL(a.href)}};</script></body></html>'''
     page = page.replace('data-k="verified"> 内容を動画と照合済みにする',
                         'data-k="review_confirmed"> ボックス画面と照合済み（以後「!」を表示しない）')
     path.parent.mkdir(parents=True, exist_ok=True)

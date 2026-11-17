@@ -5,7 +5,7 @@ import json
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Collection, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 ROLES = ("berry", "ingredient", "skill")
 ANCHORS = (60, 80)
@@ -73,6 +73,10 @@ def connect(path: Path) -> sqlite3.Connection:
         db.execute("ALTER TABLE individual ADD COLUMN archived_at TEXT")
     if "final_evolution" not in columns:
         db.execute("ALTER TABLE individual ADD COLUMN final_evolution TEXT")
+    if "auto_verified" not in columns:
+        db.execute("ALTER TABLE individual ADD COLUMN auto_verified INTEGER NOT NULL DEFAULT 0")
+    if "sp_flag" not in columns:
+        db.execute("ALTER TABLE individual ADD COLUMN sp_flag TEXT")
     migrate_subskill_unlocks(db)
     db.commit()
     return db
@@ -107,26 +111,160 @@ def record_synced_sources(db: sqlite3.Connection,
     db.commit()
 
 
+def _evolves_into(stored_species: str, species: str) -> bool:
+    """True when ``species`` is ``stored_species`` or one of its evolutions.
+
+    Evolution links come from the pinned species data (``evolves_from``). When
+    they are unavailable, only the same species counts as the same line.
+    """
+    if stored_species == species:
+        return True
+    from .ocr import species_metadata
+
+    metadata = species_metadata()
+    seen = {species}
+    current = (metadata.get(species) or {}).get("evolves_from")
+    while current and current not in seen:
+        if current == stored_species:
+            return True
+        seen.add(current)
+        current = (metadata.get(current) or {}).get("evolves_from")
+    return False
+
+
+def _subskill_upgrades_to(stored: str, new: str) -> bool:
+    """True when subskill seeds can turn ``stored`` into ``new`` (or it is unchanged)."""
+    from .engine import SUBSKILL_UPGRADES
+
+    current, seen = stored, set()
+    while current and current not in seen:
+        if current == new:
+            return True
+        seen.add(current)
+        current = SUBSKILL_UPGRADES.get(current)
+    return False
+
+
+def _known(value: Any) -> bool:
+    return value is not None and value != ""
+
+
+def is_recapture(row: Mapping[str, Any], item: Mapping[str, Any], missing: Iterable[str] = ()) -> bool:
+    """Whether ``item`` can be a later capture of the stored individual ``row``.
+
+    Level, SP, skill level, species (within one evolution line), main skill (on
+    evolution) and subskills (seed upgrades) may change over time. Nature, the
+    ingredient chosen in each slot and the order of subskill slots never do.
+    Fields listed in ``missing`` (``ocr_missing``) are not compared; nature and
+    subskills must be readable because they identify the individual.
+    """
+    missing = set(missing)
+    if "species" in missing or "nature" in missing or "subskills" in missing:
+        return False
+    if row["nature"] != item.get("nature"):
+        return False
+    if "ingredients" not in missing:
+        stored = [entry[0] for entry in json.loads(row["ingredients_json"])]
+        if stored != [entry[0] for entry in item.get("ingredients", [])]:
+            return False
+    stored_subskills = json.loads(row["subskills_json"])
+    subskills = item.get("subskills", [])
+    if len(stored_subskills) != len(subskills) or not all(
+            old[1] == new[1] and _subskill_upgrades_to(old[0], new[0])
+            for old, new in zip(stored_subskills, subskills)):
+        return False
+    if not _evolves_into(row["species"], item.get("species")):
+        return False
+    if "main_skill" not in missing:
+        if row["species"] == item.get("species") and row["main_skill"] != item.get("main_skill"):
+            return False
+        if _known(row["skill_level"]) and _known(item.get("skill_level")) and \
+                int(item["skill_level"]) < int(row["skill_level"]):
+            return False
+    if "level" not in missing and _known(row["level"]) and _known(item.get("level")) and \
+            int(item["level"]) < int(row["level"]):
+        return False
+    return True
+
+
+def find_recapture(db: sqlite3.Connection, item: Mapping[str, Any], candidate_uids: Collection[str],
+                   missing: Iterable[str] = ()) -> Tuple[Optional[sqlite3.Row], int]:
+    """Return (row to update, number of matching rows) for a re-captured individual.
+
+    Only rows in ``candidate_uids`` are considered. With several matches
+    (identical builds), the one whose stored level and SP are not above the
+    new values is chosen when it is unique, then an exact level+SP match.
+    Otherwise nothing is chosen and the match count is returned so callers
+    can report a possible duplicate.
+    """
+    missing = list(missing)
+    matches = [row for row in db.execute(
+                   "SELECT * FROM individual WHERE archived=0 ORDER BY uid").fetchall()
+               if row["uid"] in candidate_uids and is_recapture(row, item, missing)]
+    if len(matches) <= 1:
+        return (matches[0] if matches else None), len(matches)
+
+    def not_above(row: Mapping[str, Any], field: str) -> bool:
+        return not (field not in missing and _known(row[field]) and _known(item.get(field))
+                    and int(row[field]) > int(item[field]))
+
+    eligible = [row for row in matches if not_above(row, "level") and not_above(row, "sp")]
+    if len(eligible) == 1:
+        return eligible[0], len(matches)
+    exact = [row for row in eligible
+             if _known(item.get("level")) and _known(item.get("sp")) and
+             row["level"] == int(item["level"]) and row["sp"] == int(item["sp"])]
+    if len(exact) == 1:
+        return exact[0], len(matches)
+    return None, len(matches)
+
+
 def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]]) -> int:
+    """Insert or update individuals.
+
+    A still capture (``capture-`` uid) or an item without uid that matches an
+    individual stored before this call (see ``is_recapture``) updates that
+    individual and keeps its uid. Rows inserted or matched earlier in the same
+    call are never matched again, so identical-build helpers captured together
+    stay distinct. When ``items`` are dicts, a merged item's ``uid`` is
+    replaced by the stored uid and ``recaptured`` is set; an unresolved
+    identical-build match sets ``possible_duplicates``. Dict items also get
+    ``stored_uid``, the uid of the row they were written to.
+    """
     from .localization import normalize_individual
 
     timestamp = now()
     count = 0
+    candidates = {row["uid"] for row in db.execute("SELECT uid FROM individual")}
     for raw_item in items:
         item = normalize_individual(dict(raw_item))
         uid = item.get("uid")
         existing = None
+        recaptured = False
         if not uid and item.get("sp") is not None:
             matches = db.execute("SELECT * FROM individual WHERE species=? AND sp=?",
                                  (item["species"], item["sp"])).fetchall()
             if len(matches) == 1:
                 existing = matches[0]
                 uid = existing["uid"]
+        missing = set(raw_item.get("ocr_missing", []))
+        if not existing and (not uid or str(uid).startswith("capture-")):
+            target = uid or canonical_uid(item)
+            if not db.execute("SELECT 1 FROM individual WHERE uid=?", (target,)).fetchone():
+                match, match_count = find_recapture(db, item, candidates, missing)
+                if match:
+                    existing, uid, recaptured = match, match["uid"], True
+                    if isinstance(raw_item, dict):
+                        raw_item["uid"] = uid
+                        raw_item["recaptured"] = True
+                elif match_count > 1 and isinstance(raw_item, dict):
+                    raw_item["possible_duplicates"] = match_count
+        if existing:
+            candidates.discard(existing["uid"])
         # A later capture may intentionally show only nature/subskills. Never
         # replace previously reviewed fields with OCR placeholders or partial
         # ingredient lists from that complementary video.
         if existing:
-            missing = set(raw_item.get("ocr_missing", []))
             if "nature" in missing:
                 item["nature"] = existing["nature"]
             if "ingredients" in missing:
@@ -136,8 +274,19 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
             if "main_skill" in missing:
                 item["main_skill"] = existing["main_skill"]
                 item["skill_level"] = existing["skill_level"]
+        if recaptured:
+            # Level and SP only go up; an unread value keeps the stored one.
+            for field in ("level", "sp"):
+                values = [int(v) for v in (existing[field], item.get(field))
+                          if _known(v)] if field not in missing else []
+                item[field] = max(values) if values else existing[field]
+            if not item.get("display_name"):
+                item["display_name"] = existing["display_name"]
         uid = uid or canonical_uid(item)
+        if isinstance(raw_item, dict):
+            raw_item["stored_uid"] = uid
         same_core = bool(existing and all((
+            existing["species"] == item["species"],
             existing["nature"] == item["nature"],
             json.loads(existing["ingredients_json"]) == item["ingredients"],
             json.loads(existing["subskills_json"]) == item["subskills"],
@@ -162,7 +311,10 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
               skill_level=excluded.skill_level,sp=excluded.sp,box_index=excluded.box_index,
               last_seen=excluded.last_seen,confidence=excluded.confidence,
               review_confirmed=MAX(individual.review_confirmed,excluded.review_confirmed),
-              verified=MAX(individual.review_confirmed,excluded.verified,excluded.review_confirmed)""",
+              verified=MAX(individual.review_confirmed,excluded.verified,excluded.review_confirmed),
+              auto_verified=CASE WHEN excluded.verified=1 AND excluded.review_confirmed=0
+                AND individual.review_confirmed=0 THEN individual.auto_verified ELSE 0 END,
+              sp_flag=NULL""",
             (uid, item["species"], item.get("display_name"), item.get("level"),
              item["nature"], item.get("pokemon_type"),
              item.get("berry"), json.dumps(item.get("production_scores", {}), ensure_ascii=False),

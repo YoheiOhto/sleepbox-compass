@@ -31,7 +31,11 @@ CREATE TABLE IF NOT EXISTS individual (
   repaired INTEGER NOT NULL DEFAULT 0,
   archived INTEGER NOT NULL DEFAULT 0,
   archived_at TEXT,
-  final_evolution TEXT
+  final_evolution TEXT,
+  -- 1 when `sync` verified the row from an exact SP match (not a human review).
+  auto_verified INTEGER NOT NULL DEFAULT 0,
+  -- Why the last SP check left the row unverified, e.g. an SP mismatch.
+  sp_flag TEXT
 );
 
 CREATE TABLE IF NOT EXISTS evaluation (
