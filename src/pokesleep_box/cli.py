@@ -14,7 +14,8 @@ from .ingest import audit, render_review
 from .localization import names
 from .paths import DEFAULT_PATHS as P, load_settings, private_paths
 from .render import render_site
-from .sync import DEFAULT_VLM_MODEL, format_summary, render_private, run_sync, scan_new
+from .sync import (DEFAULT_VLM_MODEL, format_summary, import_checked, render_private, run_sync,
+                   scan_new)
 
 
 def main() -> None:
@@ -25,6 +26,8 @@ def main() -> None:
     commands.add_parser("init-db")
     imp = commands.add_parser("import-json")
     imp.add_argument("path", type=Path)
+    imp.add_argument("--engine", default=P.engine,
+                     help="SP確認に使う計算エンジン（使えないときはSP確認を省略）")
     dec = commands.add_parser("decide")
     dec.add_argument("--keep-top-n", type=int, default=2)
     render = commands.add_parser("render")
@@ -122,7 +125,12 @@ def main() -> None:
         print(args.db)
     elif args.command == "import-json":
         payload = json.loads(args.path.read_text(encoding="utf-8"))
-        print(json.dumps({"imported": import_individuals(db, payload["individuals"])}, ensure_ascii=False))
+        result = import_checked(db, payload["individuals"], args.engine,
+                                lambda message: print(message, file=sys.stderr, flush=True))
+        if result.get("note"):
+            print(result["note"], file=sys.stderr, flush=True)
+        print(json.dumps({key: result[key] for key in ("imported", "sp") if key in result},
+                         ensure_ascii=False))
     elif args.command == "decide":
         print(json.dumps(decide(db, args.keep_top_n), ensure_ascii=False))
     elif args.command == "render":

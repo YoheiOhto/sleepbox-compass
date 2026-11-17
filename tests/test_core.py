@@ -336,6 +336,54 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(result["ingredient_options"][1]["choices"][1][2], "あんみんトマト")
         self.assertNotIn("ingredients", result["ocr_missing"])
 
+    def test_unread_main_skill_is_filled_from_species_metadata(self):
+        from pokesleep_box.ocr import finalize_candidate
+        read = {"species": "BULBASAUR", "nature": "Brave", "level": 10, "sp": 400,
+                "ingredients": [["Honey", 2]], "subskills": [["Helping Speed S", 10]]}
+        candidate = finalize_candidate(dict(read), 1)
+        # finalize keeps the item importable with a placeholder, still flagged.
+        self.assertEqual(candidate["main_skill"], "Metronome")
+        self.assertIn("main_skill", candidate["ocr_missing"])
+        metadata = {"BULBASAUR": {"berry": "DURIN", "main_skill": "Moonlight (Ingredient Magnet S)",
+                                  "ingredients": [{"level": 1, "choices": [["Honey", 2]]}]}}
+        result = enrich_with_species_data([candidate], pokemon_data=metadata)[0]
+        self.assertEqual(result["main_skill"], "Ingredient Magnet S")
+        self.assertNotIn("main_skill", result["ocr_missing"])
+        # A main skill the OCR did read is kept.
+        read_skill = finalize_candidate(dict(read, main_skill="Charge Strength S"), 1)
+        result = enrich_with_species_data([read_skill], pokemon_data=metadata)[0]
+        self.assertEqual(result["main_skill"], "Charge Strength S")
+        self.assertNotIn("main_skill", result["ocr_missing"])
+
+    def test_unread_main_skill_without_metadata_stays_flagged(self):
+        from pokesleep_box.ocr import finalize_candidate
+        candidate = finalize_candidate({"species": "BULBASAUR", "nature": "Brave",
+                                        "ingredients": [["Honey", 2]],
+                                        "subskills": [["Helping Speed S", 10]]}, 1)
+        # Metadata for other species only, and the source without main skills.
+        for metadata in ({"PIKACHU": {"berry": "GREPA", "main_skill": "Charge Strength S"}},
+                         {"BULBASAUR": {"berry": "DURIN"}}):
+            result = enrich_with_species_data([dict(candidate)], pokemon_data=metadata)[0]
+            self.assertEqual(result["main_skill"], "Metronome")
+            self.assertIn("main_skill", result["ocr_missing"])
+        # The placeholder still imports (main_skill is NOT NULL in the DB).
+        self.assertEqual(import_individuals(self.db, [result]), 1)
+
+    def test_review_page_and_site_show_japanese_main_skill_names(self):
+        item = normalize_individual({"uid": "x", "species": "PIKACHU", "nature": "Brave",
+                                     "main_skill": "Berry Zone", "skill_level": 1,
+                                     "ingredients": [], "subskills": []})
+        review = Path(self.tmp.name) / "review.html"
+        render_review([item], review)
+        page = review.read_text(encoding="utf-8")
+        self.assertIn('"Berry Zone": "きのみゾーン"', page)
+        self.assertIn("MAINSKILLS[x.main_skill]", page)
+        self.assertIn("human_edited", page)
+        import_individuals(self.db, [item])
+        render_site(load_dashboard(self.db), Path(self.tmp.name) / "site")
+        site = (Path(self.tmp.name) / "site/index.html").read_text(encoding="utf-8")
+        self.assertIn('"Cooking Advance S": "料理アドバンスS"', site)
+
     def test_video_frames_split_same_species_when_sp_changes(self):
         def frame(sp):
             return {"frame": sp, "observations": [

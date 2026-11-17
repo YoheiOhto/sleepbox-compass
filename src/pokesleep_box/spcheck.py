@@ -8,6 +8,17 @@ subskills and ingredient slots do not change the SP, and neither does the
 main skill name (it follows the species). So an exact SP match confirms only
 the unlocked part of a read; the locked part is confirmed only when the OCR
 read it cleanly. Policy chosen by the user: "解放済みのみ確定".
+
+Only an exact match below Lv56 (``verify_mode=strict``) can auto-verify; at
+Lv56 and above the engine's SP is approximate, so even an exact match leaves
+the individual unverified.
+
+Rows a human edited on the review page (or imported with `import-json`) but
+did not tick 「照合済み」 (``review_confirmed``) go through the same rule. The
+review page saves every row with its scan-time ``ocr_missing`` unchanged and
+records in ``human_edited`` the fields whose values the human changed; those
+fields count as resolved (see ``unresolved_fields``). Fields left untouched
+keep their OCR status, so saving the page does not by itself confirm them.
 """
 from __future__ import annotations
 
@@ -27,6 +38,12 @@ SP_BLIND_SUBSKILLS = {"Skill Level Up S", "Skill Level Up M", "Dream Shard Bonus
 MATCH, MISMATCH, PARTIAL, UNCHECKED, HUMAN = "match", "mismatch", "partial", "unchecked", "human"
 
 
+def unresolved_fields(item: Mapping[str, Any]) -> List[str]:
+    """``ocr_missing`` without the fields a human changed on the review page."""
+    edited = set(item.get("human_edited") or [])
+    return [field for field in item.get("ocr_missing", []) if field not in edited]
+
+
 def _locked_ingredient_slots_clean(row: Mapping[str, Any], item: Mapping[str, Any],
                                    level: int) -> bool:
     """Whether every ingredient slot above ``level`` was read without guessing.
@@ -34,15 +51,18 @@ def _locked_ingredient_slots_clean(row: Mapping[str, Any], item: Mapping[str, An
     With species options, a slot is clean when the read amount (or matched
     icon) resolves it to exactly the stored ingredient, as in
     ``ocr.resolve_ingredient_slots``; a provisional fallback is not clean.
+    Ingredients a human changed on the review page are clean.
     """
     from .ocr import align_amounts, resolve_ingredient_slots
 
     stored = json.loads(row["ingredients_json"] or "[]")
-    missing = set(item.get("ocr_missing", []))
+    missing = set(unresolved_fields(item))
     options = item.get("ingredient_options") or []
     slots = len(options) or len(INGREDIENT_UNLOCKS)
     if len(stored) < slots:
         return False
+    if "ingredients" in (item.get("human_edited") or []):
+        return True
     unlocks = [(options[index].get("level") if options else None) or INGREDIENT_UNLOCKS[index]
                for index in range(slots)]
     locked = [index for index in range(slots) if unlocks[index] > level]
@@ -65,7 +85,7 @@ def assess(row: Mapping[str, Any], item: Mapping[str, Any],
     locked or SP-blind fields remain unclear, mismatch, unchecked, human),
     ``review_fields`` (the fields still to check by hand) and ``flag``.
     """
-    missing = list(item.get("ocr_missing", []))
+    missing = unresolved_fields(item)
     if row["review_confirmed"]:
         return {"status": HUMAN, "review_fields": [], "flag": None}
     if not result:

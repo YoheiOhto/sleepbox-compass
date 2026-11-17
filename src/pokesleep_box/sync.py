@@ -57,11 +57,33 @@ def scan_new(db: sqlite3.Connection, path: Path, frames: Path, vlm_cache: Path,
     return {"items": items, "done": done, "imported": imported, "qwen": qwen}
 
 
-def import_reviewed(db: sqlite3.Connection, path: Path) -> Optional[int]:
-    """Import a reviewed JSON once; ``None`` when this exact file was imported before.
+def import_checked(db: sqlite3.Connection, items: List[Dict[str, Any]], engine: str,
+                   on_progress: Optional[Progress] = None) -> Dict[str, Any]:
+    """Import reviewed rows, then SP-check the ones no human ticked 「照合済み」.
+
+    Shared by `import-json` and `sync --reviewed`. The rules are those of
+    ``spcheck.check_items``; ``review_confirmed`` rows are never changed.
+    Returns ``imported``, ``sp`` (the check's counts) or, when the engine is
+    unavailable, ``note`` (the rows are then imported as before, unchecked).
+    """
+    from .engine import EngineUnavailable
+    from .spcheck import check_items
+
+    result: Dict[str, Any] = {"imported": import_individuals(db, items)}
+    try:
+        result["sp"] = check_items(db, items, engine, on_progress=on_progress)
+    except EngineUnavailable as exc:
+        result["note"] = f"計算エンジンを使えないため、SP確認を省略しました: {exc}"
+    return result
+
+
+def import_reviewed(db: sqlite3.Connection, path: Path, engine: str,
+                    on_progress: Optional[Progress] = None) -> Optional[Dict[str, Any]]:
+    """Import and SP-check a reviewed JSON once; ``None`` when this exact file was imported before.
 
     The file's SHA-256 is recorded with the synced captures, so running
     `sync --reviewed` again with the same file never imports it twice.
+    Returns the result of ``import_checked``.
     """
     from .ingest import file_sha256
 
@@ -69,9 +91,9 @@ def import_reviewed(db: sqlite3.Connection, path: Path) -> Optional[int]:
     if digest in synced_sources(db):
         return None
     payload = json.loads(path.read_text(encoding="utf-8"))
-    imported = import_individuals(db, payload["individuals"])
-    record_synced_sources(db, [(digest, path.name, REVIEWED_READER, imported)])
-    return imported
+    result = import_checked(db, payload["individuals"], engine, on_progress)
+    record_synced_sources(db, [(digest, path.name, REVIEWED_READER, result["imported"])])
+    return result
 
 
 def render_private(db: sqlite3.Connection, out: Path, settings: Dict[str, Any],
@@ -113,11 +135,19 @@ def run_sync(source: Path, paths: PrivatePaths, settings: Optional[Dict[str, Any
     try:
         before = {row["uid"] for row in db.execute("SELECT uid FROM individual")}
         if reviewed is not None:
-            count = import_reviewed(db, reviewed)
-            summary["reviewed_imported"] = count
-            summary["messages"].append(
-                f"{reviewed} は取り込み済みのため読み込みませんでした" if count is None
-                else f"{reviewed} から{count}件を取り込みました")
+            result = import_reviewed(db, reviewed, paths.engine, on_progress)
+            summary["reviewed_imported"] = result and result["imported"]
+            if result is None:
+                summary["messages"].append(f"{reviewed} は取り込み済みのため読み込みませんでした")
+            else:
+                message = f"{reviewed} から{result['imported']}件を取り込みました"
+                if result.get("sp"):
+                    summary["reviewed_sp"] = result["sp"]
+                    message += (f"（SP一致で確定: {result['sp'][MATCH]} / "
+                                f"SP不一致: {result['sp'][MISMATCH]}）")
+                summary["messages"].append(message)
+                if result.get("note"):
+                    summary["messages"].append(result["note"])
         summary["steps"].append("scan")
         scanned = scan_new(db, source, paths.frames, paths.vlm_cache, ocr, vlm_model,
                            interval=interval, on_progress=on_progress)

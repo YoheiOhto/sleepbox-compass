@@ -13,7 +13,7 @@ from pokesleep_box.engine import EngineUnavailable
 from pokesleep_box.ingest import audit
 from pokesleep_box.paths import DEFAULT_PATHS, PrivatePaths, private_paths
 from pokesleep_box.spcheck import check_items, review_order
-from pokesleep_box.sync import run_sync
+from pokesleep_box.sync import import_checked, run_sync
 
 ROOT = Path(__file__).parents[1]
 # Fictional sample individual (Lv10: subskills from Lv25 and the Lv30/60
@@ -147,6 +147,120 @@ class SpCheckTests(unittest.TestCase):
         decide(self.db)
         verdict = self.db.execute("SELECT verdict FROM decision WHERE uid='capture-a'").fetchone()
         self.assertEqual(verdict["verdict"], "protected")
+
+
+class ReviewedSpCheckTests(unittest.TestCase):
+    """Rows edited on the review page but not ticked 「照合済み」."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.db = connect(Path(self.tmp.name) / "box.sqlite")
+        # The scan: a neutral nature that the SP cannot confirm stays partial.
+        self.scan = scanned("a", nature="Hardy", ocr_missing=["nature"])
+        import_individuals(self.db, [self.scan])
+
+    def tearDown(self):
+        self.db.close()
+        self.tmp.cleanup()
+
+    def row(self, uid="capture-a"):
+        return self.db.execute("SELECT * FROM individual WHERE uid=?", (uid,)).fetchone()
+
+    def reviewed(self, **changes):
+        # As saved by the review page: scan-time ocr_missing kept, unticked.
+        item = json.loads(json.dumps(self.scan))
+        item.update(dict({"review_confirmed": False}, **changes))
+        return item
+
+    def import_checked(self, items, computed=None):
+        with patch("pokesleep_box.engine.run_engine",
+                   side_effect=fake_engine(computed or {})) as engine:
+            result = import_checked(self.db, items, "engine")
+        self.engine = engine
+        return result
+
+    def test_edited_row_with_sp_match_is_auto_verified(self):
+        item = self.reviewed(nature="Docile", human_edited=["nature"])
+        result = self.import_checked([item])
+        self.assertEqual((result["imported"], result["sp"]["match"]), (1, 1))
+        row = self.row()
+        self.assertEqual((row["verified"], row["auto_verified"], row["review_confirmed"]), (1, 1, 0))
+        self.assertEqual(row["nature"], "Docile")
+        self.assertIsNone(row["sp_flag"])
+
+    def test_untouched_stale_field_still_needs_review(self):
+        # Saving the page without changing the nature does not confirm it.
+        item = self.reviewed(human_edited=[])
+        result = self.import_checked([item])
+        self.assertEqual(result["sp"]["partial"], 1)
+        self.assertEqual(item["review_fields"], ["nature"])
+        self.assertEqual(self.row()["verified"], 0)
+
+    def test_edited_locked_ingredients_count_as_resolved(self):
+        self.scan = scanned("b", ocr_missing=["ingredients"], ingredient_amounts=[1, None, None])
+        import_individuals(self.db, [self.scan])
+        item = self.reviewed(ingredients=[["Apple", 1], ["Egg", 3], ["Apple", 4]],
+                             human_edited=["ingredients"])
+        self.import_checked([item])
+        self.assertEqual(self.row("capture-b")["auto_verified"], 1)
+
+    def test_edited_row_with_sp_mismatch_is_flagged(self):
+        item = self.reviewed(nature="Docile", sp=420, human_edited=["nature", "sp"])
+        result = self.import_checked([item], {"capture-a": 400})
+        self.assertEqual(result["sp"]["mismatch"], 1)
+        row = self.row()
+        self.assertEqual((row["verified"], row["auto_verified"]), (0, 0))
+        self.assertEqual(row["sp_flag"], "SP不一致（画面 420 / 計算 400）")
+
+    def test_ticked_rows_are_untouched(self):
+        item = self.reviewed(review_confirmed=True)
+        result = self.import_checked([item], {"capture-a": 999})
+        self.assertEqual(result["sp"]["human"], 1)
+        self.engine.assert_not_called()
+        row = self.row()
+        self.assertEqual((row["verified"], row["review_confirmed"], row["auto_verified"]), (1, 1, 0))
+        self.assertIsNone(row["sp_flag"])
+        # A row confirmed in the DB stays untouched by a later unticked JSON.
+        self.import_checked([self.reviewed(nature="Docile", human_edited=["nature"])],
+                            {"capture-a": 999})
+        row = self.row()
+        self.assertEqual((row["verified"], row["review_confirmed"], row["auto_verified"]), (1, 1, 0))
+        self.assertIsNone(row["sp_flag"])
+
+    def test_import_json_without_engine_imports_unchanged_with_note(self):
+        root = Path(self.tmp.name)
+        path = root / "reviewed_individuals.json"
+        path.write_text(json.dumps({"individuals": [
+            self.reviewed(uid="capture-z", nature="Docile", human_edited=["nature"])]}),
+            encoding="utf-8")
+        argv = ["pokesleep-box", "--db", str(root / "cli.sqlite"), "import-json", str(path),
+                "--engine", str(root / "missing-engine")]
+        with patch.object(sys, "argv", argv), patch("builtins.print") as printed:
+            cli.main()
+        outputs = [call.args[0] for call in printed.call_args_list]
+        self.assertEqual(json.loads(outputs[-1]), {"imported": 1})
+        self.assertTrue(any("SP確認を省略" in str(text) for text in outputs[:-1]))
+        db = connect(root / "cli.sqlite")
+        try:
+            row = db.execute("SELECT * FROM individual WHERE uid='capture-z'").fetchone()
+            self.assertEqual((row["verified"], row["auto_verified"], row["review_confirmed"]),
+                             (0, 0, 0))
+            self.assertIsNone(row["verify_mode"])
+            self.assertIsNone(row["sp_flag"])
+        finally:
+            db.close()
+
+    def test_import_json_with_engine_auto_verifies(self):
+        root = Path(self.tmp.name)
+        path = root / "reviewed_individuals.json"
+        path.write_text(json.dumps({"individuals": [
+            self.reviewed(nature="Docile", human_edited=["nature"])]}), encoding="utf-8")
+        argv = ["pokesleep-box", "--db", str(root / "box.sqlite"), "import-json", str(path)]
+        with patch.object(sys, "argv", argv), patch("builtins.print") as printed, \
+                patch("pokesleep_box.engine.run_engine", side_effect=fake_engine({})):
+            cli.main()
+        self.assertEqual(json.loads(printed.call_args[0][0])["sp"]["match"], 1)
+        self.assertEqual(self.row()["auto_verified"], 1)
 
 
 def ignored(path: Path, patterns) -> bool:
@@ -286,6 +400,26 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(first["reviewed_imported"], 1)
         second = self.sync(reviewed=reviewed)
         self.assertIsNone(second["reviewed_imported"])
+
+    def test_reviewed_edited_unticked_rows_are_sp_checked(self):
+        self.items = []
+        reviewed = Path(self.tmp.name) / "reviewed_individuals.json"
+        reviewed.write_text(json.dumps({"individuals": [
+            scanned("r", nature="Docile", ocr_missing=["nature"], human_edited=["nature"]),
+            scanned("s", sp=500, human_edited=["sp"])]}), encoding="utf-8")
+        with patch("pokesleep_box.engine.run_engine",
+                   side_effect=fake_engine({"capture-s": 480})):
+            summary = self.sync(reviewed=reviewed)
+        self.assertEqual(summary["reviewed_sp"]["match"], 1)
+        self.assertEqual(summary["reviewed_sp"]["mismatch"], 1)
+        self.assertTrue(any("SP一致で確定: 1 / SP不一致: 1" in m for m in summary["messages"]))
+        db = connect(self.paths.db)
+        try:
+            rows = {row["uid"]: row for row in db.execute("SELECT * FROM individual")}
+        finally:
+            db.close()
+        self.assertEqual(rows["capture-r"]["auto_verified"], 1)
+        self.assertEqual(rows["capture-s"]["sp_flag"], "SP不一致（画面 500 / 計算 480）")
 
 
 class ScanCommandTests(unittest.TestCase):

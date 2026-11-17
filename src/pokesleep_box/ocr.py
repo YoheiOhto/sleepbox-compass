@@ -12,7 +12,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
-from .localization import SUBSKILL_UNLOCKS, base_main_skill, names, normalize_individual, to_japanese
+from .localization import (SUBSKILL_UNLOCKS, base_main_skill, names, normalize_individual,
+                           to_english, to_japanese)
 
 ROOT = Path(__file__).parents[2]
 VISION_SOURCE = ROOT / "engine/macos/vision_ocr.swift"
@@ -204,6 +205,9 @@ def finalize_candidate(item: Dict[str, Any], box_index: int) -> Dict[str, Any]:
     result.setdefault("nature", "Hardy")
     result.setdefault("ingredients", [])
     result.setdefault("subskills", [])
+    # Placeholder so the item stays importable; `enrich_with_species_data`
+    # replaces it with the species' main skill and keeps "main_skill" in
+    # `ocr_missing` only when no species metadata is available.
     result.setdefault("main_skill", "Metronome")
     result.setdefault("skill_level", 1)
     result.setdefault("species", "UNKNOWN")
@@ -298,9 +302,15 @@ def enrich_with_species_data(items: List[Dict[str, Any]],
             item["berry"] = metadata["berry"]
             item["berry_ja"] = to_japanese("berries", metadata["berry"])
             item.setdefault("field_confidence", {})["berry"] = 1.0
-        if metadata.get("main_skill") and not item.get("main_skill"):
-            item["main_skill"] = base_main_skill(metadata["main_skill"])
+        # The main skill follows the species. An unread one (empty, or the
+        # placeholder set by `finalize_candidate`) is filled from the
+        # species metadata; without metadata it stays flagged.
+        skill_unread = ("main_skill" in item.get("ocr_missing", [])
+                        or not item.get("main_skill"))
+        if skill_unread and metadata.get("main_skill"):
+            item["main_skill"] = to_english("mainskills", base_main_skill(metadata["main_skill"]))
             item.setdefault("field_confidence", {})["main_skill"] = 1.0
+            skill_unread = False
         options = []
         for slot in metadata.get("ingredients", []):
             choices = [[name, amount, to_japanese("ingredients", name)]
@@ -339,8 +349,10 @@ def enrich_with_species_data(items: List[Dict[str, Any]],
             item["ingredients"] = ingredients
         missing = [key for key in item.get("ocr_missing", [])
                    if key not in ("berry", "ingredients", "main_skill")]
-        missing.extend(key for key in ("species", "nature", "subskills", "main_skill")
+        missing.extend(key for key in ("species", "nature", "subskills")
                        if not item.get(key) and key not in missing)
+        if skill_unread:
+            missing.append("main_skill")
         if (ingredients_need_review or
                 len(item.get("ingredients", [])) < len(options or [None, None, None])):
             missing.append("ingredients")
