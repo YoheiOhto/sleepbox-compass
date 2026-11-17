@@ -339,8 +339,35 @@ def import_individuals(db: sqlite3.Connection, items: Iterable[Mapping[str, Any]
     return count
 
 
-def decide(db: sqlite3.Connection, keep_top_n: int = 2,
-           protected_uids: Sequence[str] = (), low_score_threshold: float = 30.0) -> Dict[str, int]:
+# Defaults for which individuals become "send" candidates. They lean towards
+# sending: compare each individual only on its best role, send it when one
+# same-species individual beats it there, or when its best role scores below
+# 50/100. Override with the same keys in config/settings.local.json.
+DECIDE_DEFAULTS = {"keepTopNPerSpecies": 1, "sendBelowScore": 50.0, "compareRoles": "best"}
+
+
+def decide_options(settings: Optional[Mapping[str, Any]] = None) -> Dict[str, Any]:
+    """Map local settings onto `decide` keyword arguments."""
+    merged = {**DECIDE_DEFAULTS, **{k: v for k, v in (settings or {}).items() if k in DECIDE_DEFAULTS}}
+    compare = str(merged["compareRoles"])
+    if compare not in ("best", "all"):
+        raise ValueError(f"compareRoles は best か all です: {compare}")
+    return {"keep_top_n": int(merged["keepTopNPerSpecies"]),
+            "low_score_threshold": float(merged["sendBelowScore"]), "compare": compare}
+
+
+def decide(db: sqlite3.Connection, keep_top_n: int = DECIDE_DEFAULTS["keepTopNPerSpecies"],
+           protected_uids: Sequence[str] = (),
+           low_score_threshold: float = DECIDE_DEFAULTS["sendBelowScore"],
+           compare: str = DECIDE_DEFAULTS["compareRoles"]) -> Dict[str, int]:
+    """Mark each verified, fully evaluated individual as keep or send.
+
+    ``compare="best"`` compares an individual with its species only on its own
+    best role; ``"all"`` (the old, conservative rule) requires another
+    individual to be no worse in every role. Unverified individuals are always
+    protected. ``low_score_threshold`` sends individuals whose best role scores
+    below it (0 disables).
+    """
     people = db.execute("SELECT * FROM individual WHERE archived=0 ORDER BY species, box_index").fetchall()
     scores = {(r["uid"], r["anchor_level"], r["role"]): r["score"] for r in
               db.execute("SELECT uid,anchor_level,role,score FROM evaluation")}
@@ -369,35 +396,44 @@ def decide(db: sqlite3.Connection, keep_top_n: int = 2,
                 own_roles = role_scores(uid)
                 best_role, best_role_score = max(own_roles.items(), key=lambda item: item[1])
 
-                # A candidate is safe to send only when at least keep_top_n
-                # same-species individuals are no worse at both anchors in all
-                # roles, and strictly better on at least one axis. Comparing a
-                # single peak score would discard useful specialists.
+                # Another same-species individual "beats" this one when it is no
+                # worse at both anchors in the compared roles and strictly better
+                # on at least one axis. With compare="all" every role counts, so
+                # specialists are never discarded for a weaker peak.
+                compared = [best_role] if compare == "best" else list(ROLES)
                 dominated_by = []
                 for other in group:
                     if other["uid"] == uid:
                         continue
                     other_uid = other["uid"]
+                    if any((other_uid, a, r) not in scores for a in ANCHORS for r in compared):
+                        continue
                     no_worse = all(
                         scores[(other_uid, anchor, role)] >= scores[(uid, anchor, role)]
-                        for anchor in ANCHORS for role in ROLES
+                        for anchor in ANCHORS for role in compared
                     )
                     strictly_better = any(
                         scores[(other_uid, anchor, role)] > scores[(uid, anchor, role)]
-                        for anchor in ANCHORS for role in ROLES
+                        for anchor in ANCHORS for role in compared
                     )
                     if no_worse and strictly_better:
                         dominated_by.append(other_uid)
 
-                if len(dominated_by) >= keep_top_n:
+                role_ja = {"berry": "きのみ", "ingredient": "食材", "skill": "スキル"}
+                scope = (f"得意な{role_ja[best_role]}" if compare == "best" else "全ロール")
+                if low_score_threshold > 0 and best_role_score < low_score_threshold:
                     verdict = "send"
-                    reason = (f"Lv60/Lv80の全ロールで同等以上、かつ一部で上回る同種個体が"
-                              f"{len(dominated_by)}匹います（最高評価: {best_role}・"
+                    reason = (f"最高評価が{role_ja[best_role]}・{best_role_score:.1f}点で、"
+                              f"基準の{low_score_threshold:g}点に届きません")
+                elif len(dominated_by) >= keep_top_n:
+                    verdict = "send"
+                    reason = (f"Lv60/Lv80の{scope}で同等以上、かつ一部で上回る同種個体が"
+                              f"{len(dominated_by)}匹います（最高評価: {role_ja[best_role]}・"
                               f"{best_role_score:.1f}点）")
                 else:
                     verdict = "keep"
-                    reason = (f"Lv60/Lv80の全ロールでは同種上位に支配されません"
-                              f"（最高評価: {best_role}・{best_role_score:.1f}点）")
+                    reason = (f"Lv60/Lv80の{scope}では同種に上回られていません"
+                              f"（最高評価: {role_ja[best_role]}・{best_role_score:.1f}点）")
             db.execute("INSERT OR REPLACE INTO decision VALUES (?,?,?,?)",
                        (uid, verdict, reason, timestamp))
             counts[verdict] += 1

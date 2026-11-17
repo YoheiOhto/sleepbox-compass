@@ -56,7 +56,7 @@ class CoreTests(unittest.TestCase):
 
     def test_dominated_sample_is_send(self):
         self.assertEqual(import_individuals(self.db, self.items), 3)
-        result = decide(self.db, keep_top_n=2)
+        result = decide(self.db, keep_top_n=2, compare="all", low_score_threshold=0)
         self.assertEqual(result, {"keep": 2, "send": 1, "protected": 0})
         sent = self.db.execute("SELECT reason FROM decision WHERE verdict='send'").fetchone()
         self.assertIn("全ロール", sent["reason"])
@@ -76,9 +76,29 @@ class CoreTests(unittest.TestCase):
             items.append(item)
         import_individuals(self.db, items)
 
-        result = decide(self.db, keep_top_n=2)
+        result = decide(self.db, keep_top_n=2, compare="all", low_score_threshold=0)
 
         self.assertEqual(result, {"keep": 3, "send": 0, "protected": 0})
+
+    def test_best_role_comparison_sends_the_weaker_berry_specialist(self):
+        # Two berry specialists: the second is a little better at berries but
+        # much worse at skills. "all" keeps both; "best" (the default) sends the
+        # first, which is beaten on its own best role.
+        items = []
+        for index, (berry, skill) in enumerate(((1000, 600), (1100, 100)), 1):
+            item = dict(self.items[0], display_name=f"berry-{index}", box_index=index,
+                        nature=("Mild", "Calm")[index - 1], sp=500 + index)
+            item["scores"] = {str(a): {"berry": berry, "ingredient": 50, "skill": skill}
+                              for a in (50, 60, 70, 80)}
+            items.append(item)
+        import_individuals(self.db, items)
+        self.assertEqual(decide(self.db, compare="all", low_score_threshold=0)["send"], 0)
+        self.assertEqual(decide(self.db, low_score_threshold=0),
+                         {"keep": 1, "send": 1, "protected": 0})
+        sent = self.db.execute("SELECT i.display_name,d.reason FROM decision d JOIN individual i "
+                               "ON i.uid=d.uid WHERE d.verdict='send'").fetchone()
+        self.assertEqual(sent["display_name"], "berry-1")
+        self.assertIn("得意なきのみ", sent["reason"])
 
     def test_decision_sends_only_when_two_candidates_dominate_every_axis(self):
         items = []
@@ -92,7 +112,7 @@ class CoreTests(unittest.TestCase):
             items.append(item)
         import_individuals(self.db, items)
 
-        result = decide(self.db, keep_top_n=2)
+        result = decide(self.db, keep_top_n=2, compare="all", low_score_threshold=0)
 
         self.assertEqual(result, {"keep": 2, "send": 1, "protected": 0})
         sent = self.db.execute(
@@ -115,15 +135,29 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(decide(self.db), {"keep": 0, "send": 0, "protected": 0})
         self.assertEqual(load_dashboard(self.db), [])
 
-    def test_lone_species_is_kept_even_when_absolute_score_is_low(self):
+    def test_lone_species_is_kept_when_the_score_threshold_is_off(self):
         import_individuals(self.db, [self.items[0]])
 
-        result = decide(self.db)
+        result = decide(self.db, low_score_threshold=0)
 
         self.assertEqual(result, {"keep": 1, "send": 0, "protected": 0})
         decision = self.db.execute("SELECT verdict,reason FROM decision").fetchone()
         self.assertEqual(decision["verdict"], "keep")
-        self.assertIn("支配されません", decision["reason"])
+        self.assertIn("上回られていません", decision["reason"])
+
+    def test_default_sends_low_scores_and_individuals_beaten_on_their_best_role(self):
+        from pokesleep_box.core import decide_options
+        # Example scores are far below the 0-100 references, so with the default
+        # threshold every verified, evaluated individual is a send candidate.
+        import_individuals(self.db, [self.items[0]])
+        self.assertEqual(decide(self.db), {"keep": 0, "send": 1, "protected": 0})
+        self.assertIn("基準の50点に届きません",
+                      self.db.execute("SELECT reason FROM decision").fetchone()["reason"])
+        self.assertEqual(decide_options({"sendBelowScore": 0, "compareRoles": "all",
+                                         "keepTopNPerSpecies": 2, "island": "x"}),
+                         {"keep_top_n": 2, "low_score_threshold": 0.0, "compare": "all"})
+        with self.assertRaises(ValueError):
+            decide_options({"compareRoles": "worst"})
 
     def test_rescan_preserves_verification_only_when_core_is_unchanged(self):
         original = dict(self.items[0], verified=True, sp=513)

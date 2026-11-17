@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .core import (archive_individuals, build_team_plans, compare_species_tiers, connect, decide,
+                   decide_options,
                    import_individuals, load_archived, load_dashboard, resolve_uids,
                    unarchive_individuals)
 from .analytics import analyze
@@ -45,7 +46,10 @@ def main() -> None:
     imp.add_argument("--engine", default=P.engine,
                      help="SP確認に使う計算エンジン（使えないときはSP確認を省略）")
     dec = commands.add_parser("decide")
-    dec.add_argument("--keep-top-n", type=int, default=2)
+    dec.add_argument("--keep-top-n", type=int, help="同種でこの数以上に上回られたら送る候補（既定: 設定または1）")
+    dec.add_argument("--send-below", type=float, help="最高評価がこの点数未満なら送る候補（0で無効、既定: 設定または50）")
+    dec.add_argument("--compare", choices=("best", "all"), help="best: 得意な役割で比べる / all: 全ロールで比べる")
+    dec.add_argument("--settings", type=Path, default=P.settings)
     render = commands.add_parser("render")
     render.add_argument("--out", type=Path, default=Path("site"))
     render.add_argument("--settings", type=Path, default=P.settings)
@@ -152,7 +156,12 @@ def main() -> None:
         print(json.dumps({key: result[key] for key in ("imported", "sp") if key in result},
                          ensure_ascii=False))
     elif args.command == "decide":
-        print(json.dumps(decide(db, args.keep_top_n), ensure_ascii=False))
+        options = decide_options(load_settings(args.settings))
+        for key, value in (("keep_top_n", args.keep_top_n), ("low_score_threshold", args.send_below),
+                           ("compare", args.compare)):
+            if value is not None:
+                options[key] = value
+        print(json.dumps(decide(db, **options), ensure_ascii=False))
     elif args.command == "render":
         print(render_private(db, args.out, load_settings(args.settings), args.benchmarks,
                              args.teams, args.seed_plans, args.main_seed_plans,

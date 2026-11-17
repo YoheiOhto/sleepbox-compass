@@ -303,7 +303,7 @@ class SyncTests(unittest.TestCase):
             "pokesleep_box.ingest.ingest_path": self.fake_ingest,
             "pokesleep_box.engine.run_engine": self.fake_run_engine,
             "pokesleep_box.engine.evaluate": self.fake_evaluate,
-            "pokesleep_box.sync.decide": lambda db, n: self.calls.append("decide"),
+            "pokesleep_box.sync.decide": lambda db, **kw: self.calls.append("decide"),
             "pokesleep_box.sync.render_private": self.fake_render,
         }
         for target, fake in patches.items():
