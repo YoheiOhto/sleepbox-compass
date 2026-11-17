@@ -1,0 +1,2721 @@
+{
+ "schema": 1,
+ "slug": "favorite-berry",
+ "title": "島の好物きのみ（2倍）はどれだけ効く？",
+ "provenance": {
+  "generated_on": "2026-11-17",
+  "generator": "pokesleep_box.columns.favorite_berry",
+  "game_version": "3.6.0",
+  "engine": "nerolis-lab@8a6566c5e824db51e9939e2929d3734c38de11f8",
+  "sources": [
+   "Neroli's Lab（計算エンジン、engine/src/cli.mjs の evaluate / metadata モード）",
+   "src/pokesleep_box/analytics.py の ISLANDS（島ごとの好物のきのみ）"
+  ]
+ },
+ "assumptions": [
+  "1日のエナジーは計算エンジン（Neroli's Lab）の1匹ぶんの見積もりです。きのみ＋食材（素材の基本エナジー）＋メインスキルのエナジーの合計です。",
+  "好物のきのみは、エナジーが2倍になるものとして計算しています（フィールドボーナスは入れていません）。",
+  "どのポケモンもLv60、メインスキルは最大レベル、食材は各枠の1つめ、リボンなし、睡眠は22:00〜6:00です。",
+  "性格とサブスキルはタイプごとに決めた形です（きのみ: いじっぱり、食材: うっかりや、スキル: しんちょう）。Lv60で開いているサブスキルは3つです。",
+  "島ごとの好物はゲームの表のとおりです。ワカクサ本島は好物が週ごとに変わるので入れていません。",
+  "食材は料理にしたときの倍率を入れていません。",
+  "1匹ずつの計算です。チームを組んだときの、げんき回復やおてつだいサポートの効果は入っていません。",
+  "げんきを回復するスキルなど、一部のメインスキルは乱数で計算されます。そうしたポケモンの数字は、計算し直すと±2%ほど変わることがあります。"
+ ],
+ "data": {
+  "level": 60,
+  "islands": {
+   "シアンの砂浜": [
+    "オレン",
+    "シーヤ",
+    "モモン"
+   ],
+   "トープ洞窟": [
+    "フィラ",
+    "ヒメリ",
+    "オボン"
+   ],
+   "ウノハナ雪原": [
+    "キー",
+    "チーゴ",
+    "ウイ"
+   ],
+   "ラピスラズリ湖畔": [
+    "クラボ",
+    "ドリ",
+    "マゴ"
+   ],
+   "ゴールド旧発電所": [
+    "ベリブ",
+    "ブリー",
+    "ウブ"
+   ],
+   "アンバー渓谷": [
+    "カゴ",
+    "ラム",
+    "ヤチェ"
+   ]
+  },
+  "island_berries": {
+   "シアンの砂浜": [
+    "ORAN",
+    "PAMTRE",
+    "PECHA"
+   ],
+   "トープ洞窟": [
+    "FIGY",
+    "LEPPA",
+    "SITRUS"
+   ],
+   "ウノハナ雪原": [
+    "PERSIM",
+    "RAWST",
+    "WIKI"
+   ],
+   "ラピスラズリ湖畔": [
+    "CHERI",
+    "DURIN",
+    "MAGO"
+   ],
+   "ゴールド旧発電所": [
+    "BELUE",
+    "BLUK",
+    "GREPA"
+   ],
+   "アンバー渓谷": [
+    "CHESTO",
+    "LUM",
+    "YACHE"
+   ]
+  },
+  "builds": {
+   "berry": {
+    "nature": "いじっぱり",
+    "subskills": [
+     "きのみの数S",
+     "おてつだいスピードM",
+     "おてつだいスピードS"
+    ]
+   },
+   "ingredient": {
+    "nature": "うっかりや",
+    "subskills": [
+     "食材確率アップM",
+     "おてつだいスピードM",
+     "食材確率アップS"
+    ]
+   },
+   "skill": {
+    "nature": "しんちょう",
+    "subskills": [
+     "スキル確率アップM",
+     "おてつだいスピードM",
+     "スキル確率アップS"
+    ]
+   }
+  },
+  "skipped": [
+   "マイナン",
+   "ストリンダー（ローなすがた）"
+  ],
+  "pokedex": [
+   {
+    "species": "ABOMASNOW",
+    "species_ja": "ユキノオー",
+    "specialty": "ingredient",
+    "berry": "RAWST",
+    "berry_ja": "チーゴ",
+    "favorite": {
+     "berry": 9574,
+     "ingredient": 13198,
+     "direct_skill": 8181,
+     "expected": 30953
+    },
+    "other": {
+     "berry": 4787,
+     "ingredient": 13198,
+     "direct_skill": 8181,
+     "expected": 26166
+    }
+   },
+   {
+    "species": "ABSOL",
+    "species_ja": "アブソル",
+    "specialty": "ingredient",
+    "berry": "WIKI",
+    "berry_ja": "ウイ",
+    "favorite": {
+     "berry": 11506,
+     "ingredient": 12869,
+     "direct_skill": 12478,
+     "expected": 36853
+    },
+    "other": {
+     "berry": 5753,
+     "ingredient": 12869,
+     "direct_skill": 12478,
+     "expected": 31100
+    }
+   },
+   {
+    "species": "AGGRON",
+    "species_ja": "ボスゴドラ",
+    "specialty": "ingredient",
+    "berry": "BELUE",
+    "berry_ja": "ベリブ",
+    "favorite": {
+     "berry": 14058,
+     "ingredient": 16848,
+     "direct_skill": 0,
+     "expected": 30906
+    },
+    "other": {
+     "berry": 7029,
+     "ingredient": 16848,
+     "direct_skill": 0,
+     "expected": 23877
+    }
+   },
+   {
+    "species": "ALTARIA",
+    "species_ja": "チルタリス",
+    "specialty": "berry",
+    "berry": "YACHE",
+    "berry_ja": "ヤチェ",
+    "favorite": {
+     "berry": 66681,
+     "ingredient": 3635,
+     "direct_skill": 0,
+     "expected": 70316
+    },
+    "other": {
+     "berry": 33341,
+     "ingredient": 3635,
+     "direct_skill": 0,
+     "expected": 36976
+    }
+   },
+   {
+    "species": "AMOONGUSS",
+    "species_ja": "モロバレル",
+    "specialty": "ingredient",
+    "berry": "CHESTO",
+    "berry_ja": "カゴ",
+    "favorite": {
+     "berry": 9389,
+     "ingredient": 13802,
+     "direct_skill": 5835,
+     "expected": 29026
+    },
+    "other": {
+     "berry": 4694,
+     "ingredient": 13802,
+     "direct_skill": 5835,
+     "expected": 24331
+    }
+   },
+   {
+    "species": "AMPHAROS",
+    "species_ja": "デンリュウ",
+    "specialty": "skill",
+    "berry": "GREPA",
+    "berry_ja": "ウブ",
+    "favorite": {
+     "berry": 13997,
+     "ingredient": 2303,
+     "direct_skill": 41717,
+     "expected": 58017
+    },
+    "other": {
+     "berry": 6999,
+     "ingredient": 2303,
+     "direct_skill": 41717,
+     "expected": 51019
+    }
+   },
+   {
+    "species": "ARBOK",
+    "species_ja": "アーボック",
+    "specialty": "berry",
+    "berry": "CHESTO",
+    "berry_ja": "カゴ",
+    "favorite": {
+     "berry": 62767,
+     "ingredient": 3434,
+     "direct_skill": 0,
+     "expected": 66200
+    },
+    "other": {
+     "berry": 31383,
+     "ingredient": 3434,
+     "direct_skill": 0,
+     "expected": 34817
+    }
+   },
+   {
+    "species": "ARCANINE",
+    "species_ja": "ウインディ",
+    "specialty": "skill",
+    "berry": "LEPPA",
+    "berry_ja": "ヒメリ",
+    "favorite": {
+     "berry": 18228,
+     "ingredient": 2910,
+     "direct_skill": 0,
+     "expected": 21138
+    },
+    "other": {
+     "berry": 9114,
+     "ingredient": 2910,
+     "direct_skill": 0,
+     "expected": 12024
+    }
+   },
+   {
+    "species": "BANETTE",
+    "species_ja": "ジュペッタ",
+    "specialty": "berry",
+    "berry": "BLUK",
+    "berry_ja": "ブリー",
+    "favorite": {
+     "berry": 49767,
+     "ingredient": 2881,
+     "direct_skill": 10096,
+     "expected": 62744
+    },
+    "other": {
+     "berry": 24884,
+     "ingredient": 2881,
+     "direct_skill": 10096,
+     "expected": 37861
+    }
+   },
+   {
+    "species": "BEWEAR",
+    "species_ja": "キテルグマ",
+    "specialty": "ingredient",
+    "berry": "CHERI",
+    "berry_ja": "クラボ",
+    "favorite": {
+     "berry": 9260,
+     "ingredient": 16257,
+     "direct_skill": 4324,
+     "expected": 29840
+    },
+    "other": {
+     "berry": 4630,
+     "ingredient": 16257,
+     "direct_skill": 4324,
+     "expected": 25210
+    }
+   },
+   {
+    "species": "BLASTOISE",
+    "species_ja": "カメックス",
+    "specialty": "ingredient",
+    "berry": "ORAN",
+    "berry_ja": "オレン",
+    "favorite": {
+     "berry": 9240,
+     "ingredient": 18120,
+     "direct_skill": 0,
+     "expected": 27360
+    },
+    "other": {
+     "berry": 4620,
+     "ingredient": 18120,
+     "direct_skill": 0,
+     "expected": 22740
+    }
+   },
+   {
+    "species": "BLAZIKEN",
+    "species_ja": "バシャーモ",
+    "specialty": "berry",
+    "berry": "CHERI",
+    "berry_ja": "クラボ",
+    "favorite": {
+     "berry": 74439,
+     "ingredient": 4291,
+     "direct_skill": 0,
+     "expected": 78730
+    },
+    "other": {
+     "berry": 37220,
+     "ingredient": 4291,
+     "direct_skill": 0,
+     "expected": 41511
+    }
+   },
+   {
+    "species": "BLISSEY",
+    "species_ja": "ハピナス",
+    "specialty": "ingredient",
+    "berry": "PERSIM",
+    "berry_ja": "キー",
+    "favorite": {
+     "berry": 8845,
+     "ingredient": 13422,
+     "direct_skill": 0,
+     "expected": 22267
+    },
+    "other": {
+     "berry": 4423,
+     "ingredient": 13422,
+     "direct_skill": 0,
+     "expected": 17845
+    }
+   },
+   {
+    "species": "BRAVIARY",
+    "species_ja": "ウォーグル",
+    "specialty": "skill",
+    "berry": "PAMTRE",
+    "berry_ja": "シーヤ",
+    "favorite": {
+     "berry": 20812,
+     "ingredient": 1768,
+     "direct_skill": 0,
+     "expected": 22580
+    },
+    "other": {
+     "berry": 10406,
+     "ingredient": 1768,
+     "direct_skill": 0,
+     "expected": 12174
+    }
+   },
+   {
+    "species": "BUTTERFREE",
+    "species_ja": "バタフリー",
+    "specialty": "berry",
+    "berry": "LUM",
+    "berry_ja": "ラム",
+    "favorite": {
+     "berry": 46733,
+     "ingredient": 8286,
+     "direct_skill": 0,
+     "expected": 55018
+    },
+    "other": {
+     "berry": 23366,
+     "ingredient": 8286,
+     "direct_skill": 0,
+     "expected": 31652
+    }
+   },
+   {
+    "species": "CETITAN",
+    "species_ja": "ハルクジラ",
+    "specialty": "ingredient",
+    "berry": "RAWST",
+    "berry_ja": "チーゴ",
+    "favorite": {
+     "berry": 16731,
+     "ingredient": 16409,
+     "direct_skill": 0,
+     "expected": 33139
+    },
+    "other": {
+     "berry": 8281,
+     "ingredient": 16185,
+     "direct_skill": 0,
+     "expected": 24466
+    }
+   },
+   {
+    "species": "CHARIZARD",
+    "species_ja": "リザードン",
+    "specialty": "ingredient",
+    "berry": "LEPPA",
+    "berry_ja": "ヒメリ",
+    "favorite": {
+     "berry": 10940,
+     "ingredient": 18300,
+     "direct_skill": 0,
+     "expected": 29239
+    },
+    "other": {
+     "berry": 5470,
+     "ingredient": 18300,
+     "direct_skill": 0,
+     "expected": 23770
+    }
+   },
+   {
+    "species": "CLEFABLE",
+    "species_ja": "ピクシー",
+    "specialty": "berry",
+    "berry": "PECHA",
+    "berry_ja": "モモン",
+    "favorite": {
+     "berry": 51194,
+     "ingredient": 3047,
+     "direct_skill": 1901,
+     "expected": 56143
+    },
+    "other": {
+     "berry": 25597,
+     "ingredient": 3046,
+     "direct_skill": 1899,
+     "expected": 30542
+    }
+   },
+   {
+    "species": "CLODSIRE",
+    "species_ja": "ドオー",
+    "specialty": "ingredient",
+    "berry": "CHESTO",
+    "berry_ja": "カゴ",
+    "favorite": {
+     "berry": 13409,
+     "ingredient": 15812,
+     "direct_skill": 0,
+     "expected": 29221
+    },
+    "other": {
+     "berry": 6652,
+     "ingredient": 16083,
+     "direct_skill": 0,
+     "expected": 22734
+    }
+   },
+   {
+    "species": "COMFEY",
+    "species_ja": "キュワワー",
+    "specialty": "ingredient",
+    "berry": "PECHA",
+    "berry_ja": "モモン",
+    "favorite": {
+     "berry": 12590,
+     "ingredient": 13183,
+     "direct_skill": 0,
+     "expected": 25773
+    },
+    "other": {
+     "berry": 6295,
+     "ingredient": 13183,
+     "direct_skill": 0,
+     "expected": 19478
+    }
+   },
+   {
+    "species": "CRAMORANT",
+    "species_ja": "ウッウ",
+    "specialty": "ingredient",
+    "berry": "PAMTRE",
+    "berry_ja": "シーヤ",
+    "favorite": {
+     "berry": 10235,
+     "ingredient": 10326,
+     "direct_skill": 0,
+     "expected": 20561
+    },
+    "other": {
+     "berry": 5117,
+     "ingredient": 10326,
+     "direct_skill": 0,
+     "expected": 15443
+    }
+   },
+   {
+    "species": "CRESSELIA",
+    "species_ja": "クレセリア",
+    "specialty": "skill",
+    "berry": "MAGO",
+    "berry_ja": "マゴ",
+    "favorite": {
+     "berry": 18866,
+     "ingredient": 4402,
+     "direct_skill": 0,
+     "expected": 23268
+    },
+    "other": {
+     "berry": 9454,
+     "ingredient": 4354,
+     "direct_skill": 0,
+     "expected": 13808
+    }
+   },
+   {
+    "species": "CRUSTLE",
+    "species_ja": "イワパレス",
+    "specialty": "skill",
+    "berry": "LUM",
+    "berry_ja": "ラム",
+    "favorite": {
+     "berry": 9497,
+     "ingredient": 4120,
+     "direct_skill": 0,
+     "expected": 13617
+    },
+    "other": {
+     "berry": 4748,
+     "ingredient": 4120,
+     "direct_skill": 0,
+     "expected": 8868
+    }
+   },
+   {
+    "species": "DEDENNE",
+    "species_ja": "デデンネ",
+    "specialty": "skill",
+    "berry": "GREPA",
+    "berry_ja": "ウブ",
+    "favorite": {
+     "berry": 13467,
+     "ingredient": 2111,
+     "direct_skill": 0,
+     "expected": 15578
+    },
+    "other": {
+     "berry": 6734,
+     "ingredient": 2111,
+     "direct_skill": 0,
+     "expected": 8844
+    }
+   },
+   {
+    "species": "DELIBIRD",
+    "species_ja": "デリバード",
+    "specialty": "ingredient",
+    "berry": "PAMTRE",
+    "berry_ja": "シーヤ",
+    "favorite": {
+     "berry": 10430,
+     "ingredient": 11895,
+     "direct_skill": 0,
+     "expected": 22325
+    },
+    "other": {
+     "berry": 5215,
+     "ingredient": 11895,
+     "direct_skill": 0,
+     "expected": 17110
+    }
+   },
+   {
+    "species": "DITTO",
+    "species_ja": "メタモン",
+    "specialty": "ingredient",
+    "berry": "PERSIM",
+    "berry_ja": "キー",
+    "favorite": {
+     "berry": 8169,
+     "ingredient": 9690,
+     "direct_skill": 0,
+     "expected": 17859
+    },
+    "other": {
+     "berry": 4084,
+     "ingredient": 9690,
+     "direct_skill": 0,
+     "expected": 13774
+    }
+   },
+   {
+    "species": "DODRIO",
+    "species_ja": "ドードリオ",
+    "specialty": "berry",
+    "berry": "PAMTRE",
+    "berry_ja": "シーヤ",
+    "favorite": {
+     "berry": 70441,
+     "ingredient": 3262,
+     "direct_skill": 0,
+     "expected": 73702
+    },
+    "other": {
+     "berry": 35220,
+     "ingredient": 3262,
+     "direct_skill": 0,
+     "expected": 38482
+    }
+   },
+   {
+    "species": "DRAGONITE",
+    "species_ja": "カイリュー",
+    "specialty": "ingredient",
+    "berry": "YACHE",
+    "berry_ja": "ヤチェ",
+    "favorite": {
+     "berry": 15825,
+     "ingredient": 21238,
+     "direct_skill": 0,
+     "expected": 37063
+    },
+    "other": {
+     "berry": 8062,
+     "ingredient": 21238,
+     "direct_skill": 0,
+     "expected": 29301
+    }
+   },
+   {
+    "species": "DRAMPA",
+    "species_ja": "ジジーロン",
+    "specialty": "ingredient",
+    "berry": "YACHE",
+    "berry_ja": "ヤチェ",
+    "favorite": {
+     "berry": 7688,
+     "ingredient": 12007,
+     "direct_skill": 0,
+     "expected": 19695
+    },
+    "other": {
+     "berry": 3844,
+     "ingredient": 12007,
+     "direct_skill": 0,
+     "expected": 15851
+    }
+   },
+   {
+    "species": "DRIFBLIM",
+    "species_ja": "フワライド",
+    "specialty": "skill",
+    "berry": "BLUK",
+    "berry_ja": "ブリー",
+    "favorite": {
+     "berry": 14678,
+     "ingredient": 2442,
+     "direct_skill": 35696,
+     "expected": 52816
+    },
+    "other": {
+     "berry": 7339,
+     "ingredient": 2442,
+     "direct_skill": 35696,
+     "expected": 45477
+    }
+   },
+   {
+    "species": "DUGTRIO",
+    "species_ja": "ダグトリオ",
+    "specialty": "ingredient",
+    "berry": "FIGY",
+    "berry_ja": "フィラ",
+    "favorite": {
+     "berry": 11581,
+     "ingredient": 11027,
+     "direct_skill": 4356,
+     "expected": 26965
+    },
+    "other": {
+     "berry": 5791,
+     "ingredient": 11027,
+     "direct_skill": 4356,
+     "expected": 21174
+    }
+   },
+   {
+    "species": "EEVEE_HALLOWEEN",
+    "species_ja": "イーブイ（ハロウィン）",
+    "specialty": "skill",
+    "berry": "PERSIM",
+    "berry_ja": "キー",
+    "favorite": {
+     "berry": 12367,
+     "ingredient": 19615,
+     "direct_skill": 0,
+     "expected": 31982
+    },
+    "other": {
+     "berry": 6183,
+     "ingredient": 19615,
+     "direct_skill": 0,
+     "expected": 25798
+    }
+   },
+   {
+    "species": "EEVEE_HOLIDAY",
+    "species_ja": "イーブイ（ホリデー）",
+    "specialty": "berry",
+    "berry": "PERSIM",
+    "berry_ja": "キー",
+    "favorite": {
+     "berry": 45638,
+     "ingredient": 1708,
+     "direct_skill": 0,
+     "expected": 47347
+    },
+    "other": {
+     "berry": 22819,
+     "ingredient": 1708,
+     "direct_skill": 0,
+     "expected": 24527
+    }
+   },
+   {
+    "species": "EMPOLEON",
+    "species_ja": "エンペルト",
+    "specialty": "berry",
+    "berry": "BELUE",
+    "berry_ja": "ベリブ",
+    "favorite": {
+     "berry": 55670,
+     "ingredient": 2431,
+     "direct_skill": 0,
+     "expected": 58100
+    },
+    "other": {
+     "berry": 27835,
+     "ingredient": 2431,
+     "direct_skill": 0,
+     "expected": 30266
+    }
+   },
+   {
+    "species": "ENTEI",
+    "species_ja": "エンテイ",
+    "specialty": "skill",
+    "berry": "LEPPA",
+    "berry_ja": "ヒメリ",
+    "favorite": {
+     "berry": 15067,
+     "ingredient": 3077,
+     "direct_skill": 0,
+     "expected": 18143
+    },
+    "other": {
+     "berry": 7533,
+     "ingredient": 3077,
+     "direct_skill": 0,
+     "expected": 10610
+    }
+   },
+   {
+    "species": "ESPEON",
+    "species_ja": "エーフィ",
+    "specialty": "skill",
+    "berry": "MAGO",
+    "berry_ja": "マゴ",
+    "favorite": {
+     "berry": 14795,
+     "ingredient": 2246,
+     "direct_skill": 40362,
+     "expected": 57403
+    },
+    "other": {
+     "berry": 7398,
+     "ingredient": 2246,
+     "direct_skill": 40362,
+     "expected": 50006
+    }
+   },
+   {
+    "species": "FARFETCHD",
+    "species_ja": "カモネギ",
+    "specialty": "ingredient",
+    "berry": "PAMTRE",
+    "berry_ja": "シーヤ",
+    "favorite": {
+     "berry": 9163,
+     "ingredient": 13947,
+     "direct_skill": 6342,
+     "expected": 29452
+    },
+    "other": {
+     "berry": 4582,
+     "ingredient": 13947,
+     "direct_skill": 6342,
+     "expected": 24871
+    }
+   },
+   {
+    "species": "FERALIGATR",
+    "species_ja": "オーダイル",
+    "specialty": "berry",
+    "berry": "ORAN",
+    "berry_ja": "オレン",
+    "favorite": {
+     "berry": 51005,
+     "ingredient": 3416,
+     "direct_skill": 15056,
+     "expected": 69477
+    },
+    "other": {
+     "berry": 25503,
+     "ingredient": 3416,
+     "direct_skill": 15056,
+     "expected": 43974
+    }
+   },
+   {
+    "species": "FLAREON",
+    "species_ja": "ブースター",
+    "specialty": "skill",
+    "berry": "LEPPA",
+    "berry_ja": "ヒメリ",
+    "favorite": {
+     "berry": 13450,
+     "ingredient": 2263,
+     "direct_skill": 0,
+     "expected": 15713
+    },
+    "other": {
+     "berry": 6725,
+     "ingredient": 2263,
+     "direct_skill": 0,
+     "expected": 8988
+    }
+   },
+   {
+    "species": "FLYGON",
+    "species_ja": "フライゴン",
+    "specialty": "ingredient",
+    "berry": "FIGY",
+    "berry_ja": "フィラ",
+    "favorite": {
+     "berry": 11729,
+     "ingredient": 15251,
+     "direct_skill": 6729,
+     "expected": 33709
+    },
+    "other": {
+     "berry": 5865,
+     "ingredient": 15251,
+     "direct_skill": 6729,
+     "expected": 27845
+    }
+   },
+   {
+    "species": "GALLADE",
+    "species_ja": "エルレイド",
+    "specialty": "skill",
+    "berry": "CHERI",
+    "berry_ja": "クラボ",
+    "favorite": {
+     "berry": 19067,
+     "ingredient": 2300,
+     "direct_skill": 0,
+     "expected": 21368
+    },
+    "other": {
+     "berry": 9534,
+     "ingredient": 2300,
+     "direct_skill": 0,
+     "expected": 11834
+    }
+   },
+   {
+    "species": "GARDEVOIR",
+    "species_ja": "サーナイト",
+    "specialty": "skill",
+    "berry": "MAGO",
+    "berry_ja": "マゴ",
+    "favorite": {
+     "berry": 21122,
+     "ingredient": 2305,
+     "direct_skill": 0,
+     "expected": 23427
+    },
+    "other": {
+     "berry": 10561,
+     "ingredient": 2305,
+     "direct_skill": 0,
+     "expected": 12866
+    }
+   },
+   {
+    "species": "GENGAR",
+    "species_ja": "ゲンガー",
+    "specialty": "ingredient",
+    "berry": "BLUK",
+    "berry_ja": "ブリー",
+    "favorite": {
+     "berry": 13242,
+     "ingredient": 13991,
+     "direct_skill": 7276,
+     "expected": 34508
+    },
+    "other": {
+     "berry": 6621,
+     "ingredient": 13991,
+     "direct_skill": 7276,
+     "expected": 27888
+    }
+   },
+   {
+    "species": "GLACEON",
+    "species_ja": "グレイシア",
+    "specialty": "skill",
+    "berry": "RAWST",
+    "berry_ja": "チーゴ",
+    "favorite": {
+     "berry": 12832,
+     "ingredient": 2275,
+     "direct_skill": 0,
+     "expected": 15107
+    },
+    "other": {
+     "berry": 6416,
+     "ingredient": 2275,
+     "direct_skill": 0,
+     "expected": 8691
+    }
+   },
+   {
+    "species": "GOLDUCK",
+    "species_ja": "ゴルダック",
+    "specialty": "skill",
+    "berry": "ORAN",
+    "berry_ja": "オレン",
+    "favorite": {
+     "berry": 12502,
+     "ingredient": 2466,
+     "direct_skill": 44499,
+     "expected": 59467
+    },
+    "other": {
+     "berry": 6251,
+     "ingredient": 2466,
+     "direct_skill": 44499,
+     "expected": 53216
+    }
+   },
+   {
+    "species": "GOLEM",
+    "species_ja": "ゴローニャ",
+    "specialty": "ingredient",
+    "berry": "SITRUS",
+    "berry_ja": "オボン",
+    "favorite": {
+     "berry": 8143,
+     "ingredient": 12792,
+     "direct_skill": 8929,
+     "expected": 29864
+    },
+    "other": {
+     "berry": 4072,
+     "ingredient": 12792,
+     "direct_skill": 8929,
+     "expected": 25792
+    }
+   },
+   {
+    "species": "GOURGEIST_JUMBO",
+    "species_ja": "アゴジムシ（とくだいサイズ）",
+    "specialty": "ingredient",
+    "berry": "BLUK",
+    "berry_ja": "ブリー",
+    "favorite": {
+     "berry": 9190,
+     "ingredient": 15135,
+     "direct_skill": 6683,
+     "expected": 31008
+    },
+    "other": {
+     "berry": 4595,
+     "ingredient": 15135,
+     "direct_skill": 6683,
+     "expected": 26413
+    }
+   },
+   {
+    "species": "GOURGEIST_LARGE",
+    "species_ja": "パンプジン（おおきいサイズ）",
+    "specialty": "ingredient",
+    "berry": "BLUK",
+    "berry_ja": "ブリー",
+    "favorite": {
+     "berry": 9319,
+     "ingredient": 15348,
+     "direct_skill": 6869,
+     "expected": 31537
+    },
+    "other": {
+     "berry": 4660,
+     "ingredient": 15348,
+     "direct_skill": 6869,
+     "expected": 26877
+    }
+   },
+   {
+    "species": "GOURGEIST_MEDIUM",
+    "species_ja": "パンプジン（ふつうのサイズ）",
+    "specialty": "ingredient",
+    "berry": "BLUK",
+    "berry_ja": "ブリー",
+    "favorite": {
+     "berry": 9709,
+     "ingredient": 14883,
+     "direct_skill": 6838,
+     "expected": 31431
+    },
+    "other": {
+     "berry": 4855,
+     "ingredient": 14883,
+     "direct_skill": 6838,
+     "expected": 26576
+    }
+   },
+   {
+    "species": "GOURGEIST_SMALL",
+    "species_ja": "パンプジン（ちいさいサイズ）",
+    "specialty": "ingredient",
+    "berry": "BLUK",
+    "berry_ja": "ブリー",
+    "favorite": {
+     "berry": 10413,
+     "ingredient": 14568,
+     "direct_skill": 6699,
+     "expected": 31680
+    },
+    "other": {
+     "berry": 5207,
+     "ingredient": 14568,
+     "direct_skill": 6699,
+     "expected": 26473
+    }
+   },
+   {
+    "species": "HAWLUCHA",
+    "species_ja": "ルチャブル",
+    "specialty": "skill",
+    "berry": "PAMTRE",
+    "berry_ja": "シーヤ",
+    "favorite": {
+     "berry": 13184,
+     "ingredient": 3468,
+     "direct_skill": 0,
+     "expected": 16651
+    },
+    "other": {
+     "berry": 6592,
+     "ingredient": 3468,
+     "direct_skill": 0,
+     "expected": 10060
+    }
+   },
+   {
+    "species": "HERACROSS",
+    "species_ja": "ヘラクロス",
+    "specialty": "skill",
+    "berry": "LUM",
+    "berry_ja": "ラム",
+    "favorite": {
+     "berry": 14110,
+     "ingredient": 24327,
+     "direct_skill": 0,
+     "expected": 38437
+    },
+    "other": {
+     "berry": 7055,
+     "ingredient": 24327,
+     "direct_skill": 0,
+     "expected": 31382
+    }
+   },
+   {
+    "species": "HONCHKROW",
+    "species_ja": "ドンカラス",
+    "specialty": "skill",
+    "berry": "WIKI",
+    "berry_ja": "ウイ",
+    "favorite": {
+     "berry": 13427,
+     "ingredient": 2328,
+     "direct_skill": 0,
+     "expected": 15755
+    },
+    "other": {
+     "berry": 6714,
+     "ingredient": 2328,
+     "direct_skill": 0,
+     "expected": 9042
+    }
+   },
+   {
+    "species": "HOUNDOOM",
+    "species_ja": "ヘルガー",
+    "specialty": "berry",
+    "berry": "WIKI",
+    "berry_ja": "ウイ",
+    "favorite": {
+     "berry": 45456,
+     "ingredient": 2821,
+     "direct_skill": 16262,
+     "expected": 64540
+    },
+    "other": {
+     "berry": 22728,
+     "ingredient": 2821,
+     "direct_skill": 16262,
+     "expected": 41811
+    }
+   },
+   {
+    "species": "INFERNAPE",
+    "species_ja": "ゴウカザル",
+    "specialty": "skill",
+    "berry": "CHERI",
+    "berry_ja": "クラボ",
+    "favorite": {
+     "berry": 23300,
+     "ingredient": 1955,
+     "direct_skill": 0,
+     "expected": 25255
+    },
+    "other": {
+     "berry": 11650,
+     "ingredient": 1955,
+     "direct_skill": 0,
+     "expected": 13605
+    }
+   },
+   {
+    "species": "JOLTEON",
+    "species_ja": "サンダース",
+    "specialty": "skill",
+    "berry": "GREPA",
+    "berry_ja": "ウブ",
+    "favorite": {
+     "berry": 18218,
+     "ingredient": 2612,
+     "direct_skill": 0,
+     "expected": 20829
+    },
+    "other": {
+     "berry": 9109,
+     "ingredient": 2612,
+     "direct_skill": 0,
+     "expected": 11721
+    }
+   },
+   {
+    "species": "KANGASKHAN",
+    "species_ja": "ガルーラ",
+    "specialty": "ingredient",
+    "berry": "PERSIM",
+    "berry_ja": "キー",
+    "favorite": {
+     "berry": 10467,
+     "ingredient": 18661,
+     "direct_skill": 0,
+     "expected": 29127
+    },
+    "other": {
+     "berry": 5233,
+     "ingredient": 18661,
+     "direct_skill": 0,
+     "expected": 23894
+    }
+   },
+   {
+    "species": "LATIAS",
+    "species_ja": "ラティアス",
+    "specialty": "skill",
+    "berry": "YACHE",
+    "berry_ja": "ヤチェ",
+    "favorite": {
+     "berry": 25150,
+     "ingredient": 1824,
+     "direct_skill": 0,
+     "expected": 26974
+    },
+    "other": {
+     "berry": 12575,
+     "ingredient": 1824,
+     "direct_skill": 0,
+     "expected": 14399
+    }
+   },
+   {
+    "species": "LATIOS",
+    "species_ja": "ラティオス",
+    "specialty": "skill",
+    "berry": "YACHE",
+    "berry_ja": "ヤチェ",
+    "favorite": {
+     "berry": 16332,
+     "ingredient": 2630,
+     "direct_skill": 0,
+     "expected": 18962
+    },
+    "other": {
+     "berry": 8166,
+     "ingredient": 2630,
+     "direct_skill": 0,
+     "expected": 10796
+    }
+   },
+   {
+    "species": "LEAFEON",
+    "species_ja": "リーフィア",
+    "specialty": "skill",
+    "berry": "DURIN",
+    "berry_ja": "ドリ",
+    "favorite": {
+     "berry": 17286,
+     "ingredient": 2691,
+     "direct_skill": 0,
+     "expected": 19977
+    },
+    "other": {
+     "berry": 8643,
+     "ingredient": 2691,
+     "direct_skill": 0,
+     "expected": 11334
+    }
+   },
+   {
+    "species": "LUCARIO",
+    "species_ja": "ルカリオ",
+    "specialty": "skill",
+    "berry": "CHERI",
+    "berry_ja": "クラボ",
+    "favorite": {
+     "berry": 14164,
+     "ingredient": 2351,
+     "direct_skill": 15794,
+     "expected": 32309
+    },
+    "other": {
+     "berry": 7082,
+     "ingredient": 2351,
+     "direct_skill": 15794,
+     "expected": 25227
+    }
+   },
+   {
+    "species": "LUXRAY",
+    "species_ja": "レントラー",
+    "specialty": "ingredient",
+    "berry": "GREPA",
+    "berry_ja": "ウブ",
+    "favorite": {
+     "berry": 10535,
+     "ingredient": 13312,
+     "direct_skill": 0,
+     "expected": 23847
+    },
+    "other": {
+     "berry": 5268,
+     "ingredient": 13312,
+     "direct_skill": 0,
+     "expected": 18579
+    }
+   },
+   {
+    "species": "MAGNEZONE",
+    "species_ja": "ジバコイル",
+    "specialty": "skill",
+    "berry": "BELUE",
+    "berry_ja": "ベリブ",
+    "favorite": {
+     "berry": 14357,
+     "ingredient": 2385,
+     "direct_skill": 0,
+     "expected": 16742
+    },
+    "other": {
+     "berry": 7178,
+     "ingredient": 2385,
+     "direct_skill": 0,
+     "expected": 9564
+    }
+   },
+   {
+    "species": "MAROWAK",
+    "species_ja": "ガラガラ",
+    "specialty": "berry",
+    "berry": "FIGY",
+    "berry_ja": "フィラ",
+    "favorite": {
+     "berry": 59918,
+     "ingredient": 3156,
+     "direct_skill": 0,
+     "expected": 63074
+    },
+    "other": {
+     "berry": 29959,
+     "ingredient": 3156,
+     "direct_skill": 0,
+     "expected": 33115
+    }
+   },
+   {
+    "species": "MAWILE",
+    "species_ja": "クチート",
+    "specialty": "ingredient",
+    "berry": "BELUE",
+    "berry_ja": "ベリブ",
+    "favorite": {
+     "berry": 10575,
+     "ingredient": 10673,
+     "direct_skill": 0,
+     "expected": 21247
+    },
+    "other": {
+     "berry": 5287,
+     "ingredient": 10673,
+     "direct_skill": 0,
+     "expected": 15960
+    }
+   },
+   {
+    "species": "MEGANIUM",
+    "species_ja": "メガニウム",
+    "specialty": "berry",
+    "berry": "DURIN",
+    "berry_ja": "ドリ",
+    "favorite": {
+     "berry": 53109,
+     "ingredient": 3419,
+     "direct_skill": 12822,
+     "expected": 69350
+    },
+    "other": {
+     "berry": 26554,
+     "ingredient": 3419,
+     "direct_skill": 12822,
+     "expected": 42796
+    }
+   },
+   {
+    "species": "MEOWSCARADA",
+    "species_ja": "マスカーニャ",
+    "specialty": "ingredient",
+    "berry": "WIKI",
+    "berry_ja": "ウイ",
+    "favorite": {
+     "berry": 12325,
+     "ingredient": 13256,
+     "direct_skill": 0,
+     "expected": 25580
+    },
+    "other": {
+     "berry": 6162,
+     "ingredient": 13256,
+     "direct_skill": 0,
+     "expected": 19418
+    }
+   },
+   {
+    "species": "MEWTWO",
+    "species_ja": "ミュウツー",
+    "specialty": "skill",
+    "berry": "MAGO",
+    "berry_ja": "マゴ",
+    "favorite": {
+     "berry": 15431,
+     "ingredient": 2359,
+     "direct_skill": 30895,
+     "expected": 48685
+    },
+    "other": {
+     "berry": 7715,
+     "ingredient": 2359,
+     "direct_skill": 30895,
+     "expected": 40970
+    }
+   },
+   {
+    "species": "MIMIKYU",
+    "species_ja": "ミミッキュ",
+    "specialty": "skill",
+    "berry": "BLUK",
+    "berry_ja": "ブリー",
+    "favorite": {
+     "berry": 18868,
+     "ingredient": 1834,
+     "direct_skill": 0,
+     "expected": 20702
+    },
+    "other": {
+     "berry": 9411,
+     "ingredient": 1834,
+     "direct_skill": 0,
+     "expected": 11244
+    }
+   },
+   {
+    "species": "MISMAGIUS",
+    "species_ja": "ムウマージ",
+    "specialty": "skill",
+    "berry": "BLUK",
+    "berry_ja": "ブリー",
+    "favorite": {
+     "berry": 15090,
+     "ingredient": 2498,
+     "direct_skill": 0,
+     "expected": 17588
+    },
+    "other": {
+     "berry": 7545,
+     "ingredient": 2498,
+     "direct_skill": 0,
+     "expected": 10043
+    }
+   },
+   {
+    "species": "MR_MIME",
+    "species_ja": "バリヤード",
+    "specialty": "ingredient",
+    "berry": "MAGO",
+    "berry_ja": "マゴ",
+    "favorite": {
+     "berry": 9365,
+     "ingredient": 11870,
+     "direct_skill": 0,
+     "expected": 21235
+    },
+    "other": {
+     "berry": 4682,
+     "ingredient": 11870,
+     "direct_skill": 0,
+     "expected": 16553
+    }
+   },
+   {
+    "species": "MUSHARNA",
+    "species_ja": "ムシャーナ",
+    "specialty": "berry",
+    "berry": "MAGO",
+    "berry_ja": "マゴ",
+    "favorite": {
+     "berry": 45443,
+     "ingredient": 2373,
+     "direct_skill": 0,
+     "expected": 47816
+    },
+    "other": {
+     "berry": 22721,
+     "ingredient": 2373,
+     "direct_skill": 0,
+     "expected": 25094
+    }
+   },
+   {
+    "species": "NINETALES",
+    "species_ja": "キュウコン",
+    "specialty": "berry",
+    "berry": "LEPPA",
+    "berry_ja": "ヒメリ",
+    "favorite": {
+     "berry": 55558,
+     "ingredient": 2284,
+     "direct_skill": 0,
+     "expected": 57842
+    },
+    "other": {
+     "berry": 27779,
+     "ingredient": 2284,
+     "direct_skill": 0,
+     "expected": 30063
+    }
+   },
+   {
+    "species": "NINETALES_ALOLAN",
+    "species_ja": "キュウコン（アローラのすがた）",
+    "specialty": "berry",
+    "berry": "RAWST",
+    "berry_ja": "チーゴ",
+    "favorite": {
+     "berry": 55510,
+     "ingredient": 3043,
+     "direct_skill": 0,
+     "expected": 58554
+    },
+    "other": {
+     "berry": 27755,
+     "ingredient": 3043,
+     "direct_skill": 0,
+     "expected": 30798
+    }
+   },
+   {
+    "species": "NOIVERN",
+    "species_ja": "オンバーン",
+    "specialty": "skill",
+    "berry": "YACHE",
+    "berry_ja": "ヤチェ",
+    "favorite": {
+     "berry": 17218,
+     "ingredient": 2228,
+     "direct_skill": 39821,
+     "expected": 59266
+    },
+    "other": {
+     "berry": 8609,
+     "ingredient": 2228,
+     "direct_skill": 39821,
+     "expected": 50657
+    }
+   },
+   {
+    "species": "PAWMOT",
+    "species_ja": "パーモット",
+    "specialty": "skill",
+    "berry": "GREPA",
+    "berry_ja": "ウブ",
+    "favorite": {
+     "berry": 20241,
+     "ingredient": 3789,
+     "direct_skill": 0,
+     "expected": 24030
+    },
+    "other": {
+     "berry": 10121,
+     "ingredient": 3789,
+     "direct_skill": 0,
+     "expected": 13910
+    }
+   },
+   {
+    "species": "PERSIAN",
+    "species_ja": "ペルシアン",
+    "specialty": "skill",
+    "berry": "PERSIM",
+    "berry_ja": "キー",
+    "favorite": {
+     "berry": 13400,
+     "ingredient": 1960,
+     "direct_skill": 0,
+     "expected": 15360
+    },
+    "other": {
+     "berry": 6700,
+     "ingredient": 1960,
+     "direct_skill": 0,
+     "expected": 8660
+    }
+   },
+   {
+    "species": "PIKACHU_CAPTAIN",
+    "species_ja": "ピカチュウ（キャプテン）",
+    "specialty": "berry",
+    "berry": "GREPA",
+    "berry_ja": "ウブ",
+    "favorite": {
+     "berry": 49417,
+     "ingredient": 8108,
+     "direct_skill": 0,
+     "expected": 57525
+    },
+    "other": {
+     "berry": 24708,
+     "ingredient": 8108,
+     "direct_skill": 0,
+     "expected": 32817
+    }
+   },
+   {
+    "species": "PIKACHU_HALLOWEEN",
+    "species_ja": "ピカチュウ（ハロウィン）",
+    "specialty": "berry",
+    "berry": "GREPA",
+    "berry_ja": "ウブ",
+    "favorite": {
+     "berry": 47921,
+     "ingredient": 2646,
+     "direct_skill": 9102,
+     "expected": 59669
+    },
+    "other": {
+     "berry": 23960,
+     "ingredient": 2646,
+     "direct_skill": 9102,
+     "expected": 35708
+    }
+   },
+   {
+    "species": "PIKACHU_HOLIDAY",
+    "species_ja": "ピカチュウ（ホリデー）",
+    "specialty": "skill",
+    "berry": "GREPA",
+    "berry_ja": "ウブ",
+    "favorite": {
+     "berry": 13898,
+     "ingredient": 1597,
+     "direct_skill": 0,
+     "expected": 15495
+    },
+    "other": {
+     "berry": 6949,
+     "ingredient": 1597,
+     "direct_skill": 0,
+     "expected": 8546
+    }
+   },
+   {
+    "species": "PINSIR",
+    "species_ja": "カイロス",
+    "specialty": "ingredient",
+    "berry": "LUM",
+    "berry_ja": "ラム",
+    "favorite": {
+     "berry": 10115,
+     "ingredient": 12557,
+     "direct_skill": 12976,
+     "expected": 35647
+    },
+    "other": {
+     "berry": 5057,
+     "ingredient": 12557,
+     "direct_skill": 12976,
+     "expected": 30590
+    }
+   },
+   {
+    "species": "PLUSLE",
+    "species_ja": "プラスル",
+    "specialty": "skill",
+    "berry": "GREPA",
+    "berry_ja": "ウブ",
+    "favorite": {
+     "berry": 14880,
+     "ingredient": 2101,
+     "direct_skill": 0,
+     "expected": 16981
+    },
+    "other": {
+     "berry": 7440,
+     "ingredient": 2101,
+     "direct_skill": 0,
+     "expected": 9541
+    }
+   },
+   {
+    "species": "PRIMEAPE",
+    "species_ja": "オコリザル",
+    "specialty": "berry",
+    "berry": "CHERI",
+    "berry_ja": "クラボ",
+    "favorite": {
+     "berry": 47291,
+     "ingredient": 2561,
+     "direct_skill": 7482,
+     "expected": 57335
+    },
+    "other": {
+     "berry": 23646,
+     "ingredient": 2561,
+     "direct_skill": 7482,
+     "expected": 33689
+    }
+   },
+   {
+    "species": "QUAGSIRE",
+    "species_ja": "ヌオー",
+    "specialty": "ingredient",
+    "berry": "ORAN",
+    "berry_ja": "オレン",
+    "favorite": {
+     "berry": 12184,
+     "ingredient": 15100,
+     "direct_skill": 0,
+     "expected": 27284
+    },
+    "other": {
+     "berry": 6092,
+     "ingredient": 15100,
+     "direct_skill": 0,
+     "expected": 21192
+    }
+   },
+   {
+    "species": "QUAQUAVAL",
+    "species_ja": "ウェーニバル",
+    "specialty": "ingredient",
+    "berry": "CHERI",
+    "berry_ja": "クラボ",
+    "favorite": {
+     "berry": 9679,
+     "ingredient": 12860,
+     "direct_skill": 10669,
+     "expected": 33208
+    },
+    "other": {
+     "berry": 4839,
+     "ingredient": 12860,
+     "direct_skill": 10669,
+     "expected": 28368
+    }
+   },
+   {
+    "species": "RAICHU",
+    "species_ja": "ライチュウ",
+    "specialty": "berry",
+    "berry": "GREPA",
+    "berry_ja": "ウブ",
+    "favorite": {
+     "berry": 54181,
+     "ingredient": 3227,
+     "direct_skill": 9381,
+     "expected": 66789
+    },
+    "other": {
+     "berry": 27090,
+     "ingredient": 3227,
+     "direct_skill": 9381,
+     "expected": 39699
+    }
+   },
+   {
+    "species": "RAIKOU",
+    "species_ja": "ライコウ",
+    "specialty": "skill",
+    "berry": "GREPA",
+    "berry_ja": "ウブ",
+    "favorite": {
+     "berry": 15723,
+     "ingredient": 3074,
+     "direct_skill": 0,
+     "expected": 18796
+    },
+    "other": {
+     "berry": 7861,
+     "ingredient": 3074,
+     "direct_skill": 0,
+     "expected": 10935
+    }
+   },
+   {
+    "species": "RATICATE",
+    "species_ja": "ラッタ",
+    "specialty": "berry",
+    "berry": "PERSIM",
+    "berry_ja": "キー",
+    "favorite": {
+     "berry": 62661,
+     "ingredient": 2998,
+     "direct_skill": 0,
+     "expected": 65660
+    },
+    "other": {
+     "berry": 30971,
+     "ingredient": 2998,
+     "direct_skill": 0,
+     "expected": 33969
+    }
+   },
+   {
+    "species": "RIBOMBEE",
+    "species_ja": "アブリボン",
+    "specialty": "ingredient",
+    "berry": "PECHA",
+    "berry_ja": "モモン",
+    "favorite": {
+     "berry": 11984,
+     "ingredient": 11722,
+     "direct_skill": 0,
+     "expected": 23706
+    },
+    "other": {
+     "berry": 5992,
+     "ingredient": 11722,
+     "direct_skill": 0,
+     "expected": 17714
+    }
+   },
+   {
+    "species": "SABLEYE",
+    "species_ja": "ヤミラミ",
+    "specialty": "skill",
+    "berry": "WIKI",
+    "berry_ja": "ウイ",
+    "favorite": {
+     "berry": 11526,
+     "ingredient": 2166,
+     "direct_skill": 0,
+     "expected": 13691
+    },
+    "other": {
+     "berry": 5763,
+     "ingredient": 2166,
+     "direct_skill": 0,
+     "expected": 7928
+    }
+   },
+   {
+    "species": "SALAMENCE",
+    "species_ja": "ボーマンダ",
+    "specialty": "berry",
+    "berry": "YACHE",
+    "berry_ja": "ヤチェ",
+    "favorite": {
+     "berry": 59334,
+     "ingredient": 3521,
+     "direct_skill": 0,
+     "expected": 62854
+    },
+    "other": {
+     "berry": 29667,
+     "ingredient": 3521,
+     "direct_skill": 0,
+     "expected": 33188
+    }
+   },
+   {
+    "species": "SANDSLASH",
+    "species_ja": "サンドパン",
+    "specialty": "skill",
+    "berry": "FIGY",
+    "berry_ja": "フィラ",
+    "favorite": {
+     "berry": 14727,
+     "ingredient": 3276,
+     "direct_skill": 0,
+     "expected": 18003
+    },
+    "other": {
+     "berry": 7364,
+     "ingredient": 3276,
+     "direct_skill": 0,
+     "expected": 10640
+    }
+   },
+   {
+    "species": "SCEPTILE",
+    "species_ja": "ジュカイン",
+    "specialty": "skill",
+    "berry": "DURIN",
+    "berry_ja": "ドリ",
+    "favorite": {
+     "berry": 26244,
+     "ingredient": 1815,
+     "direct_skill": 0,
+     "expected": 28058
+    },
+    "other": {
+     "berry": 13122,
+     "ingredient": 1815,
+     "direct_skill": 0,
+     "expected": 14936
+    }
+   },
+   {
+    "species": "SHUCKLE",
+    "species_ja": "ツボツボ",
+    "specialty": "skill",
+    "berry": "LUM",
+    "berry_ja": "ラム",
+    "favorite": {
+     "berry": 12415,
+     "ingredient": 2784,
+     "direct_skill": 0,
+     "expected": 15199
+    },
+    "other": {
+     "berry": 6208,
+     "ingredient": 2784,
+     "direct_skill": 0,
+     "expected": 8992
+    }
+   },
+   {
+    "species": "SKELEDIRGE",
+    "species_ja": "ラウドボーン",
+    "specialty": "ingredient",
+    "berry": "BLUK",
+    "berry_ja": "ブリー",
+    "favorite": {
+     "berry": 12767,
+     "ingredient": 15247,
+     "direct_skill": 0,
+     "expected": 28014
+    },
+    "other": {
+     "berry": 6384,
+     "ingredient": 15247,
+     "direct_skill": 0,
+     "expected": 21630
+    }
+   },
+   {
+    "species": "SLAKING",
+    "species_ja": "ケッキング",
+    "specialty": "berry",
+    "berry": "PERSIM",
+    "berry_ja": "キー",
+    "favorite": {
+     "berry": 32577,
+     "ingredient": 16200,
+     "direct_skill": 0,
+     "expected": 48778
+    },
+    "other": {
+     "berry": 16289,
+     "ingredient": 16200,
+     "direct_skill": 0,
+     "expected": 32489
+    }
+   },
+   {
+    "species": "SLOWBRO",
+    "species_ja": "ヤドラン",
+    "specialty": "skill",
+    "berry": "ORAN",
+    "berry_ja": "オレン",
+    "favorite": {
+     "berry": 13748,
+     "ingredient": 3407,
+     "direct_skill": 0,
+     "expected": 17155
+    },
+    "other": {
+     "berry": 6874,
+     "ingredient": 3407,
+     "direct_skill": 0,
+     "expected": 10281
+    }
+   },
+   {
+    "species": "SLOWKING",
+    "species_ja": "ヤドキング",
+    "specialty": "skill",
+    "berry": "ORAN",
+    "berry_ja": "オレン",
+    "favorite": {
+     "berry": 16643,
+     "ingredient": 3214,
+     "direct_skill": 0,
+     "expected": 19857
+    },
+    "other": {
+     "berry": 8189,
+     "ingredient": 3214,
+     "direct_skill": 0,
+     "expected": 11403
+    }
+   },
+   {
+    "species": "SPHEAL_HOLIDAY",
+    "species_ja": "タマザラシ（ホリデー）",
+    "specialty": "skill",
+    "berry": "RAWST",
+    "berry_ja": "チーゴ",
+    "favorite": {
+     "berry": 12490,
+     "ingredient": 2658,
+     "direct_skill": 0,
+     "expected": 15148
+    },
+    "other": {
+     "berry": 6245,
+     "ingredient": 2658,
+     "direct_skill": 0,
+     "expected": 8903
+    }
+   },
+   {
+    "species": "SPIRITOMB",
+    "species_ja": "ミカルゲ",
+    "specialty": "ingredient",
+    "berry": "WIKI",
+    "berry_ja": "ウイ",
+    "favorite": {
+     "berry": 9425,
+     "ingredient": 15484,
+     "direct_skill": 0,
+     "expected": 24908
+    },
+    "other": {
+     "berry": 4712,
+     "ingredient": 15484,
+     "direct_skill": 0,
+     "expected": 20196
+    }
+   },
+   {
+    "species": "STEELIX",
+    "species_ja": "ハガネール",
+    "specialty": "berry",
+    "berry": "BELUE",
+    "berry_ja": "ベリブ",
+    "favorite": {
+     "berry": 55583,
+     "ingredient": 9717,
+     "direct_skill": 0,
+     "expected": 65301
+    },
+    "other": {
+     "berry": 27792,
+     "ingredient": 9717,
+     "direct_skill": 0,
+     "expected": 37509
+    }
+   },
+   {
+    "species": "SUDOWOODO",
+    "species_ja": "ウソッキー",
+    "specialty": "skill",
+    "berry": "SITRUS",
+    "berry_ja": "オボン",
+    "favorite": {
+     "berry": 9808,
+     "ingredient": 2050,
+     "direct_skill": 40181,
+     "expected": 52039
+    },
+    "other": {
+     "berry": 4904,
+     "ingredient": 2050,
+     "direct_skill": 40181,
+     "expected": 47135
+    }
+   },
+   {
+    "species": "SUICUNE",
+    "species_ja": "スイクン",
+    "specialty": "skill",
+    "berry": "ORAN",
+    "berry_ja": "オレン",
+    "favorite": {
+     "berry": 14075,
+     "ingredient": 2984,
+     "direct_skill": 0,
+     "expected": 17059
+    },
+    "other": {
+     "berry": 7037,
+     "ingredient": 2984,
+     "direct_skill": 0,
+     "expected": 10021
+    }
+   },
+   {
+    "species": "SWALOT",
+    "species_ja": "マルノーム",
+    "specialty": "skill",
+    "berry": "CHESTO",
+    "berry_ja": "カゴ",
+    "favorite": {
+     "berry": 11854,
+     "ingredient": 2038,
+     "direct_skill": 0,
+     "expected": 13893
+    },
+    "other": {
+     "berry": 5927,
+     "ingredient": 2038,
+     "direct_skill": 0,
+     "expected": 7966
+    }
+   },
+   {
+    "species": "SWAMPERT",
+    "species_ja": "ラグラージ",
+    "specialty": "berry",
+    "berry": "FIGY",
+    "berry_ja": "フィラ",
+    "favorite": {
+     "berry": 52211,
+     "ingredient": 2643,
+     "direct_skill": 0,
+     "expected": 54854
+    },
+    "other": {
+     "berry": 26106,
+     "ingredient": 2643,
+     "direct_skill": 0,
+     "expected": 28748
+    }
+   },
+   {
+    "species": "SYLVEON",
+    "species_ja": "ニンフィア",
+    "specialty": "skill",
+    "berry": "PECHA",
+    "berry_ja": "モモン",
+    "favorite": {
+     "berry": 19044,
+     "ingredient": 2696,
+     "direct_skill": 0,
+     "expected": 21740
+    },
+    "other": {
+     "berry": 9522,
+     "ingredient": 2696,
+     "direct_skill": 0,
+     "expected": 12218
+    }
+   },
+   {
+    "species": "TINKATON",
+    "species_ja": "デカヌチャン",
+    "specialty": "berry",
+    "berry": "PECHA",
+    "berry_ja": "モモン",
+    "favorite": {
+     "berry": 52917,
+     "ingredient": 2976,
+     "direct_skill": 13370,
+     "expected": 69263
+    },
+    "other": {
+     "berry": 26459,
+     "ingredient": 2976,
+     "direct_skill": 13370,
+     "expected": 42805
+    }
+   },
+   {
+    "species": "TOGEDEMARU",
+    "species_ja": "トゲデマル",
+    "specialty": "skill",
+    "berry": "BELUE",
+    "berry_ja": "ベリブ",
+    "favorite": {
+     "berry": 23479,
+     "ingredient": 2419,
+     "direct_skill": 0,
+     "expected": 25898
+    },
+    "other": {
+     "berry": 11739,
+     "ingredient": 2419,
+     "direct_skill": 0,
+     "expected": 14159
+    }
+   },
+   {
+    "species": "TOGEKISS",
+    "species_ja": "トゲキッス",
+    "specialty": "skill",
+    "berry": "PECHA",
+    "berry_ja": "モモン",
+    "favorite": {
+     "berry": 17935,
+     "ingredient": 5141,
+     "direct_skill": 4281,
+     "expected": 27357
+    },
+    "other": {
+     "berry": 8969,
+     "ingredient": 5154,
+     "direct_skill": 4306,
+     "expected": 18429
+    }
+   },
+   {
+    "species": "TORTERRA",
+    "species_ja": "ドダイトス",
+    "specialty": "skill",
+    "berry": "FIGY",
+    "berry_ja": "フィラ",
+    "favorite": {
+     "berry": 19070,
+     "ingredient": 3995,
+     "direct_skill": 0,
+     "expected": 23065
+    },
+    "other": {
+     "berry": 9535,
+     "ingredient": 3995,
+     "direct_skill": 0,
+     "expected": 13530
+    }
+   },
+   {
+    "species": "TOXICROAK",
+    "species_ja": "ドクロッグ",
+    "specialty": "ingredient",
+    "berry": "CHESTO",
+    "berry_ja": "カゴ",
+    "favorite": {
+     "berry": 9143,
+     "ingredient": 11338,
+     "direct_skill": 5547,
+     "expected": 26028
+    },
+    "other": {
+     "berry": 4571,
+     "ingredient": 11338,
+     "direct_skill": 5547,
+     "expected": 21456
+    }
+   },
+   {
+    "species": "TOXTRICITY_AMPED",
+    "species_ja": "ストリンダー（ハイなすがた）",
+    "specialty": "skill",
+    "berry": "CHESTO",
+    "berry_ja": "カゴ",
+    "favorite": {
+     "berry": 13075,
+     "ingredient": 2580,
+     "direct_skill": 0,
+     "expected": 15655
+    },
+    "other": {
+     "berry": 6538,
+     "ingredient": 2580,
+     "direct_skill": 0,
+     "expected": 9117
+    }
+   },
+   {
+    "species": "TYPHLOSION",
+    "species_ja": "バクフーン",
+    "specialty": "berry",
+    "berry": "LEPPA",
+    "berry_ja": "ヒメリ",
+    "favorite": {
+     "berry": 53736,
+     "ingredient": 3361,
+     "direct_skill": 12706,
+     "expected": 69803
+    },
+    "other": {
+     "berry": 26868,
+     "ingredient": 3361,
+     "direct_skill": 12706,
+     "expected": 42935
+    }
+   },
+   {
+    "species": "TYRANITAR",
+    "species_ja": "バンギラス",
+    "specialty": "ingredient",
+    "berry": "WIKI",
+    "berry_ja": "ウイ",
+    "favorite": {
+     "berry": 15240,
+     "ingredient": 18340,
+     "direct_skill": 0,
+     "expected": 33580
+    },
+    "other": {
+     "berry": 7620,
+     "ingredient": 18340,
+     "direct_skill": 0,
+     "expected": 25960
+    }
+   },
+   {
+    "species": "TYRANTRUM",
+    "species_ja": "ガチゴラス",
+    "specialty": "berry",
+    "berry": "SITRUS",
+    "berry_ja": "オボン",
+    "favorite": {
+     "berry": 53301,
+     "ingredient": 2349,
+     "direct_skill": 0,
+     "expected": 55650
+    },
+    "other": {
+     "berry": 26650,
+     "ingredient": 2349,
+     "direct_skill": 0,
+     "expected": 28999
+    }
+   },
+   {
+    "species": "UMBREON",
+    "species_ja": "ブラッキー",
+    "specialty": "skill",
+    "berry": "WIKI",
+    "berry_ja": "ウイ",
+    "favorite": {
+     "berry": 17933,
+     "ingredient": 2740,
+     "direct_skill": 0,
+     "expected": 20674
+    },
+    "other": {
+     "berry": 8967,
+     "ingredient": 2740,
+     "direct_skill": 0,
+     "expected": 11707
+    }
+   },
+   {
+    "species": "VAPOREON",
+    "species_ja": "シャワーズ",
+    "specialty": "skill",
+    "berry": "ORAN",
+    "berry_ja": "オレン",
+    "favorite": {
+     "berry": 12962,
+     "ingredient": 24029,
+     "direct_skill": 0,
+     "expected": 36991
+    },
+    "other": {
+     "berry": 6481,
+     "ingredient": 24029,
+     "direct_skill": 0,
+     "expected": 30510
+    }
+   },
+   {
+    "species": "VENUSAUR",
+    "species_ja": "フシギバナ",
+    "specialty": "ingredient",
+    "berry": "DURIN",
+    "berry_ja": "ドリ",
+    "favorite": {
+     "berry": 9239,
+     "ingredient": 18126,
+     "direct_skill": 0,
+     "expected": 27365
+    },
+    "other": {
+     "berry": 4620,
+     "ingredient": 18126,
+     "direct_skill": 0,
+     "expected": 22745
+    }
+   },
+   {
+    "species": "VICTREEBEL",
+    "species_ja": "ウツボット",
+    "specialty": "ingredient",
+    "berry": "DURIN",
+    "berry_ja": "ドリ",
+    "favorite": {
+     "berry": 14703,
+     "ingredient": 15134,
+     "direct_skill": 0,
+     "expected": 29837
+    },
+    "other": {
+     "berry": 7222,
+     "ingredient": 15134,
+     "direct_skill": 0,
+     "expected": 22357
+    }
+   },
+   {
+    "species": "VIKAVOLT",
+    "species_ja": "クワガノン",
+    "specialty": "ingredient",
+    "berry": "LUM",
+    "berry_ja": "ラム",
+    "favorite": {
+     "berry": 8749,
+     "ingredient": 15750,
+     "direct_skill": 8052,
+     "expected": 32551
+    },
+    "other": {
+     "berry": 4374,
+     "ingredient": 15750,
+     "direct_skill": 8052,
+     "expected": 28177
+    }
+   },
+   {
+    "species": "WALREIN",
+    "species_ja": "トドゼルガ",
+    "specialty": "berry",
+    "berry": "RAWST",
+    "berry_ja": "チーゴ",
+    "favorite": {
+     "berry": 51106,
+     "ingredient": 9095,
+     "direct_skill": 0,
+     "expected": 60201
+    },
+    "other": {
+     "berry": 25553,
+     "ingredient": 9095,
+     "direct_skill": 0,
+     "expected": 34648
+    }
+   },
+   {
+    "species": "WEAVILE",
+    "species_ja": "マニューラ",
+    "specialty": "berry",
+    "berry": "WIKI",
+    "berry_ja": "ウイ",
+    "favorite": {
+     "berry": 53423,
+     "ingredient": 3395,
+     "direct_skill": 0,
+     "expected": 56818
+    },
+    "other": {
+     "berry": 26712,
+     "ingredient": 3395,
+     "direct_skill": 0,
+     "expected": 30107
+    }
+   },
+   {
+    "species": "WHIMSICOTT",
+    "species_ja": "エルフーン",
+    "specialty": "ingredient",
+    "berry": "PECHA",
+    "berry_ja": "モモン",
+    "favorite": {
+     "berry": 16840,
+     "ingredient": 15255,
+     "direct_skill": 0,
+     "expected": 32096
+    },
+    "other": {
+     "berry": 8420,
+     "ingredient": 15255,
+     "direct_skill": 0,
+     "expected": 23676
+    }
+   },
+   {
+    "species": "WIGGLYTUFF",
+    "species_ja": "プクリン",
+    "specialty": "skill",
+    "berry": "PECHA",
+    "berry_ja": "モモン",
+    "favorite": {
+     "berry": 17483,
+     "ingredient": 3190,
+     "direct_skill": 0,
+     "expected": 20673
+    },
+    "other": {
+     "berry": 8741,
+     "ingredient": 3190,
+     "direct_skill": 0,
+     "expected": 11931
+    }
+   },
+   {
+    "species": "WOBBUFFET",
+    "species_ja": "ソーナンス",
+    "specialty": "skill",
+    "berry": "MAGO",
+    "berry_ja": "マゴ",
+    "favorite": {
+     "berry": 12763,
+     "ingredient": 2345,
+     "direct_skill": 0,
+     "expected": 15107
+    },
+    "other": {
+     "berry": 6381,
+     "ingredient": 2345,
+     "direct_skill": 0,
+     "expected": 8726
+    }
+   },
+   {
+    "species": "XATU",
+    "species_ja": "ネイティオ",
+    "specialty": "berry",
+    "berry": "MAGO",
+    "berry_ja": "マゴ",
+    "favorite": {
+     "berry": 51026,
+     "ingredient": 10399,
+     "direct_skill": 0,
+     "expected": 61424
+    },
+    "other": {
+     "berry": 25513,
+     "ingredient": 10399,
+     "direct_skill": 0,
+     "expected": 35912
+    }
+   }
+  ],
+  "examples": [
+   {
+    "species": "RAICHU",
+    "species_ja": "ライチュウ",
+    "berry_ja": "ウブ",
+    "variants": {
+     "base": {
+      "nature": "いじっぱり",
+      "subskills": [
+       "きのみの数S",
+       "おてつだいスピードM",
+       "おてつだいスピードS"
+      ],
+      "favorite": {
+       "berry": 54181,
+       "ingredient": 3227,
+       "direct_skill": 9381,
+       "expected": 66789
+      },
+      "other": {
+       "berry": 27090,
+       "ingredient": 3227,
+       "direct_skill": 9381,
+       "expected": 39699
+      }
+     },
+     "bad_nature": {
+      "nature": "ひかえめ",
+      "subskills": [
+       "きのみの数S",
+       "おてつだいスピードM",
+       "おてつだいスピードS"
+      ],
+      "favorite": {
+       "berry": 41153,
+       "ingredient": 4177,
+       "direct_skill": 8045,
+       "expected": 53375
+      },
+      "other": {
+       "berry": 20577,
+       "ingredient": 4177,
+       "direct_skill": 8045,
+       "expected": 32798
+      }
+     },
+     "plain_subskills": {
+      "nature": "いじっぱり",
+      "subskills": [
+       "ゆめのかけらボーナス",
+       "リサーチEXPボーナス",
+       "睡眠EXPボーナス"
+      ],
+      "favorite": {
+       "berry": 27726,
+       "ingredient": 2787,
+       "direct_skill": 7952,
+       "expected": 38465
+      },
+      "other": {
+       "berry": 13863,
+       "ingredient": 2787,
+       "direct_skill": 7952,
+       "expected": 24602
+      }
+     }
+    }
+   },
+   {
+    "species": "HOUNDOOM",
+    "species_ja": "ヘルガー",
+    "berry_ja": "ウイ",
+    "variants": {
+     "base": {
+      "nature": "いじっぱり",
+      "subskills": [
+       "きのみの数S",
+       "おてつだいスピードM",
+       "おてつだいスピードS"
+      ],
+      "favorite": {
+       "berry": 45456,
+       "ingredient": 2821,
+       "direct_skill": 16262,
+       "expected": 64540
+      },
+      "other": {
+       "berry": 22728,
+       "ingredient": 2821,
+       "direct_skill": 16262,
+       "expected": 41811
+      }
+     },
+     "bad_nature": {
+      "nature": "ひかえめ",
+      "subskills": [
+       "きのみの数S",
+       "おてつだいスピードM",
+       "おてつだいスピードS"
+      ],
+      "favorite": {
+       "berry": 34607,
+       "ingredient": 3650,
+       "direct_skill": 13977,
+       "expected": 52234
+      },
+      "other": {
+       "berry": 17303,
+       "ingredient": 3650,
+       "direct_skill": 13977,
+       "expected": 34931
+      }
+     },
+     "plain_subskills": {
+      "nature": "いじっぱり",
+      "subskills": [
+       "ゆめのかけらボーナス",
+       "リサーチEXPボーナス",
+       "睡眠EXPボーナス"
+      ],
+      "favorite": {
+       "berry": 23444,
+       "ingredient": 2474,
+       "direct_skill": 13990,
+       "expected": 39908
+      },
+      "other": {
+       "berry": 11722,
+       "ingredient": 2474,
+       "direct_skill": 13990,
+       "expected": 28186
+      }
+     }
+    }
+   },
+   {
+    "species": "TYPHLOSION",
+    "species_ja": "バクフーン",
+    "berry_ja": "ヒメリ",
+    "variants": {
+     "base": {
+      "nature": "いじっぱり",
+      "subskills": [
+       "きのみの数S",
+       "おてつだいスピードM",
+       "おてつだいスピードS"
+      ],
+      "favorite": {
+       "berry": 53736,
+       "ingredient": 3361,
+       "direct_skill": 12706,
+       "expected": 69803
+      },
+      "other": {
+       "berry": 26868,
+       "ingredient": 3361,
+       "direct_skill": 12706,
+       "expected": 42935
+      }
+     },
+     "bad_nature": {
+      "nature": "ひかえめ",
+      "subskills": [
+       "きのみの数S",
+       "おてつだいスピードM",
+       "おてつだいスピードS"
+      ],
+      "favorite": {
+       "berry": 41247,
+       "ingredient": 4421,
+       "direct_skill": 11070,
+       "expected": 56738
+      },
+      "other": {
+       "berry": 20623,
+       "ingredient": 4421,
+       "direct_skill": 11070,
+       "expected": 36114
+      }
+     },
+     "plain_subskills": {
+      "nature": "いじっぱり",
+      "subskills": [
+       "ゆめのかけらボーナス",
+       "リサーチEXPボーナス",
+       "睡眠EXPボーナス"
+      ],
+      "favorite": {
+       "berry": 28025,
+       "ingredient": 2965,
+       "direct_skill": 10873,
+       "expected": 41862
+      },
+      "other": {
+       "berry": 14012,
+       "ingredient": 2965,
+       "direct_skill": 10873,
+       "expected": 27850
+      }
+     }
+    }
+   }
+  ]
+ }
+}

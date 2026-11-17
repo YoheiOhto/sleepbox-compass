@@ -1,0 +1,2216 @@
+{
+ "schema": 1,
+ "slug": "nature-effects",
+ "title": "性格はどれだけ効く？",
+ "provenance": {
+  "generated_on": "2026-11-17",
+  "generator": "pokesleep_box.columns.nature_effects",
+  "game_version": "3.6.0",
+  "engine": "nerolis-lab@8a6566c5e824db51e9939e2929d3734c38de11f8",
+  "sources": [
+   "Neroli's Lab（計算エンジン、engine/src/cli.mjs の evaluate / metadata モード）",
+   "Neroli's Lab の性格の表（common/src/types/nature/nature.ts）",
+   "src/pokesleep_box/training_costs.json（アメ・かけらの表）"
+  ]
+ },
+ "assumptions": [
+  "1日のエナジーは計算エンジン（Neroli's Lab）の1匹ぶんの見積もりです。きのみ＋食材（素材の基本エナジー）＋メインスキルのエナジーの合計です。",
+  "きのみが好物になる島（好物2倍）、睡眠は22:00〜6:00、リボンなし、おてつだいサポートなしで計算しています。",
+  "性格以外（サブスキル、食材、スキルレベル最大）は同じにして、性格だけを21通り変えています。補正なしの性格はまじめで代表させています（補正なしの5つは同じ値です）。",
+  "食材は料理にしたときの倍率を入れていません。料理まで考えると、食材タイプにとっての食材確率の重みはもっと大きくなります。",
+  "げんき回復の補正は、この1匹自身のげんきの戻り方だけに効くものとして計算されています。",
+  "EXPの補正は1日のエナジーには効きません。育てるのに使うアメとかけらの量だけが変わります（アメだけで育てたとき）。",
+  "ここで使った6匹（メインスキルはエナジーチャージ）は、同じ条件なら毎回同じ数字になります（乱数のぶれはありません）。ただし1%前後の小さな差は、サブスキルや食材を少し変えると入れかわることがあります。"
+ ],
+ "data": {
+  "levels": [
+   50,
+   60
+  ],
+  "iterations": 1000,
+  "neutral": "Serious",
+  "natures": {
+   "Lonely": {
+    "up": "speed",
+    "down": "energy",
+    "ja": "さみしがり"
+   },
+   "Adamant": {
+    "up": "speed",
+    "down": "ingredient",
+    "ja": "いじっぱり"
+   },
+   "Naughty": {
+    "up": "speed",
+    "down": "skill",
+    "ja": "やんちゃ"
+   },
+   "Brave": {
+    "up": "speed",
+    "down": "exp",
+    "ja": "ゆうかん"
+   },
+   "Bold": {
+    "up": "energy",
+    "down": "speed",
+    "ja": "ずぶとい"
+   },
+   "Impish": {
+    "up": "energy",
+    "down": "ingredient",
+    "ja": "わんぱく"
+   },
+   "Lax": {
+    "up": "energy",
+    "down": "skill",
+    "ja": "のうてんき"
+   },
+   "Relaxed": {
+    "up": "energy",
+    "down": "exp",
+    "ja": "のんき"
+   },
+   "Modest": {
+    "up": "ingredient",
+    "down": "speed",
+    "ja": "ひかえめ"
+   },
+   "Mild": {
+    "up": "ingredient",
+    "down": "energy",
+    "ja": "おっとり"
+   },
+   "Rash": {
+    "up": "ingredient",
+    "down": "skill",
+    "ja": "うっかりや"
+   },
+   "Quiet": {
+    "up": "ingredient",
+    "down": "exp",
+    "ja": "れいせい"
+   },
+   "Calm": {
+    "up": "skill",
+    "down": "speed",
+    "ja": "おだやか"
+   },
+   "Gentle": {
+    "up": "skill",
+    "down": "energy",
+    "ja": "おとなしい"
+   },
+   "Careful": {
+    "up": "skill",
+    "down": "ingredient",
+    "ja": "しんちょう"
+   },
+   "Sassy": {
+    "up": "skill",
+    "down": "exp",
+    "ja": "なまいき"
+   },
+   "Timid": {
+    "up": "exp",
+    "down": "speed",
+    "ja": "おくびょう"
+   },
+   "Hasty": {
+    "up": "exp",
+    "down": "energy",
+    "ja": "せっかち"
+   },
+   "Jolly": {
+    "up": "exp",
+    "down": "ingredient",
+    "ja": "ようき"
+   },
+   "Naive": {
+    "up": "exp",
+    "down": "skill",
+    "ja": "むじゃき"
+   }
+  },
+  "neutral_ja": "まじめ",
+  "species": [
+   {
+    "species": "RAICHU",
+    "species_ja": "ライチュウ",
+    "specialty": "berry",
+    "main_skill": "エナジーチャージS",
+    "berry": "ウブ",
+    "subskills": [
+     [
+      "きのみの数S",
+      10
+     ],
+     [
+      "おてつだいスピードM",
+      25
+     ],
+     [
+      "おてつだいスピードS",
+      50
+     ],
+     [
+      "おてつだいボーナス",
+      70
+     ],
+     [
+      "スキル確率アップM",
+      80
+     ]
+    ],
+    "ingredients": [
+     [
+      "とくせんリンゴ",
+      1
+     ],
+     [
+      "とくせんリンゴ",
+      2
+     ],
+     [
+      "とくせんリンゴ",
+      4
+     ]
+    ],
+    "energy": {
+     "Serious": {
+      "50": {
+       "berry": 35404,
+       "ingredient": 2348,
+       "direct_skill": 8455,
+       "expected": 46206
+      },
+      "60": {
+       "berry": 46501,
+       "ingredient": 3663,
+       "direct_skill": 8491,
+       "expected": 58654
+      }
+     },
+     "Lonely": {
+      "50": {
+       "berry": 36577,
+       "ingredient": 2438,
+       "direct_skill": 8789,
+       "expected": 47804
+      },
+      "60": {
+       "berry": 48493,
+       "ingredient": 3851,
+       "direct_skill": 8936,
+       "expected": 61280
+      }
+     },
+     "Adamant": {
+      "50": {
+       "berry": 41446,
+       "ingredient": 2041,
+       "direct_skill": 9234,
+       "expected": 52721
+      },
+      "60": {
+       "berry": 54181,
+       "ingredient": 3227,
+       "direct_skill": 9381,
+       "expected": 66789
+      }
+     },
+     "Naughty": {
+      "50": {
+       "berry": 39654,
+       "ingredient": 2559,
+       "direct_skill": 7857,
+       "expected": 50070
+      },
+      "60": {
+       "berry": 51770,
+       "ingredient": 4040,
+       "direct_skill": 7978,
+       "expected": 63788
+      }
+     },
+     "Brave": {
+      "50": {
+       "berry": 39654,
+       "ingredient": 2559,
+       "direct_skill": 9234,
+       "expected": 51447
+      },
+      "60": {
+       "berry": 51770,
+       "ingredient": 4040,
+       "direct_skill": 9381,
+       "expected": 65191
+      }
+     },
+     "Bold": {
+      "50": {
+       "berry": 33727,
+       "ingredient": 2257,
+       "direct_skill": 8121,
+       "expected": 44105
+      },
+      "60": {
+       "berry": 44364,
+       "ingredient": 3522,
+       "direct_skill": 8157,
+       "expected": 56043
+      }
+     },
+     "Impish": {
+      "50": {
+       "berry": 37956,
+       "ingredient": 1895,
+       "direct_skill": 8566,
+       "expected": 48418
+      },
+      "60": {
+       "berry": 49735,
+       "ingredient": 3002,
+       "direct_skill": 8713,
+       "expected": 61450
+      }
+     },
+     "Lax": {
+      "50": {
+       "berry": 36299,
+       "ingredient": 2378,
+       "direct_skill": 7291,
+       "expected": 45968
+      },
+      "60": {
+       "berry": 47497,
+       "ingredient": 3757,
+       "direct_skill": 7412,
+       "expected": 58666
+      }
+     },
+     "Relaxed": {
+      "50": {
+       "berry": 36299,
+       "ingredient": 2378,
+       "direct_skill": 8566,
+       "expected": 47243
+      },
+      "60": {
+       "berry": 47497,
+       "ingredient": 3757,
+       "direct_skill": 8713,
+       "expected": 59967
+      }
+     },
+     "Modest": {
+      "50": {
+       "berry": 31415,
+       "ingredient": 2647,
+       "direct_skill": 7898,
+       "expected": 41960
+      },
+      "60": {
+       "berry": 41153,
+       "ingredient": 4177,
+       "direct_skill": 8045,
+       "expected": 53375
+      }
+     },
+     "Mild": {
+      "50": {
+       "berry": 31784,
+       "ingredient": 2683,
+       "direct_skill": 8010,
+       "expected": 42476
+      },
+      "60": {
+       "berry": 40980,
+       "ingredient": 4233,
+       "direct_skill": 8157,
+       "expected": 53370
+      }
+     },
+     "Rash": {
+      "50": {
+       "berry": 33762,
+       "ingredient": 2828,
+       "direct_skill": 7196,
+       "expected": 43787
+      },
+      "60": {
+       "berry": 44315,
+       "ingredient": 4402,
+       "direct_skill": 7223,
+       "expected": 55940
+      }
+     },
+     "Quiet": {
+      "50": {
+       "berry": 33762,
+       "ingredient": 2828,
+       "direct_skill": 8455,
+       "expected": 45045
+      },
+      "60": {
+       "berry": 44315,
+       "ingredient": 4402,
+       "direct_skill": 8491,
+       "expected": 57208
+      }
+     },
+     "Calm": {
+      "50": {
+       "berry": 32944,
+       "ingredient": 2197,
+       "direct_skill": 9131,
+       "expected": 44272
+      },
+      "60": {
+       "berry": 43224,
+       "ingredient": 3475,
+       "direct_skill": 9307,
+       "expected": 56006
+      }
+     },
+     "Gentle": {
+      "50": {
+       "berry": 33336,
+       "ingredient": 2227,
+       "direct_skill": 9260,
+       "expected": 44822
+      },
+      "60": {
+       "berry": 43080,
+       "ingredient": 3522,
+       "direct_skill": 9436,
+       "expected": 56038
+      }
+     },
+     "Careful": {
+      "50": {
+       "berry": 37039,
+       "ingredient": 1871,
+       "direct_skill": 9777,
+       "expected": 48686
+      },
+      "60": {
+       "berry": 48681,
+       "ingredient": 2926,
+       "direct_skill": 9824,
+       "expected": 61431
+      }
+     },
+     "Sassy": {
+      "50": {
+       "berry": 35404,
+       "ingredient": 2348,
+       "direct_skill": 9777,
+       "expected": 47528
+      },
+      "60": {
+       "berry": 46501,
+       "ingredient": 3663,
+       "direct_skill": 9824,
+       "expected": 59987
+      }
+     },
+     "Timid": {
+      "50": {
+       "berry": 32944,
+       "ingredient": 2197,
+       "direct_skill": 7898,
+       "expected": 43039
+      },
+      "60": {
+       "berry": 43224,
+       "ingredient": 3475,
+       "direct_skill": 8045,
+       "expected": 54744
+      }
+     },
+     "Hasty": {
+      "50": {
+       "berry": 33336,
+       "ingredient": 2227,
+       "direct_skill": 8010,
+       "expected": 43572
+      },
+      "60": {
+       "berry": 43080,
+       "ingredient": 3522,
+       "direct_skill": 8157,
+       "expected": 54759
+      }
+     },
+     "Jolly": {
+      "50": {
+       "berry": 37039,
+       "ingredient": 1871,
+       "direct_skill": 8455,
+       "expected": 47365
+      },
+      "60": {
+       "berry": 48681,
+       "ingredient": 2926,
+       "direct_skill": 8491,
+       "expected": 60098
+      }
+     },
+     "Naive": {
+      "50": {
+       "berry": 35404,
+       "ingredient": 2348,
+       "direct_skill": 7196,
+       "expected": 44948
+      },
+      "60": {
+       "berry": 46501,
+       "ingredient": 3663,
+       "direct_skill": 7223,
+       "expected": 57387
+      }
+     }
+    }
+   },
+   {
+    "species": "HOUNDOOM",
+    "species_ja": "ヘルガー",
+    "specialty": "berry",
+    "main_skill": "エナジーチャージM",
+    "berry": "ウイ",
+    "subskills": [
+     [
+      "きのみの数S",
+      10
+     ],
+     [
+      "おてつだいスピードM",
+      25
+     ],
+     [
+      "おてつだいスピードS",
+      50
+     ],
+     [
+      "おてつだいボーナス",
+      70
+     ],
+     [
+      "スキル確率アップM",
+      80
+     ]
+    ],
+    "ingredients": [
+     [
+      "げきからハーブ",
+      1
+     ],
+     [
+      "げきからハーブ",
+      2
+     ],
+     [
+      "げきからハーブ",
+      4
+     ]
+    ],
+    "energy": {
+     "Serious": {
+      "50": {
+       "berry": 30125,
+       "ingredient": 2050,
+       "direct_skill": 14548,
+       "expected": 46724
+      },
+      "60": {
+       "berry": 38869,
+       "ingredient": 3222,
+       "direct_skill": 14834,
+       "expected": 56925
+      }
+     },
+     "Lonely": {
+      "50": {
+       "berry": 31120,
+       "ingredient": 2129,
+       "direct_skill": 15120,
+       "expected": 48369
+      },
+      "60": {
+       "berry": 40939,
+       "ingredient": 3346,
+       "direct_skill": 15405,
+       "expected": 59690
+      }
+     },
+     "Adamant": {
+      "50": {
+       "berry": 34584,
+       "ingredient": 1793,
+       "direct_skill": 15977,
+       "expected": 52354
+      },
+      "60": {
+       "berry": 45456,
+       "ingredient": 2821,
+       "direct_skill": 16262,
+       "expected": 64540
+      }
+     },
+     "Naughty": {
+      "50": {
+       "berry": 33236,
+       "ingredient": 2248,
+       "direct_skill": 13331,
+       "expected": 48815
+      },
+      "60": {
+       "berry": 43645,
+       "ingredient": 3530,
+       "direct_skill": 13569,
+       "expected": 60744
+      }
+     },
+     "Brave": {
+      "50": {
+       "berry": 33236,
+       "ingredient": 2248,
+       "direct_skill": 15977,
+       "expected": 51461
+      },
+      "60": {
+       "berry": 43645,
+       "ingredient": 3530,
+       "direct_skill": 16262,
+       "expected": 63437
+      }
+     },
+     "Bold": {
+      "50": {
+       "berry": 28506,
+       "ingredient": 1971,
+       "direct_skill": 13977,
+       "expected": 44454
+      },
+      "60": {
+       "berry": 37597,
+       "ingredient": 3099,
+       "direct_skill": 14263,
+       "expected": 54959
+      }
+     },
+     "Impish": {
+      "50": {
+       "berry": 31870,
+       "ingredient": 1666,
+       "direct_skill": 14834,
+       "expected": 48370
+      },
+      "60": {
+       "berry": 41187,
+       "ingredient": 2624,
+       "direct_skill": 15120,
+       "expected": 58930
+      }
+     },
+     "Lax": {
+      "50": {
+       "berry": 30622,
+       "ingredient": 2090,
+       "direct_skill": 12381,
+       "expected": 45093
+      },
+      "60": {
+       "berry": 39505,
+       "ingredient": 3284,
+       "direct_skill": 12618,
+       "expected": 55407
+      }
+     },
+     "Relaxed": {
+      "50": {
+       "berry": 30622,
+       "ingredient": 2090,
+       "direct_skill": 14834,
+       "expected": 47546
+      },
+      "60": {
+       "berry": 39505,
+       "ingredient": 3284,
+       "direct_skill": 15120,
+       "expected": 57908
+      }
+     },
+     "Modest": {
+      "50": {
+       "berry": 26858,
+       "ingredient": 2326,
+       "direct_skill": 13691,
+       "expected": 42876
+      },
+      "60": {
+       "berry": 34607,
+       "ingredient": 3650,
+       "direct_skill": 13977,
+       "expected": 52234
+      }
+     },
+     "Mild": {
+      "50": {
+       "berry": 26706,
+       "ingredient": 2374,
+       "direct_skill": 13977,
+       "expected": 43057
+      },
+      "60": {
+       "berry": 34412,
+       "ingredient": 3724,
+       "direct_skill": 14263,
+       "expected": 52399
+      }
+     },
+     "Rash": {
+      "50": {
+       "berry": 28898,
+       "ingredient": 2469,
+       "direct_skill": 12143,
+       "expected": 43510
+      },
+      "60": {
+       "berry": 37215,
+       "ingredient": 3872,
+       "direct_skill": 12381,
+       "expected": 53468
+      }
+     },
+     "Quiet": {
+      "50": {
+       "berry": 28898,
+       "ingredient": 2469,
+       "direct_skill": 14548,
+       "expected": 45915
+      },
+      "60": {
+       "berry": 37215,
+       "ingredient": 3872,
+       "direct_skill": 14834,
+       "expected": 55921
+      }
+     },
+     "Calm": {
+      "50": {
+       "berry": 28009,
+       "ingredient": 1931,
+       "direct_skill": 16049,
+       "expected": 45990
+      },
+      "60": {
+       "berry": 36163,
+       "ingredient": 3038,
+       "direct_skill": 16386,
+       "expected": 55586
+      }
+     },
+     "Gentle": {
+      "50": {
+       "berry": 27882,
+       "ingredient": 1971,
+       "direct_skill": 16386,
+       "expected": 46239
+      },
+      "60": {
+       "berry": 36001,
+       "ingredient": 3099,
+       "direct_skill": 16722,
+       "expected": 55821
+      }
+     },
+     "Careful": {
+      "50": {
+       "berry": 31347,
+       "ingredient": 1635,
+       "direct_skill": 17058,
+       "expected": 50039
+      },
+      "60": {
+       "berry": 40518,
+       "ingredient": 2574,
+       "direct_skill": 17394,
+       "expected": 60486
+      }
+     },
+     "Sassy": {
+      "50": {
+       "berry": 30125,
+       "ingredient": 2050,
+       "direct_skill": 17058,
+       "expected": 49233
+      },
+      "60": {
+       "berry": 38869,
+       "ingredient": 3222,
+       "direct_skill": 17394,
+       "expected": 59485
+      }
+     },
+     "Timid": {
+      "50": {
+       "berry": 28009,
+       "ingredient": 1931,
+       "direct_skill": 13691,
+       "expected": 43632
+      },
+      "60": {
+       "berry": 36163,
+       "ingredient": 3038,
+       "direct_skill": 13977,
+       "expected": 53177
+      }
+     },
+     "Hasty": {
+      "50": {
+       "berry": 27882,
+       "ingredient": 1971,
+       "direct_skill": 13977,
+       "expected": 43830
+      },
+      "60": {
+       "berry": 36001,
+       "ingredient": 3099,
+       "direct_skill": 14263,
+       "expected": 53363
+      }
+     },
+     "Jolly": {
+      "50": {
+       "berry": 31347,
+       "ingredient": 1635,
+       "direct_skill": 14548,
+       "expected": 47530
+      },
+      "60": {
+       "berry": 40518,
+       "ingredient": 2574,
+       "direct_skill": 14834,
+       "expected": 57927
+      }
+     },
+     "Naive": {
+      "50": {
+       "berry": 30125,
+       "ingredient": 2050,
+       "direct_skill": 12143,
+       "expected": 44318
+      },
+      "60": {
+       "berry": 38869,
+       "ingredient": 3222,
+       "direct_skill": 12381,
+       "expected": 54472
+      }
+     }
+    }
+   },
+   {
+    "species": "GENGAR",
+    "species_ja": "ゲンガー",
+    "specialty": "ingredient",
+    "main_skill": "エナジーチャージS",
+    "berry": "ブリー",
+    "subskills": [
+     [
+      "食材確率アップM",
+      10
+     ],
+     [
+      "おてつだいスピードM",
+      25
+     ],
+     [
+      "食材確率アップS",
+      50
+     ],
+     [
+      "最大所持数アップL",
+      70
+     ],
+     [
+      "おてつだいスピードS",
+      80
+     ]
+    ],
+    "ingredients": [
+     [
+      "げきからハーブ",
+      2
+     ],
+     [
+      "げきからハーブ",
+      5
+     ],
+     [
+      "げきからハーブ",
+      7
+     ]
+    ],
+    "energy": {
+     "Serious": {
+      "50": {
+       "berry": 10461,
+       "ingredient": 9082,
+       "direct_skill": 8501,
+       "expected": 28045
+      },
+      "60": {
+       "berry": 14091,
+       "ingredient": 11857,
+       "direct_skill": 8400,
+       "expected": 34348
+      }
+     },
+     "Lonely": {
+      "50": {
+       "berry": 10850,
+       "ingredient": 9431,
+       "direct_skill": 8840,
+       "expected": 29121
+      },
+      "60": {
+       "berry": 14592,
+       "ingredient": 12322,
+       "direct_skill": 8738,
+       "expected": 35652
+      }
+     },
+     "Adamant": {
+      "50": {
+       "berry": 12534,
+       "ingredient": 7959,
+       "direct_skill": 9246,
+       "expected": 29739
+      },
+      "60": {
+       "berry": 16490,
+       "ingredient": 10546,
+       "direct_skill": 9335,
+       "expected": 36372
+      }
+     },
+     "Naughty": {
+      "50": {
+       "berry": 11760,
+       "ingredient": 9780,
+       "direct_skill": 8035,
+       "expected": 29576
+      },
+      "60": {
+       "berry": 15707,
+       "ingredient": 12943,
+       "direct_skill": 8034,
+       "expected": 36683
+      }
+     },
+     "Brave": {
+      "50": {
+       "berry": 11760,
+       "ingredient": 9780,
+       "direct_skill": 9179,
+       "expected": 30719
+      },
+      "60": {
+       "berry": 15707,
+       "ingredient": 12943,
+       "direct_skill": 9190,
+       "expected": 37839
+      }
+     },
+     "Bold": {
+      "50": {
+       "berry": 9899,
+       "ingredient": 8733,
+       "direct_skill": 8163,
+       "expected": 26794
+      },
+      "60": {
+       "berry": 13367,
+       "ingredient": 11392,
+       "direct_skill": 8061,
+       "expected": 32820
+      }
+     },
+     "Impish": {
+      "50": {
+       "berry": 11494,
+       "ingredient": 7493,
+       "direct_skill": 8682,
+       "expected": 27669
+      },
+      "60": {
+       "berry": 15197,
+       "ingredient": 9802,
+       "direct_skill": 8658,
+       "expected": 33657
+      }
+     },
+     "Lax": {
+      "50": {
+       "berry": 10765,
+       "ingredient": 9199,
+       "direct_skill": 7544,
+       "expected": 27507
+      },
+      "60": {
+       "berry": 14482,
+       "ingredient": 12012,
+       "direct_skill": 7443,
+       "expected": 33938
+      }
+     },
+     "Relaxed": {
+      "50": {
+       "berry": 10765,
+       "ingredient": 9199,
+       "direct_skill": 8614,
+       "expected": 28578
+      },
+      "60": {
+       "berry": 14482,
+       "ingredient": 12012,
+       "direct_skill": 8513,
+       "expected": 35007
+      }
+     },
+     "Modest": {
+      "50": {
+       "berry": 9188,
+       "ingredient": 10028,
+       "direct_skill": 7796,
+       "expected": 27012
+      },
+      "60": {
+       "berry": 12173,
+       "ingredient": 13247,
+       "direct_skill": 7872,
+       "expected": 33291
+      }
+     },
+     "Mild": {
+      "50": {
+       "berry": 9309,
+       "ingredient": 10168,
+       "direct_skill": 7909,
+       "expected": 27385
+      },
+      "60": {
+       "berry": 12328,
+       "ingredient": 13433,
+       "direct_skill": 7985,
+       "expected": 33746
+      }
+     },
+     "Rash": {
+      "50": {
+       "berry": 9965,
+       "ingredient": 10726,
+       "direct_skill": 7315,
+       "expected": 28006
+      },
+      "60": {
+       "berry": 13242,
+       "ingredient": 13991,
+       "direct_skill": 7276,
+       "expected": 34508
+      }
+     },
+     "Quiet": {
+      "50": {
+       "berry": 9965,
+       "ingredient": 10726,
+       "direct_skill": 8360,
+       "expected": 29052
+      },
+      "60": {
+       "berry": 13242,
+       "ingredient": 13991,
+       "direct_skill": 8324,
+       "expected": 35557
+      }
+     },
+     "Calm": {
+      "50": {
+       "berry": 9640,
+       "ingredient": 8501,
+       "direct_skill": 8968,
+       "expected": 27109
+      },
+      "60": {
+       "berry": 12977,
+       "ingredient": 11237,
+       "direct_skill": 8996,
+       "expected": 33209
+      }
+     },
+     "Gentle": {
+      "50": {
+       "berry": 9769,
+       "ingredient": 8617,
+       "direct_skill": 9097,
+       "expected": 27483
+      },
+      "60": {
+       "berry": 13143,
+       "ingredient": 11392,
+       "direct_skill": 9124,
+       "expected": 33659
+      }
+     },
+     "Careful": {
+      "50": {
+       "berry": 11182,
+       "ingredient": 7400,
+       "direct_skill": 9682,
+       "expected": 28264
+      },
+      "60": {
+       "berry": 14795,
+       "ingredient": 9678,
+       "direct_skill": 9665,
+       "expected": 34137
+      }
+     },
+     "Sassy": {
+      "50": {
+       "berry": 10461,
+       "ingredient": 9082,
+       "direct_skill": 9610,
+       "expected": 29154
+      },
+      "60": {
+       "berry": 14091,
+       "ingredient": 11857,
+       "direct_skill": 9510,
+       "expected": 35458
+      }
+     },
+     "Timid": {
+      "50": {
+       "berry": 9640,
+       "ingredient": 8501,
+       "direct_skill": 7937,
+       "expected": 26077
+      },
+      "60": {
+       "berry": 12977,
+       "ingredient": 11237,
+       "direct_skill": 7948,
+       "expected": 32161
+      }
+     },
+     "Hasty": {
+      "50": {
+       "berry": 9769,
+       "ingredient": 8617,
+       "direct_skill": 8050,
+       "expected": 26436
+      },
+      "60": {
+       "berry": 13143,
+       "ingredient": 11392,
+       "direct_skill": 8061,
+       "expected": 32596
+      }
+     },
+     "Jolly": {
+      "50": {
+       "berry": 11182,
+       "ingredient": 7400,
+       "direct_skill": 8569,
+       "expected": 27151
+      },
+      "60": {
+       "berry": 14795,
+       "ingredient": 9678,
+       "direct_skill": 8545,
+       "expected": 33017
+      }
+     },
+     "Naive": {
+      "50": {
+       "berry": 10461,
+       "ingredient": 9082,
+       "direct_skill": 7445,
+       "expected": 26989
+      },
+      "60": {
+       "berry": 14091,
+       "ingredient": 11857,
+       "direct_skill": 7345,
+       "expected": 33293
+      }
+     }
+    }
+   },
+   {
+    "species": "ABSOL",
+    "species_ja": "アブソル",
+    "specialty": "ingredient",
+    "main_skill": "エナジーチャージM",
+    "berry": "ウイ",
+    "subskills": [
+     [
+      "食材確率アップM",
+      10
+     ],
+     [
+      "おてつだいスピードM",
+      25
+     ],
+     [
+      "食材確率アップS",
+      50
+     ],
+     [
+      "最大所持数アップL",
+      70
+     ],
+     [
+      "おてつだいスピードS",
+      80
+     ]
+    ],
+    "ingredients": [
+     [
+      "リラックスカカオ",
+      2
+     ],
+     [
+      "リラックスカカオ",
+      5
+     ],
+     [
+      "リラックスカカオ",
+      7
+     ]
+    ],
+    "energy": {
+     "Serious": {
+      "50": {
+       "berry": 9092,
+       "ingredient": 8324,
+       "direct_skill": 15121,
+       "expected": 32537
+      },
+      "60": {
+       "berry": 12234,
+       "ingredient": 10909,
+       "direct_skill": 15052,
+       "expected": 38194
+      }
+     },
+     "Lonely": {
+      "50": {
+       "berry": 9545,
+       "ingredient": 8759,
+       "direct_skill": 15941,
+       "expected": 34245
+      },
+      "60": {
+       "berry": 12547,
+       "ingredient": 11488,
+       "direct_skill": 15872,
+       "expected": 39907
+      }
+     },
+     "Adamant": {
+      "50": {
+       "berry": 10946,
+       "ingredient": 7367,
+       "direct_skill": 16649,
+       "expected": 34962
+      },
+      "60": {
+       "berry": 14546,
+       "ingredient": 9834,
+       "direct_skill": 16867,
+       "expected": 41247
+      }
+     },
+     "Naughty": {
+      "50": {
+       "berry": 10263,
+       "ingredient": 9049,
+       "direct_skill": 13864,
+       "expected": 33175
+      },
+      "60": {
+       "berry": 13659,
+       "ingredient": 12068,
+       "direct_skill": 14011,
+       "expected": 39737
+      }
+     },
+     "Brave": {
+      "50": {
+       "berry": 10263,
+       "ingredient": 9049,
+       "direct_skill": 16488,
+       "expected": 35799
+      },
+      "60": {
+       "berry": 13659,
+       "ingredient": 12068,
+       "direct_skill": 16692,
+       "expected": 42418
+      }
+     },
+     "Bold": {
+      "50": {
+       "berry": 8790,
+       "ingredient": 8035,
+       "direct_skill": 14574,
+       "expected": 31398
+      },
+      "60": {
+       "berry": 11582,
+       "ingredient": 10522,
+       "direct_skill": 14505,
+       "expected": 36609
+      }
+     },
+     "Impish": {
+      "50": {
+       "berry": 10088,
+       "ingredient": 6903,
+       "direct_skill": 15555,
+       "expected": 32547
+      },
+      "60": {
+       "berry": 13242,
+       "ingredient": 9062,
+       "direct_skill": 15500,
+       "expected": 37803
+      }
+     },
+     "Lax": {
+      "50": {
+       "berry": 9451,
+       "ingredient": 8469,
+       "direct_skill": 12950,
+       "expected": 30870
+      },
+      "60": {
+       "berry": 12427,
+       "ingredient": 11102,
+       "direct_skill": 12869,
+       "expected": 36398
+      }
+     },
+     "Relaxed": {
+      "50": {
+       "berry": 9451,
+       "ingredient": 8469,
+       "direct_skill": 15394,
+       "expected": 33314
+      },
+      "60": {
+       "berry": 12427,
+       "ingredient": 11102,
+       "direct_skill": 15325,
+       "expected": 38854
+      }
+     },
+     "Modest": {
+      "50": {
+       "berry": 7887,
+       "ingredient": 9305,
+       "direct_skill": 14133,
+       "expected": 31324
+      },
+      "60": {
+       "berry": 10705,
+       "ingredient": 12174,
+       "direct_skill": 14049,
+       "expected": 36928
+      }
+     },
+     "Mild": {
+      "50": {
+       "berry": 8026,
+       "ingredient": 9479,
+       "direct_skill": 14406,
+       "expected": 31911
+      },
+      "60": {
+       "berry": 10617,
+       "ingredient": 12405,
+       "direct_skill": 14323,
+       "expected": 37345
+      }
+     },
+     "Rash": {
+      "50": {
+       "berry": 8514,
+       "ingredient": 9826,
+       "direct_skill": 12569,
+       "expected": 30909
+      },
+      "60": {
+       "berry": 11506,
+       "ingredient": 12869,
+       "direct_skill": 12478,
+       "expected": 36853
+      }
+     },
+     "Quiet": {
+      "50": {
+       "berry": 8514,
+       "ingredient": 9826,
+       "direct_skill": 14953,
+       "expected": 33293
+      },
+      "60": {
+       "berry": 11506,
+       "ingredient": 12869,
+       "direct_skill": 14870,
+       "expected": 39245
+      }
+     },
+     "Calm": {
+      "50": {
+       "berry": 8431,
+       "ingredient": 7890,
+       "direct_skill": 16651,
+       "expected": 32971
+      },
+      "60": {
+       "berry": 11389,
+       "ingredient": 10329,
+       "direct_skill": 16601,
+       "expected": 38319
+      }
+     },
+     "Gentle": {
+      "50": {
+       "berry": 8582,
+       "ingredient": 8035,
+       "direct_skill": 16971,
+       "expected": 33588
+      },
+      "60": {
+       "berry": 11316,
+       "ingredient": 10522,
+       "direct_skill": 16922,
+       "expected": 38760
+      }
+     },
+     "Careful": {
+      "50": {
+       "berry": 9718,
+       "ingredient": 6787,
+       "direct_skill": 17785,
+       "expected": 34290
+      },
+      "60": {
+       "berry": 13034,
+       "ingredient": 8907,
+       "direct_skill": 17753,
+       "expected": 39694
+      }
+     },
+     "Sassy": {
+      "50": {
+       "berry": 9092,
+       "ingredient": 8324,
+       "direct_skill": 17613,
+       "expected": 35029
+      },
+      "60": {
+       "berry": 12234,
+       "ingredient": 10909,
+       "direct_skill": 17564,
+       "expected": 40706
+      }
+     },
+     "Timid": {
+      "50": {
+       "berry": 8431,
+       "ingredient": 7890,
+       "direct_skill": 14300,
+       "expected": 30621
+      },
+      "60": {
+       "berry": 11389,
+       "ingredient": 10329,
+       "direct_skill": 14231,
+       "expected": 35949
+      }
+     },
+     "Hasty": {
+      "50": {
+       "berry": 8582,
+       "ingredient": 8035,
+       "direct_skill": 14574,
+       "expected": 31190
+      },
+      "60": {
+       "berry": 11316,
+       "ingredient": 10522,
+       "direct_skill": 14505,
+       "expected": 36343
+      }
+     },
+     "Jolly": {
+      "50": {
+       "berry": 9718,
+       "ingredient": 6787,
+       "direct_skill": 15282,
+       "expected": 31787
+      },
+      "60": {
+       "berry": 13034,
+       "ingredient": 8907,
+       "direct_skill": 15226,
+       "expected": 37167
+      }
+     },
+     "Naive": {
+      "50": {
+       "berry": 9092,
+       "ingredient": 8324,
+       "direct_skill": 12721,
+       "expected": 30137
+      },
+      "60": {
+       "berry": 12234,
+       "ingredient": 10909,
+       "direct_skill": 12640,
+       "expected": 35783
+      }
+     }
+    }
+   },
+   {
+    "species": "AMPHAROS",
+    "species_ja": "デンリュウ",
+    "specialty": "skill",
+    "main_skill": "エナジーチャージM",
+    "berry": "ウブ",
+    "subskills": [
+     [
+      "スキル確率アップM",
+      10
+     ],
+     [
+      "おてつだいスピードM",
+      25
+     ],
+     [
+      "スキル確率アップS",
+      50
+     ],
+     [
+      "おてつだいスピードS",
+      70
+     ],
+     [
+      "おてつだいボーナス",
+      80
+     ]
+    ],
+    "ingredients": [
+     [
+      "げきからハーブ",
+      1
+     ],
+     [
+      "げきからハーブ",
+      2
+     ],
+     [
+      "げきからハーブ",
+      4
+     ]
+    ],
+    "energy": {
+     "Serious": {
+      "50": {
+       "berry": 10377,
+       "ingredient": 1800,
+       "direct_skill": 34402,
+       "expected": 46579
+      },
+      "60": {
+       "berry": 13591,
+       "ingredient": 2879,
+       "direct_skill": 35408,
+       "expected": 51878
+      }
+     },
+     "Lonely": {
+      "50": {
+       "berry": 10816,
+       "ingredient": 1876,
+       "direct_skill": 35911,
+       "expected": 48602
+      },
+      "60": {
+       "berry": 14150,
+       "ingredient": 2997,
+       "direct_skill": 36723,
+       "expected": 53870
+      }
+     },
+     "Adamant": {
+      "50": {
+       "berry": 11892,
+       "ingredient": 1602,
+       "direct_skill": 38025,
+       "expected": 51519
+      },
+      "60": {
+       "berry": 15531,
+       "ingredient": 2555,
+       "direct_skill": 39030,
+       "expected": 57117
+      }
+     },
+     "Naughty": {
+      "50": {
+       "berry": 11547,
+       "ingredient": 2003,
+       "direct_skill": 31367,
+       "expected": 44916
+      },
+      "60": {
+       "berry": 15081,
+       "ingredient": 3194,
+       "direct_skill": 32187,
+       "expected": 50461
+      }
+     },
+     "Brave": {
+      "50": {
+       "berry": 11547,
+       "ingredient": 2003,
+       "direct_skill": 38025,
+       "expected": 51574
+      },
+      "60": {
+       "berry": 15081,
+       "ingredient": 3194,
+       "direct_skill": 39030,
+       "expected": 57305
+      }
+     },
+     "Bold": {
+      "50": {
+       "berry": 9939,
+       "ingredient": 1724,
+       "direct_skill": 33073,
+       "expected": 44736
+      },
+      "60": {
+       "berry": 12846,
+       "ingredient": 2721,
+       "direct_skill": 33576,
+       "expected": 49144
+      }
+     },
+     "Impish": {
+      "50": {
+       "berry": 10989,
+       "ingredient": 1480,
+       "direct_skill": 35408,
+       "expected": 47877
+      },
+      "60": {
+       "berry": 14381,
+       "ingredient": 2366,
+       "direct_skill": 36220,
+       "expected": 52967
+      }
+     },
+     "Lax": {
+      "50": {
+       "berry": 10670,
+       "ingredient": 1851,
+       "direct_skill": 29156,
+       "expected": 41676
+      },
+      "60": {
+       "berry": 13964,
+       "ingredient": 2957,
+       "direct_skill": 29856,
+       "expected": 46777
+      }
+     },
+     "Relaxed": {
+      "50": {
+       "berry": 10670,
+       "ingredient": 1851,
+       "direct_skill": 35408,
+       "expected": 47928
+      },
+      "60": {
+       "berry": 13964,
+       "ingredient": 2957,
+       "direct_skill": 36220,
+       "expected": 53141
+      }
+     },
+     "Modest": {
+      "50": {
+       "berry": 9358,
+       "ingredient": 2008,
+       "direct_skill": 32234,
+       "expected": 43600
+      },
+      "60": {
+       "berry": 12282,
+       "ingredient": 3218,
+       "direct_skill": 33073,
+       "expected": 48573
+      }
+     },
+     "Mild": {
+      "50": {
+       "berry": 9500,
+       "ingredient": 2038,
+       "direct_skill": 32736,
+       "expected": 44275
+      },
+      "60": {
+       "berry": 12282,
+       "ingredient": 3218,
+       "direct_skill": 33239,
+       "expected": 48739
+      }
+     },
+     "Rash": {
+      "50": {
+       "berry": 10067,
+       "ingredient": 2160,
+       "direct_skill": 28336,
+       "expected": 40563
+      },
+      "60": {
+       "berry": 13185,
+       "ingredient": 3454,
+       "direct_skill": 29156,
+       "expected": 45795
+      }
+     },
+     "Quiet": {
+      "50": {
+       "berry": 10067,
+       "ingredient": 2160,
+       "direct_skill": 34402,
+       "expected": 46629
+      },
+      "60": {
+       "berry": 13185,
+       "ingredient": 3454,
+       "direct_skill": 35408,
+       "expected": 52047
+      }
+     },
+     "Calm": {
+      "50": {
+       "berry": 9647,
+       "ingredient": 1673,
+       "direct_skill": 38039,
+       "expected": 49359
+      },
+      "60": {
+       "berry": 12660,
+       "ingredient": 2681,
+       "direct_skill": 38989,
+       "expected": 54331
+      }
+     },
+     "Gentle": {
+      "50": {
+       "berry": 9793,
+       "ingredient": 1698,
+       "direct_skill": 38638,
+       "expected": 50129
+      },
+      "60": {
+       "berry": 12660,
+       "ingredient": 2681,
+       "direct_skill": 39237,
+       "expected": 54578
+      }
+     },
+     "Careful": {
+      "50": {
+       "berry": 10687,
+       "ingredient": 1440,
+       "direct_skill": 40520,
+       "expected": 52647
+      },
+      "60": {
+       "berry": 13997,
+       "ingredient": 2303,
+       "direct_skill": 41717,
+       "expected": 58017
+      }
+     },
+     "Sassy": {
+      "50": {
+       "berry": 10377,
+       "ingredient": 1800,
+       "direct_skill": 40520,
+       "expected": 52697
+      },
+      "60": {
+       "berry": 13591,
+       "ingredient": 2879,
+       "direct_skill": 41717,
+       "expected": 58187
+      }
+     },
+     "Timid": {
+      "50": {
+       "berry": 9647,
+       "ingredient": 1673,
+       "direct_skill": 32234,
+       "expected": 43553
+      },
+      "60": {
+       "berry": 12660,
+       "ingredient": 2681,
+       "direct_skill": 33073,
+       "expected": 48415
+      }
+     },
+     "Hasty": {
+      "50": {
+       "berry": 9793,
+       "ingredient": 1698,
+       "direct_skill": 32736,
+       "expected": 44228
+      },
+      "60": {
+       "berry": 12660,
+       "ingredient": 2681,
+       "direct_skill": 33239,
+       "expected": 48581
+      }
+     },
+     "Jolly": {
+      "50": {
+       "berry": 10687,
+       "ingredient": 1440,
+       "direct_skill": 34402,
+       "expected": 46530
+      },
+      "60": {
+       "berry": 13997,
+       "ingredient": 2303,
+       "direct_skill": 35408,
+       "expected": 51708
+      }
+     },
+     "Naive": {
+      "50": {
+       "berry": 10377,
+       "ingredient": 1800,
+       "direct_skill": 28336,
+       "expected": 40513
+      },
+      "60": {
+       "berry": 13591,
+       "ingredient": 2879,
+       "direct_skill": 29156,
+       "expected": 45626
+      }
+     }
+    }
+   },
+   {
+    "species": "ESPEON",
+    "species_ja": "エーフィ",
+    "specialty": "skill",
+    "main_skill": "エナジーチャージM",
+    "berry": "マゴ",
+    "subskills": [
+     [
+      "スキル確率アップM",
+      10
+     ],
+     [
+      "おてつだいスピードM",
+      25
+     ],
+     [
+      "スキル確率アップS",
+      50
+     ],
+     [
+      "おてつだいスピードS",
+      70
+     ],
+     [
+      "おてつだいボーナス",
+      80
+     ]
+    ],
+    "ingredients": [
+     [
+      "モーモーミルク",
+      1
+     ],
+     [
+      "モーモーミルク",
+      2
+     ],
+     [
+      "モーモーミルク",
+      4
+     ]
+    ],
+    "energy": {
+     "Serious": {
+      "50": {
+       "berry": 10764,
+       "ingredient": 1784,
+       "direct_skill": 33600,
+       "expected": 46149
+      },
+      "60": {
+       "berry": 14125,
+       "ingredient": 2784,
+       "direct_skill": 34238,
+       "expected": 51147
+      }
+     },
+     "Lonely": {
+      "50": {
+       "berry": 11201,
+       "ingredient": 1856,
+       "direct_skill": 35014,
+       "expected": 48071
+      },
+      "60": {
+       "berry": 14687,
+       "ingredient": 2896,
+       "direct_skill": 35652,
+       "expected": 53235
+      }
+     },
+     "Adamant": {
+      "50": {
+       "berry": 12352,
+       "ingredient": 1576,
+       "direct_skill": 37192,
+       "expected": 51119
+      },
+      "60": {
+       "berry": 16411,
+       "ingredient": 2426,
+       "direct_skill": 37066,
+       "expected": 55903
+      }
+     },
+     "Naughty": {
+      "50": {
+       "berry": 11842,
+       "ingredient": 1963,
+       "direct_skill": 30667,
+       "expected": 44472
+      },
+      "60": {
+       "berry": 15697,
+       "ingredient": 3009,
+       "direct_skill": 30497,
+       "expected": 49202
+      }
+     },
+     "Brave": {
+      "50": {
+       "berry": 11842,
+       "ingredient": 1963,
+       "direct_skill": 37192,
+       "expected": 50996
+      },
+      "60": {
+       "berry": 15697,
+       "ingredient": 3009,
+       "direct_skill": 37066,
+       "expected": 55771
+      }
+     },
+     "Bold": {
+      "50": {
+       "berry": 10328,
+       "ingredient": 1712,
+       "direct_skill": 32353,
+       "expected": 44393
+      },
+      "60": {
+       "berry": 13339,
+       "ingredient": 2671,
+       "direct_skill": 32825,
+       "expected": 48835
+      }
+     },
+     "Impish": {
+      "50": {
+       "berry": 11489,
+       "ingredient": 1466,
+       "direct_skill": 34543,
+       "expected": 47498
+      },
+      "60": {
+       "berry": 15214,
+       "ingredient": 2276,
+       "direct_skill": 34709,
+       "expected": 52200
+      }
+     },
+     "Lax": {
+      "50": {
+       "berry": 11055,
+       "ingredient": 1832,
+       "direct_skill": 28471,
+       "expected": 41358
+      },
+      "60": {
+       "berry": 14536,
+       "ingredient": 2821,
+       "direct_skill": 28574,
+       "expected": 45931
+      }
+     },
+     "Relaxed": {
+      "50": {
+       "berry": 11055,
+       "ingredient": 1832,
+       "direct_skill": 34543,
+       "expected": 47430
+      },
+      "60": {
+       "berry": 14536,
+       "ingredient": 2821,
+       "direct_skill": 34709,
+       "expected": 52067
+      }
+     },
+     "Modest": {
+      "50": {
+       "berry": 9643,
+       "ingredient": 1996,
+       "direct_skill": 31565,
+       "expected": 43205
+      },
+      "60": {
+       "berry": 12753,
+       "ingredient": 3134,
+       "direct_skill": 32037,
+       "expected": 47923
+      }
+     },
+     "Mild": {
+      "50": {
+       "berry": 9783,
+       "ingredient": 2025,
+       "direct_skill": 32037,
+       "expected": 43845
+      },
+      "60": {
+       "berry": 12708,
+       "ingredient": 3179,
+       "direct_skill": 32508,
+       "expected": 48395
+      }
+     },
+     "Rash": {
+      "50": {
+       "berry": 10342,
+       "ingredient": 2141,
+       "direct_skill": 27702,
+       "expected": 40185
+      },
+      "60": {
+       "berry": 13696,
+       "ingredient": 3314,
+       "direct_skill": 27899,
+       "expected": 44909
+      }
+     },
+     "Quiet": {
+      "50": {
+       "berry": 10342,
+       "ingredient": 2141,
+       "direct_skill": 33600,
+       "expected": 46083
+      },
+      "60": {
+       "berry": 13696,
+       "ingredient": 3314,
+       "direct_skill": 33922,
+       "expected": 50931
+      }
+     },
+     "Calm": {
+      "50": {
+       "berry": 10037,
+       "ingredient": 1663,
+       "direct_skill": 37227,
+       "expected": 48928
+      },
+      "60": {
+       "berry": 13152,
+       "ingredient": 2634,
+       "direct_skill": 38119,
+       "expected": 53904
+      }
+     },
+     "Gentle": {
+      "50": {
+       "berry": 10182,
+       "ingredient": 1688,
+       "direct_skill": 37788,
+       "expected": 49658
+      },
+      "60": {
+       "berry": 13296,
+       "ingredient": 2663,
+       "direct_skill": 38349,
+       "expected": 54307
+      }
+     },
+     "Careful": {
+      "50": {
+       "berry": 11187,
+       "ingredient": 1427,
+       "direct_skill": 39555,
+       "expected": 52169
+      },
+      "60": {
+       "berry": 14795,
+       "ingredient": 2246,
+       "direct_skill": 40362,
+       "expected": 57403
+      }
+     },
+     "Sassy": {
+      "50": {
+       "berry": 10764,
+       "ingredient": 1784,
+       "direct_skill": 39555,
+       "expected": 52103
+      },
+      "60": {
+       "berry": 14125,
+       "ingredient": 2784,
+       "direct_skill": 40362,
+       "expected": 57271
+      }
+     },
+     "Timid": {
+      "50": {
+       "berry": 10037,
+       "ingredient": 1663,
+       "direct_skill": 31565,
+       "expected": 43266
+      },
+      "60": {
+       "berry": 13152,
+       "ingredient": 2634,
+       "direct_skill": 32353,
+       "expected": 48139
+      }
+     },
+     "Hasty": {
+      "50": {
+       "berry": 10182,
+       "ingredient": 1688,
+       "direct_skill": 32037,
+       "expected": 43907
+      },
+      "60": {
+       "berry": 13296,
+       "ingredient": 2663,
+       "direct_skill": 32508,
+       "expected": 48466
+      }
+     },
+     "Jolly": {
+      "50": {
+       "berry": 11187,
+       "ingredient": 1427,
+       "direct_skill": 33600,
+       "expected": 46214
+      },
+      "60": {
+       "berry": 14795,
+       "ingredient": 2246,
+       "direct_skill": 34238,
+       "expected": 51280
+      }
+     },
+     "Naive": {
+      "50": {
+       "berry": 10764,
+       "ingredient": 1784,
+       "direct_skill": 27702,
+       "expected": 40250
+      },
+      "60": {
+       "berry": 14125,
+       "ingredient": 2784,
+       "direct_skill": 28189,
+       "expected": 45098
+      }
+     }
+    }
+   }
+  ],
+  "exp_costs": {
+   "Serious": {
+    "1-50": {
+     "candies": 1032,
+     "dream_shards": 167539
+    },
+    "50-60": {
+     "candies": 860,
+     "dream_shards": 371734
+    },
+    "1-60": {
+     "candies": 1892,
+     "dream_shards": 539358
+    }
+   },
+   "Timid": {
+    "1-50": {
+     "candies": 866,
+     "dream_shards": 140138
+    },
+    "50-60": {
+     "candies": 717,
+     "dream_shards": 309927
+    },
+    "1-60": {
+     "candies": 1582,
+     "dream_shards": 449707
+    }
+   },
+   "Quiet": {
+    "1-50": {
+     "candies": 1235,
+     "dream_shards": 200019
+    },
+    "50-60": {
+     "candies": 1024,
+     "dream_shards": 442598
+    },
+    "1-60": {
+     "candies": 2258,
+     "dream_shards": 642308
+    }
+   }
+  }
+ }
+}

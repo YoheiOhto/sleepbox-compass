@@ -1,0 +1,2328 @@
+{
+ "schema": 1,
+ "slug": "ingredient-slots",
+ "title": "食材枠（Lv30・Lv60）の価値は？",
+ "provenance": {
+  "generated_on": "2026-11-17",
+  "generator": "pokesleep_box.columns.ingredient_slots",
+  "game_version": "3.6.0",
+  "engine": "nerolis-lab@8a6566c5e824db51e9939e2929d3734c38de11f8",
+  "sources": [
+   "Neroli's Lab（計算エンジン、engine/src/cli.mjs の evaluate / metadata モード）",
+   "src/pokesleep_box/core.py の INGREDIENT_BASE_ENERGY（食材の基本エナジー）"
+  ]
+ },
+ "assumptions": [
+  "1日のエナジーは計算エンジン（Neroli's Lab）の1匹ぶんの見積もりです。きのみ＋食材＋メインスキルのエナジーの合計です。",
+  "食材は素材の基本エナジー（1個あたりの値。例: げきからハーブ130、あじわいキノコ167）で数えています。料理にするとレシピの倍率がかかるので、実際の食材の価値はこれより大きくなります。",
+  "きのみが好物になる島（好物2倍）、睡眠は22:00〜6:00、リボンなし、おてつだいサポートなし、メインスキルは最大レベルです。",
+  "サブスキルはLv10・25・50で開くので、Lv29→30とLv59→60の間ではサブスキルは変わりません。この2つの段差は食材の枠だけの効果です。",
+  "最終進化のすがたで計算しています。食材の数は最終進化の値です。",
+  "バンギラスのメインスキル（げんきチャージS）は乱数で計算されるので、バンギラスの数字は計算し直すと少し（±2%ほど）変わることがあります。"
+ ],
+ "data": {
+  "levels": [
+   20,
+   21,
+   22,
+   23,
+   24,
+   25,
+   26,
+   27,
+   28,
+   29,
+   30,
+   31,
+   32,
+   33,
+   34,
+   35,
+   36,
+   37,
+   38,
+   39,
+   40,
+   41,
+   42,
+   43,
+   44,
+   45,
+   46,
+   47,
+   48,
+   49,
+   50,
+   51,
+   52,
+   53,
+   54,
+   55,
+   56,
+   57,
+   58,
+   59,
+   60
+  ],
+  "key_levels": [
+   29,
+   30,
+   50,
+   59,
+   60
+  ],
+  "slot_levels": [
+   1,
+   30,
+   60
+  ],
+  "species": [
+   {
+    "species": "GENGAR",
+    "species_ja": "ゲンガー",
+    "specialty": "ingredient",
+    "main_skill": "エナジーチャージS",
+    "berry": "ブリー",
+    "nature": "うっかりや",
+    "subskills": [
+     [
+      "食材確率アップM",
+      10
+     ],
+     [
+      "おてつだいスピードM",
+      25
+     ],
+     [
+      "食材確率アップS",
+      50
+     ],
+     [
+      "最大所持数アップL",
+      70
+     ],
+     [
+      "おてつだいスピードS",
+      80
+     ]
+    ],
+    "combos": [
+     {
+      "ingredients": [
+       [
+        "げきからハーブ",
+        2,
+        130
+       ],
+       [
+        "げきからハーブ",
+        5,
+        130
+       ],
+       [
+        "げきからハーブ",
+        7,
+        130
+       ]
+      ],
+      "default": true,
+      "energy": {
+       "29": {
+        "berry": 6063,
+        "ingredient": 5424,
+        "direct_skill": 7213,
+        "expected": 18700
+       },
+       "30": {
+        "berry": 6210,
+        "ingredient": 9207,
+        "direct_skill": 7086,
+        "expected": 22503
+       },
+       "50": {
+        "berry": 9965,
+        "ingredient": 10726,
+        "direct_skill": 7315,
+        "expected": 28006
+       },
+       "59": {
+        "berry": 12855,
+        "ingredient": 10866,
+        "direct_skill": 7413,
+        "expected": 31133
+       },
+       "60": {
+        "berry": 13242,
+        "ingredient": 13991,
+        "direct_skill": 7276,
+        "expected": 34508
+       }
+      },
+      "ingredient_curve": [
+       4578,
+       4649,
+       4649,
+       4649,
+       4649,
+       5424,
+       5424,
+       5424,
+       5424,
+       5424,
+       9207,
+       9207,
+       9207,
+       9207,
+       9330,
+       9330,
+       9330,
+       9330,
+       9330,
+       9330,
+       9330,
+       9330,
+       9330,
+       9454,
+       9454,
+       9454,
+       9454,
+       9454,
+       9454,
+       9454,
+       10726,
+       10726,
+       10726,
+       10726,
+       10726,
+       10726,
+       10726,
+       10726,
+       10866,
+       10866,
+       13991
+      ]
+     },
+     {
+      "ingredients": [
+       [
+        "げきからハーブ",
+        2,
+        130
+       ],
+       [
+        "げきからハーブ",
+        5,
+        130
+       ],
+       [
+        "あじわいキノコ",
+        6,
+        167
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 6063,
+        "ingredient": 5424,
+        "direct_skill": 7213,
+        "expected": 18700
+       },
+       "30": {
+        "berry": 6210,
+        "ingredient": 9207,
+        "direct_skill": 7086,
+        "expected": 22503
+       },
+       "50": {
+        "berry": 9965,
+        "ingredient": 10726,
+        "direct_skill": 7315,
+        "expected": 28006
+       },
+       "59": {
+        "berry": 12855,
+        "ingredient": 10866,
+        "direct_skill": 7413,
+        "expected": 31133
+       },
+       "60": {
+        "berry": 13345,
+        "ingredient": 14828,
+        "direct_skill": 7276,
+        "expected": 35449
+       }
+      },
+      "ingredient_curve": null
+     },
+     {
+      "ingredients": [
+       [
+        "げきからハーブ",
+        2,
+        130
+       ],
+       [
+        "げきからハーブ",
+        5,
+        130
+       ],
+       [
+        "ピュアなオイル",
+        8,
+        121
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 6063,
+        "ingredient": 5424,
+        "direct_skill": 7213,
+        "expected": 18700
+       },
+       "30": {
+        "berry": 6210,
+        "ingredient": 9207,
+        "direct_skill": 7086,
+        "expected": 22503
+       },
+       "50": {
+        "berry": 9965,
+        "ingredient": 10726,
+        "direct_skill": 7315,
+        "expected": 28006
+       },
+       "59": {
+        "berry": 12855,
+        "ingredient": 10866,
+        "direct_skill": 7413,
+        "expected": 31133
+       },
+       "60": {
+        "berry": 13372,
+        "ingredient": 14321,
+        "direct_skill": 7204,
+        "expected": 34897
+       }
+      },
+      "ingredient_curve": null
+     },
+     {
+      "ingredients": [
+       [
+        "げきからハーブ",
+        2,
+        130
+       ],
+       [
+        "あじわいキノコ",
+        4,
+        167
+       ],
+       [
+        "げきからハーブ",
+        7,
+        130
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 6063,
+        "ingredient": 5424,
+        "direct_skill": 7213,
+        "expected": 18700
+       },
+       "30": {
+        "berry": 6108,
+        "ingredient": 9574,
+        "direct_skill": 7213,
+        "expected": 22895
+       },
+       "50": {
+        "berry": 9799,
+        "ingredient": 11153,
+        "direct_skill": 7445,
+        "expected": 28397
+       },
+       "59": {
+        "berry": 12646,
+        "ingredient": 11295,
+        "direct_skill": 7544,
+        "expected": 31485
+       },
+       "60": {
+        "berry": 13345,
+        "ingredient": 14255,
+        "direct_skill": 7276,
+        "expected": 34876
+       }
+      },
+      "ingredient_curve": null
+     },
+     {
+      "ingredients": [
+       [
+        "げきからハーブ",
+        2,
+        130
+       ],
+       [
+        "あじわいキノコ",
+        4,
+        167
+       ],
+       [
+        "あじわいキノコ",
+        6,
+        167
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 6063,
+        "ingredient": 5424,
+        "direct_skill": 7213,
+        "expected": 18700
+       },
+       "30": {
+        "berry": 6108,
+        "ingredient": 9574,
+        "direct_skill": 7213,
+        "expected": 22895
+       },
+       "50": {
+        "berry": 9799,
+        "ingredient": 11153,
+        "direct_skill": 7445,
+        "expected": 28397
+       },
+       "59": {
+        "berry": 12646,
+        "ingredient": 11295,
+        "direct_skill": 7544,
+        "expected": 31485
+       },
+       "60": {
+        "berry": 13236,
+        "ingredient": 15114,
+        "direct_skill": 7345,
+        "expected": 35694
+       }
+      },
+      "ingredient_curve": null
+     },
+     {
+      "ingredients": [
+       [
+        "げきからハーブ",
+        2,
+        130
+       ],
+       [
+        "あじわいキノコ",
+        4,
+        167
+       ],
+       [
+        "ピュアなオイル",
+        8,
+        121
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 6063,
+        "ingredient": 5424,
+        "direct_skill": 7213,
+        "expected": 18700
+       },
+       "30": {
+        "berry": 6108,
+        "ingredient": 9574,
+        "direct_skill": 7213,
+        "expected": 22895
+       },
+       "50": {
+        "berry": 9799,
+        "ingredient": 11153,
+        "direct_skill": 7445,
+        "expected": 28397
+       },
+       "59": {
+        "berry": 12646,
+        "ingredient": 11295,
+        "direct_skill": 7544,
+        "expected": 31485
+       },
+       "60": {
+        "berry": 13242,
+        "ingredient": 14575,
+        "direct_skill": 7276,
+        "expected": 35093
+       }
+      },
+      "ingredient_curve": null
+     }
+    ]
+   },
+   {
+    "species": "ABSOL",
+    "species_ja": "アブソル",
+    "specialty": "ingredient",
+    "main_skill": "エナジーチャージM",
+    "berry": "ウイ",
+    "nature": "うっかりや",
+    "subskills": [
+     [
+      "食材確率アップM",
+      10
+     ],
+     [
+      "おてつだいスピードM",
+      25
+     ],
+     [
+      "食材確率アップS",
+      50
+     ],
+     [
+      "最大所持数アップL",
+      70
+     ],
+     [
+      "おてつだいスピードS",
+      80
+     ]
+    ],
+    "combos": [
+     {
+      "ingredients": [
+       [
+        "リラックスカカオ",
+        2,
+        151
+       ],
+       [
+        "リラックスカカオ",
+        5,
+        151
+       ],
+       [
+        "リラックスカカオ",
+        7,
+        151
+       ]
+      ],
+      "default": true,
+      "energy": {
+       "29": {
+        "berry": 5103,
+        "ingredient": 5088,
+        "direct_skill": 12554,
+        "expected": 22745
+       },
+       "30": {
+        "berry": 5184,
+        "ingredient": 8469,
+        "direct_skill": 12265,
+        "expected": 25918
+       },
+       "50": {
+        "berry": 8514,
+        "ingredient": 9826,
+        "direct_skill": 12569,
+        "expected": 30909
+       },
+       "59": {
+        "berry": 11076,
+        "ingredient": 10000,
+        "direct_skill": 12798,
+        "expected": 33874
+       },
+       "60": {
+        "berry": 11506,
+        "ingredient": 12869,
+        "direct_skill": 12478,
+        "expected": 36853
+       }
+      },
+      "ingredient_curve": [
+       4299,
+       4299,
+       4299,
+       4299,
+       4299,
+       5001,
+       5088,
+       5088,
+       5088,
+       5088,
+       8469,
+       8623,
+       8623,
+       8623,
+       8623,
+       8623,
+       8623,
+       8623,
+       8623,
+       8623,
+       8623,
+       8623,
+       8776,
+       8776,
+       8776,
+       8776,
+       8776,
+       8776,
+       8776,
+       8776,
+       9826,
+       9826,
+       9826,
+       10000,
+       10000,
+       10000,
+       10000,
+       10000,
+       10000,
+       10000,
+       12869
+      ]
+     },
+     {
+      "ingredients": [
+       [
+        "リラックスカカオ",
+        2,
+        151
+       ],
+       [
+        "リラックスカカオ",
+        5,
+        151
+       ],
+       [
+        "とくせんリンゴ",
+        12,
+        90
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 5103,
+        "ingredient": 5088,
+        "direct_skill": 12554,
+        "expected": 22745
+       },
+       "30": {
+        "berry": 5184,
+        "ingredient": 8469,
+        "direct_skill": 12265,
+        "expected": 25918
+       },
+       "50": {
+        "berry": 8514,
+        "ingredient": 9826,
+        "direct_skill": 12569,
+        "expected": 30909
+       },
+       "59": {
+        "berry": 11076,
+        "ingredient": 10000,
+        "direct_skill": 12798,
+        "expected": 33874
+       },
+       "60": {
+        "berry": 11700,
+        "ingredient": 12565,
+        "direct_skill": 12135,
+        "expected": 36400
+       }
+      },
+      "ingredient_curve": null
+     },
+     {
+      "ingredients": [
+       [
+        "リラックスカカオ",
+        2,
+        151
+       ],
+       [
+        "リラックスカカオ",
+        5,
+        151
+       ],
+       [
+        "あじわいキノコ",
+        7,
+        167
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 5103,
+        "ingredient": 5088,
+        "direct_skill": 12554,
+        "expected": 22745
+       },
+       "30": {
+        "berry": 5184,
+        "ingredient": 8469,
+        "direct_skill": 12265,
+        "expected": 25918
+       },
+       "50": {
+        "berry": 8514,
+        "ingredient": 9826,
+        "direct_skill": 12569,
+        "expected": 30909
+       },
+       "59": {
+        "berry": 11076,
+        "ingredient": 10000,
+        "direct_skill": 12798,
+        "expected": 33874
+       },
+       "60": {
+        "berry": 11506,
+        "ingredient": 13551,
+        "direct_skill": 12478,
+        "expected": 37535
+       }
+      },
+      "ingredient_curve": null
+     },
+     {
+      "ingredients": [
+       [
+        "リラックスカカオ",
+        2,
+        151
+       ],
+       [
+        "とくせんリンゴ",
+        8,
+        90
+       ],
+       [
+        "リラックスカカオ",
+        7,
+        151
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 5103,
+        "ingredient": 5088,
+        "direct_skill": 12554,
+        "expected": 22745
+       },
+       "30": {
+        "berry": 5342,
+        "ingredient": 7825,
+        "direct_skill": 11792,
+        "expected": 24960
+       },
+       "50": {
+        "berry": 8587,
+        "ingredient": 9088,
+        "direct_skill": 12249,
+        "expected": 29924
+       },
+       "59": {
+        "berry": 11168,
+        "ingredient": 9256,
+        "direct_skill": 12478,
+        "expected": 32902
+       },
+       "60": {
+        "berry": 11552,
+        "ingredient": 12374,
+        "direct_skill": 12309,
+        "expected": 36235
+       }
+      },
+      "ingredient_curve": null
+     },
+     {
+      "ingredients": [
+       [
+        "リラックスカカオ",
+        2,
+        151
+       ],
+       [
+        "とくせんリンゴ",
+        8,
+        90
+       ],
+       [
+        "とくせんリンゴ",
+        12,
+        90
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 5103,
+        "ingredient": 5088,
+        "direct_skill": 12554,
+        "expected": 22745
+       },
+       "30": {
+        "berry": 5342,
+        "ingredient": 7825,
+        "direct_skill": 11792,
+        "expected": 24960
+       },
+       "50": {
+        "berry": 8587,
+        "ingredient": 9088,
+        "direct_skill": 12249,
+        "expected": 29924
+       },
+       "59": {
+        "berry": 11168,
+        "ingredient": 9256,
+        "direct_skill": 12478,
+        "expected": 32902
+       },
+       "60": {
+        "berry": 11821,
+        "ingredient": 12172,
+        "direct_skill": 11955,
+        "expected": 35947
+       }
+      },
+      "ingredient_curve": null
+     },
+     {
+      "ingredients": [
+       [
+        "リラックスカカオ",
+        2,
+        151
+       ],
+       [
+        "とくせんリンゴ",
+        8,
+        90
+       ],
+       [
+        "あじわいキノコ",
+        7,
+        167
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 5103,
+        "ingredient": 5088,
+        "direct_skill": 12554,
+        "expected": 22745
+       },
+       "30": {
+        "berry": 5342,
+        "ingredient": 7825,
+        "direct_skill": 11792,
+        "expected": 24960
+       },
+       "50": {
+        "berry": 8587,
+        "ingredient": 9088,
+        "direct_skill": 12249,
+        "expected": 29924
+       },
+       "59": {
+        "berry": 11168,
+        "ingredient": 9256,
+        "direct_skill": 12478,
+        "expected": 32902
+       },
+       "60": {
+        "berry": 11552,
+        "ingredient": 13041,
+        "direct_skill": 12309,
+        "expected": 36902
+       }
+      },
+      "ingredient_curve": null
+     }
+    ]
+   },
+   {
+    "species": "FARFETCHD",
+    "species_ja": "カモネギ",
+    "specialty": "ingredient",
+    "main_skill": "エナジーチャージS",
+    "berry": "シーヤ",
+    "nature": "うっかりや",
+    "subskills": [
+     [
+      "食材確率アップM",
+      10
+     ],
+     [
+      "おてつだいスピードM",
+      25
+     ],
+     [
+      "食材確率アップS",
+      50
+     ],
+     [
+      "最大所持数アップL",
+      70
+     ],
+     [
+      "おてつだいスピードS",
+      80
+     ]
+    ],
+    "combos": [
+     {
+      "ingredients": [
+       [
+        "ふといながねぎ",
+        2,
+        185
+       ],
+       [
+        "ふといながねぎ",
+        5,
+        185
+       ],
+       [
+        "ふといながねぎ",
+        7,
+        185
+       ]
+      ],
+      "default": true,
+      "energy": {
+       "29": {
+        "berry": 4380,
+        "ingredient": 5507,
+        "direct_skill": 6380,
+        "expected": 16267
+       },
+       "30": {
+        "berry": 4539,
+        "ingredient": 9112,
+        "direct_skill": 6154,
+        "expected": 19804
+       },
+       "50": {
+        "berry": 6877,
+        "ingredient": 10597,
+        "direct_skill": 6390,
+        "expected": 23864
+       },
+       "59": {
+        "berry": 8683,
+        "ingredient": 10597,
+        "direct_skill": 6390,
+        "expected": 25669
+       },
+       "60": {
+        "berry": 9163,
+        "ingredient": 13947,
+        "direct_skill": 6342,
+        "expected": 29452
+       }
+      },
+      "ingredient_curve": [
+       4637,
+       4637,
+       4637,
+       4734,
+       4734,
+       5437,
+       5437,
+       5437,
+       5507,
+       5507,
+       9112,
+       9112,
+       9112,
+       9112,
+       9112,
+       9112,
+       9112,
+       9112,
+       9112,
+       9281,
+       9281,
+       9281,
+       9281,
+       9281,
+       9281,
+       9281,
+       9281,
+       9281,
+       9281,
+       9281,
+       10597,
+       10597,
+       10597,
+       10597,
+       10597,
+       10597,
+       10597,
+       10597,
+       10597,
+       10597,
+       13947
+      ]
+     },
+     {
+      "ingredients": [
+       [
+        "ふといながねぎ",
+        2,
+        185
+       ],
+       [
+        "ふといながねぎ",
+        5,
+        185
+       ],
+       [
+        "マメミート",
+        13,
+        103
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 4380,
+        "ingredient": 5507,
+        "direct_skill": 6380,
+        "expected": 16267
+       },
+       "30": {
+        "berry": 4539,
+        "ingredient": 9112,
+        "direct_skill": 6154,
+        "expected": 19804
+       },
+       "50": {
+        "berry": 6877,
+        "ingredient": 10597,
+        "direct_skill": 6390,
+        "expected": 23864
+       },
+       "59": {
+        "berry": 8683,
+        "ingredient": 10597,
+        "direct_skill": 6390,
+        "expected": 25669
+       },
+       "60": {
+        "berry": 9298,
+        "ingredient": 13688,
+        "direct_skill": 6164,
+        "expected": 29151
+       }
+      },
+      "ingredient_curve": null
+     },
+     {
+      "ingredients": [
+       [
+        "ふといながねぎ",
+        2,
+        185
+       ],
+       [
+        "ふといながねぎ",
+        5,
+        185
+       ],
+       [
+        "あったかジンジャー",
+        12,
+        109
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 4380,
+        "ingredient": 5507,
+        "direct_skill": 6380,
+        "expected": 16267
+       },
+       "30": {
+        "berry": 4539,
+        "ingredient": 9112,
+        "direct_skill": 6154,
+        "expected": 19804
+       },
+       "50": {
+        "berry": 6877,
+        "ingredient": 10597,
+        "direct_skill": 6390,
+        "expected": 23864
+       },
+       "59": {
+        "berry": 8683,
+        "ingredient": 10597,
+        "direct_skill": 6390,
+        "expected": 25669
+       },
+       "60": {
+        "berry": 9336,
+        "ingredient": 13593,
+        "direct_skill": 6164,
+        "expected": 29093
+       }
+      },
+      "ingredient_curve": null
+     },
+     {
+      "ingredients": [
+       [
+        "ふといながねぎ",
+        2,
+        185
+       ],
+       [
+        "マメミート",
+        8,
+        103
+       ],
+       [
+        "ふといながねぎ",
+        7,
+        185
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 4380,
+        "ingredient": 5507,
+        "direct_skill": 6380,
+        "expected": 16267
+       },
+       "30": {
+        "berry": 4587,
+        "ingredient": 8076,
+        "direct_skill": 5988,
+        "expected": 18651
+       },
+       "50": {
+        "berry": 6960,
+        "ingredient": 9399,
+        "direct_skill": 6224,
+        "expected": 22584
+       },
+       "59": {
+        "berry": 8788,
+        "ingredient": 9399,
+        "direct_skill": 6224,
+        "expected": 24411
+       },
+       "60": {
+        "berry": 9214,
+        "ingredient": 13140,
+        "direct_skill": 6255,
+        "expected": 28608
+       }
+      },
+      "ingredient_curve": null
+     },
+     {
+      "ingredients": [
+       [
+        "ふといながねぎ",
+        2,
+        185
+       ],
+       [
+        "マメミート",
+        8,
+        103
+       ],
+       [
+        "マメミート",
+        13,
+        103
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 4380,
+        "ingredient": 5507,
+        "direct_skill": 6380,
+        "expected": 16267
+       },
+       "30": {
+        "berry": 4587,
+        "ingredient": 8076,
+        "direct_skill": 5988,
+        "expected": 18651
+       },
+       "50": {
+        "berry": 6960,
+        "ingredient": 9399,
+        "direct_skill": 6224,
+        "expected": 22584
+       },
+       "59": {
+        "berry": 8788,
+        "ingredient": 9399,
+        "direct_skill": 6224,
+        "expected": 24411
+       },
+       "60": {
+        "berry": 9201,
+        "ingredient": 12996,
+        "direct_skill": 6164,
+        "expected": 28362
+       }
+      },
+      "ingredient_curve": null
+     },
+     {
+      "ingredients": [
+       [
+        "ふといながねぎ",
+        2,
+        185
+       ],
+       [
+        "マメミート",
+        8,
+        103
+       ],
+       [
+        "あったかジンジャー",
+        12,
+        109
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 4380,
+        "ingredient": 5507,
+        "direct_skill": 6380,
+        "expected": 16267
+       },
+       "30": {
+        "berry": 4587,
+        "ingredient": 8076,
+        "direct_skill": 5988,
+        "expected": 18651
+       },
+       "50": {
+        "berry": 6960,
+        "ingredient": 9399,
+        "direct_skill": 6224,
+        "expected": 22584
+       },
+       "59": {
+        "berry": 8788,
+        "ingredient": 9399,
+        "direct_skill": 6224,
+        "expected": 24411
+       },
+       "60": {
+        "berry": 9231,
+        "ingredient": 12889,
+        "direct_skill": 6164,
+        "expected": 28284
+       }
+      },
+      "ingredient_curve": null
+     }
+    ]
+   },
+   {
+    "species": "TYRANITAR",
+    "species_ja": "バンギラス",
+    "specialty": "ingredient",
+    "main_skill": "げんきチャージS",
+    "berry": "ウイ",
+    "nature": "うっかりや",
+    "subskills": [
+     [
+      "食材確率アップM",
+      10
+     ],
+     [
+      "おてつだいスピードM",
+      25
+     ],
+     [
+      "食材確率アップS",
+      50
+     ],
+     [
+      "最大所持数アップL",
+      70
+     ],
+     [
+      "おてつだいスピードS",
+      80
+     ]
+    ],
+    "combos": [
+     {
+      "ingredients": [
+       [
+        "あったかジンジャー",
+        2,
+        109
+       ],
+       [
+        "あったかジンジャー",
+        5,
+        109
+       ],
+       [
+        "あったかジンジャー",
+        7,
+        109
+       ]
+      ],
+      "default": true,
+      "energy": {
+       "29": {
+        "berry": 6551,
+        "ingredient": 7497,
+        "direct_skill": 0,
+        "expected": 14048
+       },
+       "30": {
+        "berry": 7088,
+        "ingredient": 12074,
+        "direct_skill": 0,
+        "expected": 19163
+       },
+       "50": {
+        "berry": 11261,
+        "ingredient": 14067,
+        "direct_skill": 0,
+        "expected": 25328
+       },
+       "59": {
+        "berry": 14468,
+        "ingredient": 14255,
+        "direct_skill": 0,
+        "expected": 28723
+       },
+       "60": {
+        "berry": 15240,
+        "ingredient": 18340,
+        "direct_skill": 0,
+        "expected": 33580
+       }
+      },
+      "ingredient_curve": [
+       6646,
+       6646,
+       6646,
+       6646,
+       6646,
+       7497,
+       7497,
+       7497,
+       7497,
+       7497,
+       12074,
+       12074,
+       12074,
+       12240,
+       12240,
+       12240,
+       12240,
+       12240,
+       12240,
+       12240,
+       12240,
+       12240,
+       12406,
+       12406,
+       12406,
+       12406,
+       12406,
+       12406,
+       12406,
+       12571,
+       14067,
+       14067,
+       14067,
+       14067,
+       14067,
+       14067,
+       14255,
+       14255,
+       14255,
+       14255,
+       18340
+      ]
+     },
+     {
+      "ingredients": [
+       [
+        "あったかジンジャー",
+        2,
+        109
+       ],
+       [
+        "あったかジンジャー",
+        5,
+        109
+       ],
+       [
+        "ワカクサ大豆",
+        8,
+        100
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 6551,
+        "ingredient": 7497,
+        "direct_skill": 0,
+        "expected": 14048
+       },
+       "30": {
+        "berry": 7088,
+        "ingredient": 12074,
+        "direct_skill": 0,
+        "expected": 19163
+       },
+       "50": {
+        "berry": 11261,
+        "ingredient": 14067,
+        "direct_skill": 0,
+        "expected": 25328
+       },
+       "59": {
+        "berry": 14468,
+        "ingredient": 14255,
+        "direct_skill": 0,
+        "expected": 28723
+       },
+       "60": {
+        "berry": 15429,
+        "ingredient": 18639,
+        "direct_skill": 0,
+        "expected": 34067
+       }
+      },
+      "ingredient_curve": null
+     },
+     {
+      "ingredients": [
+       [
+        "あったかジンジャー",
+        2,
+        109
+       ],
+       [
+        "あったかジンジャー",
+        5,
+        109
+       ],
+       [
+        "マメミート",
+        8,
+        103
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 6551,
+        "ingredient": 7497,
+        "direct_skill": 0,
+        "expected": 14048
+       },
+       "30": {
+        "berry": 7088,
+        "ingredient": 12074,
+        "direct_skill": 0,
+        "expected": 19163
+       },
+       "50": {
+        "berry": 11261,
+        "ingredient": 14067,
+        "direct_skill": 0,
+        "expected": 25328
+       },
+       "59": {
+        "berry": 14468,
+        "ingredient": 14255,
+        "direct_skill": 0,
+        "expected": 28723
+       },
+       "60": {
+        "berry": 15429,
+        "ingredient": 18925,
+        "direct_skill": 0,
+        "expected": 34353
+       }
+      },
+      "ingredient_curve": null
+     },
+     {
+      "ingredients": [
+       [
+        "あったかジンジャー",
+        2,
+        109
+       ],
+       [
+        "ワカクサ大豆",
+        5,
+        100
+       ],
+       [
+        "あったかジンジャー",
+        7,
+        109
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 6551,
+        "ingredient": 7497,
+        "direct_skill": 0,
+        "expected": 14048
+       },
+       "30": {
+        "berry": 7088,
+        "ingredient": 11362,
+        "direct_skill": 0,
+        "expected": 18451
+       },
+       "50": {
+        "berry": 11261,
+        "ingredient": 13237,
+        "direct_skill": 0,
+        "expected": 24498
+       },
+       "59": {
+        "berry": 14468,
+        "ingredient": 13414,
+        "direct_skill": 0,
+        "expected": 27882
+       },
+       "60": {
+        "berry": 15240,
+        "ingredient": 17799,
+        "direct_skill": 0,
+        "expected": 33039
+       }
+      },
+      "ingredient_curve": null
+     },
+     {
+      "ingredients": [
+       [
+        "あったかジンジャー",
+        2,
+        109
+       ],
+       [
+        "ワカクサ大豆",
+        5,
+        100
+       ],
+       [
+        "ワカクサ大豆",
+        8,
+        100
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 6551,
+        "ingredient": 7497,
+        "direct_skill": 0,
+        "expected": 14048
+       },
+       "30": {
+        "berry": 7088,
+        "ingredient": 11362,
+        "direct_skill": 0,
+        "expected": 18451
+       },
+       "50": {
+        "berry": 11261,
+        "ingredient": 13237,
+        "direct_skill": 0,
+        "expected": 24498
+       },
+       "59": {
+        "berry": 14468,
+        "ingredient": 13414,
+        "direct_skill": 0,
+        "expected": 27882
+       },
+       "60": {
+        "berry": 15429,
+        "ingredient": 18102,
+        "direct_skill": 0,
+        "expected": 33530
+       }
+      },
+      "ingredient_curve": null
+     },
+     {
+      "ingredients": [
+       [
+        "あったかジンジャー",
+        2,
+        109
+       ],
+       [
+        "ワカクサ大豆",
+        5,
+        100
+       ],
+       [
+        "マメミート",
+        8,
+        103
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 6551,
+        "ingredient": 7497,
+        "direct_skill": 0,
+        "expected": 14048
+       },
+       "30": {
+        "berry": 7088,
+        "ingredient": 11362,
+        "direct_skill": 0,
+        "expected": 18451
+       },
+       "50": {
+        "berry": 11261,
+        "ingredient": 13237,
+        "direct_skill": 0,
+        "expected": 24498
+       },
+       "59": {
+        "berry": 14468,
+        "ingredient": 13414,
+        "direct_skill": 0,
+        "expected": 27882
+       },
+       "60": {
+        "berry": 15429,
+        "ingredient": 18388,
+        "direct_skill": 0,
+        "expected": 33817
+       }
+      },
+      "ingredient_curve": null
+     }
+    ]
+   },
+   {
+    "species": "RAICHU",
+    "species_ja": "ライチュウ",
+    "specialty": "berry",
+    "main_skill": "エナジーチャージS",
+    "berry": "ウブ",
+    "nature": "いじっぱり",
+    "subskills": [
+     [
+      "きのみの数S",
+      10
+     ],
+     [
+      "おてつだいスピードM",
+      25
+     ],
+     [
+      "おてつだいスピードS",
+      50
+     ],
+     [
+      "おてつだいボーナス",
+      70
+     ],
+     [
+      "スキル確率アップM",
+      80
+     ]
+    ],
+    "combos": [
+     {
+      "ingredients": [
+       [
+        "とくせんリンゴ",
+        1,
+        90
+       ],
+       [
+        "とくせんリンゴ",
+        2,
+        90
+       ],
+       [
+        "とくせんリンゴ",
+        4,
+        90
+       ]
+      ],
+      "default": true,
+      "energy": {
+       "29": {
+        "berry": 22948,
+        "ingredient": 1221,
+        "direct_skill": 8232,
+        "expected": 32402
+       },
+       "30": {
+        "berry": 23279,
+        "ingredient": 1823,
+        "direct_skill": 8232,
+        "expected": 33334
+       },
+       "50": {
+        "berry": 41446,
+        "ingredient": 2041,
+        "direct_skill": 9234,
+        "expected": 52721
+       },
+       "59": {
+        "berry": 52212,
+        "ingredient": 2089,
+        "direct_skill": 9457,
+        "expected": 63758
+       },
+       "60": {
+        "berry": 54181,
+        "ingredient": 3227,
+        "direct_skill": 9381,
+        "expected": 66789
+       }
+      },
+      "ingredient_curve": [
+       1060,
+       1060,
+       1076,
+       1076,
+       1076,
+       1221,
+       1221,
+       1221,
+       1221,
+       1221,
+       1823,
+       1823,
+       1847,
+       1847,
+       1847,
+       1847,
+       1847,
+       1847,
+       1847,
+       1871,
+       1871,
+       1871,
+       1871,
+       1871,
+       1871,
+       1871,
+       1871,
+       1895,
+       1895,
+       1895,
+       2041,
+       2041,
+       2041,
+       2065,
+       2065,
+       2065,
+       2065,
+       2065,
+       2065,
+       2089,
+       3227
+      ]
+     },
+     {
+      "ingredients": [
+       [
+        "とくせんリンゴ",
+        1,
+        90
+       ],
+       [
+        "とくせんリンゴ",
+        2,
+        90
+       ],
+       [
+        "あったかジンジャー",
+        3,
+        109
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 22948,
+        "ingredient": 1221,
+        "direct_skill": 8232,
+        "expected": 32402
+       },
+       "30": {
+        "berry": 23279,
+        "ingredient": 1823,
+        "direct_skill": 8232,
+        "expected": 33334
+       },
+       "50": {
+        "berry": 41446,
+        "ingredient": 2041,
+        "direct_skill": 9234,
+        "expected": 52721
+       },
+       "59": {
+        "berry": 52212,
+        "ingredient": 2089,
+        "direct_skill": 9457,
+        "expected": 63758
+       },
+       "60": {
+        "berry": 54301,
+        "ingredient": 3066,
+        "direct_skill": 9381,
+        "expected": 66748
+       }
+      },
+      "ingredient_curve": null
+     },
+     {
+      "ingredients": [
+       [
+        "とくせんリンゴ",
+        1,
+        90
+       ],
+       [
+        "とくせんリンゴ",
+        2,
+        90
+       ],
+       [
+        "とくせんエッグ",
+        3,
+        115
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 22948,
+        "ingredient": 1221,
+        "direct_skill": 8232,
+        "expected": 32402
+       },
+       "30": {
+        "berry": 23279,
+        "ingredient": 1823,
+        "direct_skill": 8232,
+        "expected": 33334
+       },
+       "50": {
+        "berry": 41446,
+        "ingredient": 2041,
+        "direct_skill": 9234,
+        "expected": 52721
+       },
+       "59": {
+        "berry": 52212,
+        "ingredient": 2089,
+        "direct_skill": 9457,
+        "expected": 63758
+       },
+       "60": {
+        "berry": 54301,
+        "ingredient": 3159,
+        "direct_skill": 9381,
+        "expected": 66841
+       }
+      },
+      "ingredient_curve": null
+     },
+     {
+      "ingredients": [
+       [
+        "とくせんリンゴ",
+        1,
+        90
+       ],
+       [
+        "あったかジンジャー",
+        2,
+        109
+       ],
+       [
+        "とくせんリンゴ",
+        4,
+        90
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 22948,
+        "ingredient": 1221,
+        "direct_skill": 8232,
+        "expected": 32402
+       },
+       "30": {
+        "berry": 23279,
+        "ingredient": 2079,
+        "direct_skill": 8232,
+        "expected": 33590
+       },
+       "50": {
+        "berry": 41446,
+        "ingredient": 2328,
+        "direct_skill": 9234,
+        "expected": 53008
+       },
+       "59": {
+        "berry": 52212,
+        "ingredient": 2383,
+        "direct_skill": 9457,
+        "expected": 64052
+       },
+       "60": {
+        "berry": 54181,
+        "ingredient": 3422,
+        "direct_skill": 9381,
+        "expected": 66984
+       }
+      },
+      "ingredient_curve": null
+     },
+     {
+      "ingredients": [
+       [
+        "とくせんリンゴ",
+        1,
+        90
+       ],
+       [
+        "あったかジンジャー",
+        2,
+        109
+       ],
+       [
+        "あったかジンジャー",
+        3,
+        109
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 22948,
+        "ingredient": 1221,
+        "direct_skill": 8232,
+        "expected": 32402
+       },
+       "30": {
+        "berry": 23279,
+        "ingredient": 2079,
+        "direct_skill": 8232,
+        "expected": 33590
+       },
+       "50": {
+        "berry": 41446,
+        "ingredient": 2328,
+        "direct_skill": 9234,
+        "expected": 53008
+       },
+       "59": {
+        "berry": 52212,
+        "ingredient": 2383,
+        "direct_skill": 9457,
+        "expected": 64052
+       },
+       "60": {
+        "berry": 54301,
+        "ingredient": 3262,
+        "direct_skill": 9381,
+        "expected": 66943
+       }
+      },
+      "ingredient_curve": null
+     },
+     {
+      "ingredients": [
+       [
+        "とくせんリンゴ",
+        1,
+        90
+       ],
+       [
+        "あったかジンジャー",
+        2,
+        109
+       ],
+       [
+        "とくせんエッグ",
+        3,
+        115
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 22948,
+        "ingredient": 1221,
+        "direct_skill": 8232,
+        "expected": 32402
+       },
+       "30": {
+        "berry": 23279,
+        "ingredient": 2079,
+        "direct_skill": 8232,
+        "expected": 33590
+       },
+       "50": {
+        "berry": 41446,
+        "ingredient": 2328,
+        "direct_skill": 9234,
+        "expected": 53008
+       },
+       "59": {
+        "berry": 52212,
+        "ingredient": 2383,
+        "direct_skill": 9457,
+        "expected": 64052
+       },
+       "60": {
+        "berry": 54301,
+        "ingredient": 3354,
+        "direct_skill": 9381,
+        "expected": 67036
+       }
+      },
+      "ingredient_curve": null
+     }
+    ]
+   },
+   {
+    "species": "AMPHAROS",
+    "species_ja": "デンリュウ",
+    "specialty": "skill",
+    "main_skill": "エナジーチャージM",
+    "berry": "ウブ",
+    "nature": "しんちょう",
+    "subskills": [
+     [
+      "スキル確率アップM",
+      10
+     ],
+     [
+      "おてつだいスピードM",
+      25
+     ],
+     [
+      "スキル確率アップS",
+      50
+     ],
+     [
+      "おてつだいスピードS",
+      70
+     ],
+     [
+      "おてつだいボーナス",
+      80
+     ]
+    ],
+    "combos": [
+     {
+      "ingredients": [
+       [
+        "げきからハーブ",
+        1,
+        130
+       ],
+       [
+        "げきからハーブ",
+        2,
+        130
+       ],
+       [
+        "げきからハーブ",
+        4,
+        130
+       ]
+      ],
+      "default": true,
+      "energy": {
+       "29": {
+        "berry": 6458,
+        "ingredient": 919,
+        "direct_skill": 34839,
+        "expected": 42217
+       },
+       "30": {
+        "berry": 6580,
+        "ingredient": 1379,
+        "direct_skill": 34839,
+        "expected": 42799
+       },
+       "50": {
+        "berry": 10687,
+        "ingredient": 1440,
+        "direct_skill": 40520,
+        "expected": 52647
+       },
+       "59": {
+        "berry": 13736,
+        "ingredient": 1480,
+        "direct_skill": 41433,
+        "expected": 56649
+       },
+       "60": {
+        "berry": 13997,
+        "ingredient": 2303,
+        "direct_skill": 41717,
+        "expected": 58017
+       }
+      },
+      "ingredient_curve": [
+       784,
+       784,
+       784,
+       784,
+       784,
+       919,
+       919,
+       919,
+       919,
+       919,
+       1379,
+       1379,
+       1379,
+       1399,
+       1399,
+       1399,
+       1399,
+       1399,
+       1399,
+       1399,
+       1420,
+       1420,
+       1420,
+       1420,
+       1420,
+       1440,
+       1440,
+       1440,
+       1440,
+       1440,
+       1440,
+       1440,
+       1460,
+       1460,
+       1460,
+       1460,
+       1460,
+       1460,
+       1480,
+       1480,
+       2303
+      ]
+     },
+     {
+      "ingredients": [
+       [
+        "げきからハーブ",
+        1,
+        130
+       ],
+       [
+        "げきからハーブ",
+        2,
+        130
+       ],
+       [
+        "とくせんエッグ",
+        4,
+        115
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 6458,
+        "ingredient": 919,
+        "direct_skill": 34839,
+        "expected": 42217
+       },
+       "30": {
+        "berry": 6580,
+        "ingredient": 1379,
+        "direct_skill": 34839,
+        "expected": 42799
+       },
+       "50": {
+        "berry": 10687,
+        "ingredient": 1440,
+        "direct_skill": 40520,
+        "expected": 52647
+       },
+       "59": {
+        "berry": 13736,
+        "ingredient": 1480,
+        "direct_skill": 41433,
+        "expected": 56649
+       },
+       "60": {
+        "berry": 13997,
+        "ingredient": 2151,
+        "direct_skill": 41717,
+        "expected": 57865
+       }
+      },
+      "ingredient_curve": null
+     },
+     {
+      "ingredients": [
+       [
+        "げきからハーブ",
+        1,
+        130
+       ],
+       [
+        "とくせんエッグ",
+        3,
+        115
+       ],
+       [
+        "げきからハーブ",
+        4,
+        130
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 6458,
+        "ingredient": 919,
+        "direct_skill": 34839,
+        "expected": 42217
+       },
+       "30": {
+        "berry": 6580,
+        "ingredient": 1680,
+        "direct_skill": 34839,
+        "expected": 43099
+       },
+       "50": {
+        "berry": 10687,
+        "ingredient": 1754,
+        "direct_skill": 40520,
+        "expected": 52961
+       },
+       "59": {
+        "berry": 13736,
+        "ingredient": 1803,
+        "direct_skill": 41433,
+        "expected": 56972
+       },
+       "60": {
+        "berry": 13997,
+        "ingredient": 2518,
+        "direct_skill": 41717,
+        "expected": 58232
+       }
+      },
+      "ingredient_curve": null
+     },
+     {
+      "ingredients": [
+       [
+        "げきからハーブ",
+        1,
+        130
+       ],
+       [
+        "とくせんエッグ",
+        3,
+        115
+       ],
+       [
+        "とくせんエッグ",
+        4,
+        115
+       ]
+      ],
+      "default": false,
+      "energy": {
+       "29": {
+        "berry": 6458,
+        "ingredient": 919,
+        "direct_skill": 34839,
+        "expected": 42217
+       },
+       "30": {
+        "berry": 6580,
+        "ingredient": 1680,
+        "direct_skill": 34839,
+        "expected": 43099
+       },
+       "50": {
+        "berry": 10687,
+        "ingredient": 1754,
+        "direct_skill": 40520,
+        "expected": 52961
+       },
+       "59": {
+        "berry": 13736,
+        "ingredient": 1803,
+        "direct_skill": 41433,
+        "expected": 56972
+       },
+       "60": {
+        "berry": 13997,
+        "ingredient": 2366,
+        "direct_skill": 41717,
+        "expected": 58080
+       }
+      },
+      "ingredient_curve": null
+     }
+    ]
+   }
+  ]
+ }
+}
