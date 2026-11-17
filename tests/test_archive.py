@@ -32,6 +32,9 @@ def sample_items():
                           display_name=f"sample-{i}", box_index=i + 1, sp=500 + i,
                           verified=True,
                           island_scores={"シアンの砂浜": {"current": score}},
+                          # Energy ranks the same way, so dominance holds on both.
+                          energy_scores={"シアンの砂浜": {str(a): {"expected": score * 10}
+                                                    for a in ANCHORS}},
                           scores={str(a): {r: score for r in ROLES} for a in ANCHORS}))
     return items
 

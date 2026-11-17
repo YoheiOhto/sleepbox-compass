@@ -423,13 +423,15 @@ const metadata = () => ({pokemon: Object.fromEntries(COMPLETE_POKEDEX.map(p => [
     choices: choices.filter(x => x.amount > 0).map(x => [x.ingredient.name, x.amount])
   }))
 }]))});
+// A species' ideal individual for one role: the role's best nature and
+// subskills, the first ingredient option of every slot and a max skill level.
+const idealRaw = (p, specialty) => ({species:p.name,level:60,nature:idealNature(specialty),
+  subskills:idealSubskills(specialty).map((name,i)=>[name,[10,25,50,70,80][i]]),
+  ingredients:[p.ingredient0[0],p.ingredient30[0],p.ingredient60[0]].map(x=>[x.ingredient.name,x.amount]),
+  mainSkill:p.skill.name,skillLevel:p.skill.maxLevel});
 const scoreReferences = () => {
   const anchors = input.anchors || [50, 60, 70, 80];
   const pool = OPTIMAL_POKEDEX.filter(p=>!p.evolvesInto.length);
-  const idealRaw = (p, specialty) => ({species:p.name,level:60,nature:idealNature(specialty),
-    subskills:idealSubskills(specialty).map((name,i)=>[name,[10,25,50,70,80][i]]),
-    ingredients:[p.ingredient0[0],p.ingredient30[0],p.ingredient60[0]].map(x=>[x.ingredient.name,x.amount]),
-    mainSkill:p.skill.name,skillLevel:p.skill.maxLevel});
   const bySpecies = pool.map((p, index) => {
     // Score each role from its OWN role-optimized ideal individual (best
     // nature/subskills for that role), instead of one individual built for
@@ -458,6 +460,43 @@ const scoreReferences = () => {
     // species on the same 0-100 scale used for owned individuals instead of
     // only the aggregate percentile above.
     species: Object.fromEntries(bySpecies.map(x=>[x.species, x.scores]))};
+};
+
+// Per-species ideal solo energy, the reference for the energy score used by
+// the keep/send decision (core.energy_score). Every species that
+// finalEvolution() can return is covered (final forms and branching forms
+// such as Eevee). Each level simulates the three role-ideal builds with the
+// same solo simulator as `evaluate`'s energyScores, on an island that favors
+// the species' own berry (berries doubled), and keeps the best build.
+const energyReferences = () => {
+  const anchors = input.anchors || [50, 60];
+  const pool = COMPLETE_POKEDEX.filter(p => (p.evolvesInto?.length ?? 0) !== 1);
+  const species = {};
+  pool.forEach((p, index) => {
+    const row = {};
+    for (const level of anchors) {
+      let best = null;
+      for (const role of ['berry', 'ingredient', 'skill']) {
+        let energy;
+        // Mythicals list a zero-amount "Locked" placeholder first in some
+        // slots; use the first real option instead.
+        const raw = {...idealRaw(p, role), ingredients: [p.ingredient0, p.ingredient30, p.ingredient60]
+          .map(xs => (xs || []).find(x => x.amount > 0) || (xs || [])[0])
+          .filter(Boolean).map(x => [x.ingredient.name, x.amount])};
+        try { energy = simulateInstanceEnergy(raw, level, [p.berry.name], false); }
+        catch (error) { process.stderr.write(`energy-references ${p.name} ${role}: ${error.message || error}\n`); continue; }
+        if (!best || energy.expected > best.expected) best = {expected: energy.expected, build: role};
+      }
+      if (best) row[level] = best;
+    }
+    if (Object.keys(row).length === anchors.length) species[p.name] = row;
+    process.stderr.write(`PROGRESS energy-references ${index + 1} ${pool.length}\n`);
+  });
+  // Earlier forms -> the form `evaluate` scores them as (its finalEvolution),
+  // so rows evaluated before final_evolution was stored still find a reference.
+  const finals = Object.fromEntries(COMPLETE_POKEDEX.map(p => [p.name, finalEvolution(p).name])
+    .filter(([name, final]) => name !== final));
+  return {engineVersion: ENGINE_VERSION, iterations: input.iterations || 500, anchors, species, finals};
 };
 
 // Main skill output of single individuals (used by the columns). Each item
@@ -508,4 +547,5 @@ process.stdout.write(JSON.stringify(input.mode === 'verify' ? verify()
   : input.mode === 'capture-gain' ? captureGain()
   : input.mode === 'metadata' ? metadata()
   : input.mode === 'score-references' ? scoreReferences()
+  : input.mode === 'energy-references' ? energyReferences()
   : evaluate()));
