@@ -1,0 +1,761 @@
+{
+ "schema": 1,
+ "slug": "skill-level-value",
+ "title": "メインスキルのレベルはどれだけ効く？",
+ "provenance": {
+  "generated_on": "2026-11-17",
+  "generator": "pokesleep_box.columns.skill_level_value",
+  "game_version": "3.6.0",
+  "engine": "nerolis-lab@8a6566c5e824db51e9939e2929d3734c38de11f8",
+  "sources": [
+   "Neroli's Lab（計算エンジン、engine/src/cli.mjs の skill-output / evaluate / metadata モード）",
+   "src/pokesleep_box/core.py（アプリのスコアの基準値 ABSOLUTE_REFERENCES）"
+  ]
+ },
+ "assumptions": [
+  "どれもLv50で、サブスキルはLv10・25・50の3つが開いた状態です。",
+  "数字は計算エンジン（Neroli's Lab）の1匹ぶんの1日の見積もりです。睡眠は22:00〜6:00、リボンなし、仲間のスキルの助けなしで計算しています。",
+  "きのみは、そのきのみが好物になる島（2倍）で数えています。食材は素材の基本エナジーで、料理の倍率は入れていません。",
+  "メインスキルのたね1個はスキルレベル+1として、となりあうレベルの差をたね1個の価値としています。",
+  "スキルレベルアップMの例は、2回進化した直後（スキルレベル3）の個体です。スキルレベルアップMがLv50で開くと、スキルレベルが5になります。",
+  "アプリのスコアは、きのみ・食材・スキルの役割ごとに理想の個体と比べた0〜100の値で、Lv50とLv60のよいほうです。総合スコアはいちばん高い役割の値です。",
+  "シミュレーションの回数は1000回です。"
+ ],
+ "data": {
+  "level": 50,
+  "iterations": 1000,
+  "curve_builds": {
+   "AMPHAROS": {
+    "nature": "Careful",
+    "subskills": [
+     "Skill Trigger M",
+     "Helping Speed M",
+     "Skill Trigger S"
+    ]
+   },
+   "SCEPTILE": {
+    "nature": "Careful",
+    "subskills": [
+     "Skill Trigger M",
+     "Helping Speed M",
+     "Skill Trigger S"
+    ]
+   },
+   "SWALOT": {
+    "nature": "Careful",
+    "subskills": [
+     "Skill Trigger M",
+     "Helping Speed M",
+     "Skill Trigger S"
+    ]
+   },
+   "SYLVEON": {
+    "nature": "Careful",
+    "subskills": [
+     "Skill Trigger M",
+     "Helping Speed M",
+     "Skill Trigger S"
+    ]
+   },
+   "RAICHU": {
+    "nature": "Adamant",
+    "subskills": [
+     "Berry Finding S",
+     "Helping Speed M",
+     "Helping Speed S"
+    ]
+   },
+   "BLASTOISE": {
+    "nature": "Rash",
+    "subskills": [
+     "Ingredient Finder M",
+     "Helping Speed M",
+     "Ingredient Finder S"
+    ]
+   }
+  },
+  "curves": [
+   {
+    "species": "AMPHAROS",
+    "species_ja": "デンリュウ",
+    "specialty": "skill",
+    "main_skill_ja": "エナジーチャージM",
+    "max_level": 7,
+    "kind": "skill_energy",
+    "points": [
+     {
+      "skill_level": 1,
+      "skill_procs": 5.91,
+      "base_energy": 12127.37,
+      "skill_energy": 5199.35,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 2,
+      "skill_procs": 5.91,
+      "base_energy": 12127.37,
+      "skill_energy": 7391.35,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 3,
+      "skill_procs": 5.91,
+      "base_energy": 12127.37,
+      "skill_energy": 10197.82,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 4,
+      "skill_procs": 5.91,
+      "base_energy": 12127.37,
+      "skill_energy": 14079.61,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 5,
+      "skill_procs": 5.91,
+      "base_energy": 12127.37,
+      "skill_energy": 19438.49,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 6,
+      "skill_procs": 5.91,
+      "base_energy": 12127.37,
+      "skill_energy": 26859.38,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 7,
+      "skill_procs": 5.91,
+      "base_energy": 12127.37,
+      "skill_energy": 40519.5,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     }
+    ]
+   },
+   {
+    "species": "SCEPTILE",
+    "species_ja": "ジュカイン",
+    "specialty": "skill",
+    "main_skill_ja": "きのみバースト",
+    "max_level": 6,
+    "kind": "skill_energy",
+    "points": [
+     {
+      "skill_level": 1,
+      "skill_procs": 4.27,
+      "base_energy": 15359.56,
+      "skill_energy": 9497.39,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 2,
+      "skill_procs": 4.27,
+      "base_energy": 15359.56,
+      "skill_energy": 12087.59,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 3,
+      "skill_procs": 4.27,
+      "base_energy": 15359.56,
+      "skill_energy": 18131.38,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 4,
+      "skill_procs": 4.27,
+      "base_energy": 15359.56,
+      "skill_energy": 20721.58,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 5,
+      "skill_procs": 4.27,
+      "base_energy": 15359.56,
+      "skill_energy": 23311.78,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 6,
+      "skill_procs": 4.27,
+      "base_energy": 15359.56,
+      "skill_energy": 25901.97,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     }
+    ]
+   },
+   {
+    "species": "SWALOT",
+    "species_ja": "マルノーム",
+    "specialty": "skill",
+    "main_skill_ja": "ゆめのかけらゲットS",
+    "max_level": 8,
+    "kind": "dream_shards",
+    "points": [
+     {
+      "skill_level": 1,
+      "skill_procs": 6.28,
+      "base_energy": 10365.65,
+      "skill_energy": 0,
+      "recovery": 0,
+      "dream_shards": 1885.1,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 2,
+      "skill_procs": 6.28,
+      "base_energy": 10365.65,
+      "skill_energy": 0,
+      "recovery": 0,
+      "dream_shards": 2670.55,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 3,
+      "skill_procs": 6.28,
+      "base_energy": 10365.65,
+      "skill_energy": 0,
+      "recovery": 0,
+      "dream_shards": 3770.19,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 4,
+      "skill_procs": 6.28,
+      "base_energy": 10365.65,
+      "skill_energy": 0,
+      "recovery": 0,
+      "dream_shards": 5262.56,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 5,
+      "skill_procs": 6.28,
+      "base_energy": 10365.65,
+      "skill_energy": 0,
+      "recovery": 0,
+      "dream_shards": 7226.2,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 6,
+      "skill_procs": 6.28,
+      "base_energy": 10365.65,
+      "skill_energy": 0,
+      "recovery": 0,
+      "dream_shards": 9896.75,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 7,
+      "skill_procs": 6.28,
+      "base_energy": 10365.65,
+      "skill_energy": 0,
+      "recovery": 0,
+      "dream_shards": 14138.22,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 8,
+      "skill_procs": 6.28,
+      "base_energy": 10365.65,
+      "skill_energy": 0,
+      "recovery": 0,
+      "dream_shards": 18065.5,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     }
+    ]
+   },
+   {
+    "species": "SYLVEON",
+    "species_ja": "ニンフィア",
+    "specialty": "skill",
+    "main_skill_ja": "げんきオールS",
+    "max_level": 6,
+    "kind": "recovery",
+    "points": [
+     {
+      "skill_level": 1,
+      "skill_procs": 5.41,
+      "base_energy": 12709.44,
+      "skill_energy": 0,
+      "recovery": 27.04,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 2,
+      "skill_procs": 5.66,
+      "base_energy": 13401.6,
+      "skill_energy": 0,
+      "recovery": 39.63,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 3,
+      "skill_procs": 5.63,
+      "base_energy": 14082.22,
+      "skill_energy": 0,
+      "recovery": 50.7,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 4,
+      "skill_procs": 5.87,
+      "base_energy": 14770.53,
+      "skill_energy": 0,
+      "recovery": 66.92,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 5,
+      "skill_procs": 5.76,
+      "base_energy": 15632.84,
+      "skill_energy": 0,
+      "recovery": 86.36,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 6,
+      "skill_procs": 5.83,
+      "base_energy": 16154.84,
+      "skill_energy": 0,
+      "recovery": 105.5,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     }
+    ]
+   },
+   {
+    "species": "RAICHU",
+    "species_ja": "ライチュウ",
+    "specialty": "berry",
+    "main_skill_ja": "エナジーチャージS",
+    "max_level": 7,
+    "kind": "skill_energy",
+    "points": [
+     {
+      "skill_level": 1,
+      "skill_procs": 2.87,
+      "base_energy": 43486.91,
+      "skill_energy": 1149.93,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 2,
+      "skill_procs": 2.87,
+      "base_energy": 43486.91,
+      "skill_energy": 1635.77,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 3,
+      "skill_procs": 2.87,
+      "base_energy": 43486.91,
+      "skill_energy": 2256.73,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 4,
+      "skill_procs": 2.87,
+      "base_energy": 43486.91,
+      "skill_energy": 3113.42,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 5,
+      "skill_procs": 2.87,
+      "base_energy": 43486.91,
+      "skill_energy": 4300.72,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 6,
+      "skill_procs": 2.87,
+      "base_energy": 43486.91,
+      "skill_energy": 5939.36,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 7,
+      "skill_procs": 2.87,
+      "base_energy": 43486.91,
+      "skill_energy": 9233.9,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     }
+    ]
+   },
+   {
+    "species": "BLASTOISE",
+    "species_ja": "カメックス",
+    "specialty": "ingredient",
+    "main_skill_ja": "食材ゲットS",
+    "max_level": 7,
+    "kind": "skill_energy",
+    "points": [
+     {
+      "skill_level": 1,
+      "skill_procs": 1.33,
+      "base_energy": 17398.45,
+      "skill_energy": 1146.25,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 2,
+      "skill_procs": 1.33,
+      "base_energy": 17398.45,
+      "skill_energy": 1528.33,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 3,
+      "skill_procs": 1.33,
+      "base_energy": 17398.45,
+      "skill_energy": 2101.45,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 4,
+      "skill_procs": 1.33,
+      "base_energy": 17398.45,
+      "skill_energy": 2674.58,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 5,
+      "skill_procs": 1.33,
+      "base_energy": 17398.45,
+      "skill_energy": 3247.7,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 6,
+      "skill_procs": 1.33,
+      "base_energy": 17398.45,
+      "skill_energy": 4011.87,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     },
+     {
+      "skill_level": 7,
+      "skill_procs": 1.33,
+      "base_energy": 17398.45,
+      "skill_energy": 4584.99,
+      "recovery": 0,
+      "dream_shards": 0,
+      "pot_size": 0,
+      "tasty_chance": 0,
+      "helps": 0
+     }
+    ]
+   }
+  ],
+  "case": {
+   "base_skill_level": 3,
+   "nature": "Serious",
+   "first_subskills": [
+    "Helping Speed M",
+    "Helping Speed S"
+   ],
+   "rows": [
+    {
+     "species": "AMPHAROS",
+     "species_ja": "デンリュウ",
+     "specialty": "skill",
+     "option": "Skill Level Up M",
+     "option_ja": "スキルレベルアップM",
+     "skill_level": 5,
+     "berry": 11254,
+     "ingredient": 1952,
+     "skill_energy": 12413,
+     "total": 25619,
+     "skill_procs": 3.77,
+     "scores": {
+      "berry": 29.2,
+      "ingredient": 20.7,
+      "skill": 30.4
+     },
+     "score": 30.4,
+     "best_role": "skill"
+    },
+    {
+     "species": "AMPHAROS",
+     "species_ja": "デンリュウ",
+     "specialty": "skill",
+     "option": "Skill Trigger S",
+     "option_ja": "スキル確率アップS",
+     "skill_level": 3,
+     "berry": 11254,
+     "ingredient": 1952,
+     "skill_energy": 7446,
+     "total": 20652,
+     "skill_procs": 4.31,
+     "scores": {
+      "berry": 29.2,
+      "ingredient": 20.7,
+      "skill": 18.8
+     },
+     "score": 29.2,
+     "best_role": "berry"
+    },
+    {
+     "species": "AMPHAROS",
+     "species_ja": "デンリュウ",
+     "specialty": "skill",
+     "option": "Berry Finding S",
+     "option_ja": "きのみの数S",
+     "skill_level": 3,
+     "berry": 22747,
+     "ingredient": 1798,
+     "skill_energy": 6087,
+     "total": 30632,
+     "skill_procs": 3.53,
+     "scores": {
+      "berry": 58.5,
+      "ingredient": 20.7,
+      "skill": 15.9
+     },
+     "score": 58.5,
+     "best_role": "berry"
+    },
+    {
+     "species": "AMPHAROS",
+     "species_ja": "デンリュウ",
+     "specialty": "skill",
+     "option": "Inventory Up S",
+     "option_ja": "最大所持数アップS",
+     "skill_level": 3,
+     "berry": 11254,
+     "ingredient": 1952,
+     "skill_energy": 6512,
+     "total": 19718,
+     "skill_procs": 3.77,
+     "scores": {
+      "berry": 31.3,
+      "ingredient": 22.1,
+      "skill": 17.0
+     },
+     "score": 31.3,
+     "best_role": "berry"
+    },
+    {
+     "species": "RAICHU",
+     "species_ja": "ライチュウ",
+     "specialty": "berry",
+     "option": "Skill Level Up M",
+     "option_ja": "スキルレベルアップM",
+     "skill_level": 5,
+     "berry": 23170,
+     "ingredient": 2492,
+     "skill_energy": 4096,
+     "total": 29758,
+     "skill_procs": 2.74,
+     "scores": {
+      "berry": 59.1,
+      "ingredient": 28.0,
+      "skill": 10.7
+     },
+     "score": 59.1,
+     "best_role": "berry"
+    },
+    {
+     "species": "RAICHU",
+     "species_ja": "ライチュウ",
+     "specialty": "berry",
+     "option": "Skill Trigger S",
+     "option_ja": "スキル確率アップS",
+     "skill_level": 3,
+     "berry": 23170,
+     "ingredient": 2492,
+     "skill_energy": 2445,
+     "total": 28107,
+     "skill_procs": 3.11,
+     "scores": {
+      "berry": 59.1,
+      "ingredient": 28.0,
+      "skill": 6.6
+     },
+     "score": 59.1,
+     "best_role": "berry"
+    },
+    {
+     "species": "RAICHU",
+     "species_ja": "ライチュウ",
+     "specialty": "berry",
+     "option": "Berry Finding S",
+     "option_ja": "きのみの数S",
+     "skill_level": 3,
+     "berry": 35404,
+     "ingredient": 2348,
+     "skill_energy": 2066,
+     "total": 39818,
+     "skill_procs": 2.63,
+     "scores": {
+      "berry": 88.7,
+      "ingredient": 28.0,
+      "skill": 5.6
+     },
+     "score": 88.7,
+     "best_role": "berry"
+    },
+    {
+     "species": "RAICHU",
+     "species_ja": "ライチュウ",
+     "specialty": "berry",
+     "option": "Inventory Up S",
+     "option_ja": "最大所持数アップS",
+     "skill_level": 3,
+     "berry": 22945,
+     "ingredient": 2661,
+     "skill_energy": 2219,
+     "total": 27825,
+     "skill_procs": 2.83,
+     "scores": {
+      "berry": 63.3,
+      "ingredient": 30.0,
+      "skill": 6.0
+     },
+     "score": 63.3,
+     "best_role": "berry"
+    }
+   ]
+  }
+ }
+}

@@ -34,3 +34,9 @@ three recipe categories at recipe level 1, and the bridge never
 copies its formulas into Python. Until the bridge is built, `import-json`
 accepts externally computed scores. Missing scores or non-strict SP matches are
 fail-safe: the individual becomes `protected`, never `send`.
+
+The `skill-output` mode simulates single individuals at a given level and an
+optional exact main skill level, and reports how often the main skill
+triggers and what it produces per day in its own unit (strength, skill-made
+berries/ingredients, energy recovery, dream shards, pot size, tasty chance,
+helps). It is used by the data columns (`src/pokesleep_box/columns/`).
