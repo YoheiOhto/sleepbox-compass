@@ -234,7 +234,9 @@ const benchmark = () => ({benchmarks: OPTIMAL_POKEDEX.filter(p=>!p.evolvesInto.l
 })).filter(p=>Object.keys(p.island_scores).length)});
 const metadata = () => ({pokemon: Object.fromEntries(COMPLETE_POKEDEX.map(p => [p.name, {
   berry: p.berry.name,
-  main_skill: p.skill.name,
+  // Species-specific variants are named "Variant (Base)"; report the base skill.
+  main_skill: p.skill.name.replace(/^.*\((.+)\)$/, '$1'),
+  specialty: p.specialty,
   pokedex_number: p.pokedexNumber,
   ingredients: [p.ingredient0, p.ingredient30, p.ingredient60].map((choices, index) => ({
     level: [1, 30, 60][index],
@@ -245,7 +247,7 @@ const scoreReferences = () => {
   const anchors = input.anchors || [50, 60, 70, 80];
   const pool = OPTIMAL_POKEDEX.filter(p=>!p.evolvesInto.length);
   const idealRaw = (p, specialty) => ({species:p.name,level:60,nature:idealNature(specialty),
-    subskills:idealSubskills(specialty).map((name,i)=>[name,[10,25,50,75,100][i]]),
+    subskills:idealSubskills(specialty).map((name,i)=>[name,[10,25,50,70,80][i]]),
     ingredients:[p.ingredient0[0],p.ingredient30[0],p.ingredient60[0]].map(x=>[x.ingredient.name,x.amount]),
     mainSkill:p.skill.name,skillLevel:p.skill.maxLevel});
   const bySpecies = pool.map((p, index) => {

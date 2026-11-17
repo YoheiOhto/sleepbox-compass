@@ -18,7 +18,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence
 
-from .localization import names
+from .localization import SUBSKILL_UNLOCKS, base_main_skill, names
 
 DEFAULT_MODEL = "mlx-community/Qwen3.5-9B-8bit"
 DEFAULT_CACHE = Path("data/private/vlm_cache")
@@ -26,7 +26,7 @@ DEFAULT_CACHE = Path("data/private/vlm_cache")
 PROMPT_VERSION = "3"
 # Default unlock levels for subskill slots whose badge is not visible (already
 # unlocked slots show no badge). Matches ocr.parse_frame.
-SLOT_UNLOCKS = (10, 25, 50, 75, 100)
+SLOT_UNLOCKS = SUBSKILL_UNLOCKS
 # Mean absolute grey-level difference below which a frame repeats the last
 # kept one. Identical screens measure <0.3; neighbouring individuals with the
 # same layout (e.g. Gastly then Haunter) measure >1.1 overall and >2.5 in the
@@ -104,7 +104,8 @@ def parse_response(text: str) -> Dict[str, Any]:
         "level": _int(raw.get("level")),
         "sp": _int(raw.get("sp")),
         "nature": snap("natures", raw.get("nature")),
-        "main_skill": snap("mainskills", raw.get("main_skill")),
+        "main_skill": snap("mainskills", base_main_skill(raw["main_skill"])
+                           if isinstance(raw.get("main_skill"), str) else None),
         "skill_level": _int(raw.get("skill_level")),
         "subskills": subskills,
         "ingredient_amounts": amounts,

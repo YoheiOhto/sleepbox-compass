@@ -1,13 +1,14 @@
 {
   "metadata": {
     "source": "Neroli’s Lab pokemon keys + National Pokédex Japanese names",
-    "nerolis_commit": "a033942b699854a80507e48b5246199afec17e01"
+    "nerolis_commit": "8a6566c5e824db51e9939e2929d3734c38de11f8"
   },
   "species": {
     "ABOMASNOW": "ユキノオー",
     "ABSOL": "アブソル",
     "AGGRON": "ボスゴドラ",
     "ALTARIA": "チルタリス",
+    "AMOONGUSS": "モロバレル",
     "AMPHAROS": "デンリュウ",
     "ARBOK": "アーボック",
     "ARCANINE": "ウインディ",
@@ -40,6 +41,7 @@
     "CLODSIRE": "ドオー",
     "COMBUSKEN": "ワカシャモ",
     "COMFEY": "キュワワー",
+    "COTTONEE": "モンメン",
     "CRAMORANT": "ウッウ",
     "CRESSELIA": "クレセリア",
     "CROAGUNK": "グレッグル",
@@ -77,6 +79,7 @@
     "FLAREON": "ブースター",
     "FLORAGATO": "ニャローテ",
     "FLYGON": "フライゴン",
+    "FOONGUS": "タマゲタケ",
     "FUECOCO": "ホゲータ",
     "GALLADE": "エルレイド",
     "GARDEVOIR": "サーナイト",
@@ -131,9 +134,12 @@
     "MEOWTH": "ニャース",
     "METAPOD": "トランセル",
     "MEW": "ミュウ",
+    "MEWTWO": "ミュウツー",
     "MIME_JR": "マネネ",
     "MIMIKYU": "ミミッキュ",
     "MINUN": "マイナン",
+    "MISDREAVUS": "ムウマ",
+    "MISMAGIUS": "ムウマージ",
     "MONFERNO": "モウカザル",
     "MR_MIME": "バリヤード",
     "MUDKIP": "ミズゴロウ",
@@ -244,6 +250,7 @@
     "WARTORTLE": "カメール",
     "WEAVILE": "マニューラ",
     "WEEPINBELL": "ウツドン",
+    "WHIMSICOTT": "エルフーン",
     "WIGGLYTUFF": "プクリン",
     "WOBBUFFET": "ソーナンス",
     "WOOPER": "ウパー",
@@ -314,7 +321,9 @@
     "Cooking Assist S": "料理サポートS",
     "Ingredient Draw S": "食材セレクトS",
     "Skill Copy": "ものまね",
-    "Versatile": "へんげんじざい"
+    "Versatile": "へんげんじざい",
+    "Cooking Advance S": "料理アドバンスS",
+    "Berry Zone": "きのみゾーン"
   },
   "ingredients": {
     "Apple": "とくせんリンゴ",
@@ -335,7 +344,8 @@
     "Mushroom": "あじわいキノコ",
     "Leek": "ふといながねぎ",
     "Pumpkin": "ずっしりカボチャ",
-    "Tail": "おいしいシッポ"
+    "Tail": "おいしいシッポ",
+    "Nut": "ひとくちナッツ"
   },
   "berries": {
     "BELUE": "ベリブ",
