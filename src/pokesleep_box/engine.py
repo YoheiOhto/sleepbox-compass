@@ -356,6 +356,145 @@ def evaluate_training(db, command: str = "engine/bin/pokesleep-engine",
     return document
 
 
+# Capture-gain step (捕獲 tab). The modes are the stored team plans a caught
+# Pokémon is compared with: the best team now, and the best teams when the
+# box's own members are trained to Lv50 / Lv60 (the capture's target level).
+CAPTURE_TEAM_MODES = ("current", "50", "60")
+CAPTURE_ITERATIONS = 300
+CAPTURE_SCREEN_ITERATIONS = 60
+# Stated assumptions about a "typical" catch (see captureRaw in cli.mjs).
+CAPTURE_BUILD = {
+    "nature": "Bashful",
+    "subskills": [["Inventory Up S", 10], ["Helping Speed S", 25], ["Skill Trigger S", 50]],
+}
+
+
+def capture_payload(db, team_plans: Mapping[str, Any],
+                    encounters: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
+    """Build the `capture-gain` request: stored teams per island and the encounter names.
+
+    Only teams whose members are all still in the box are used. Returns None
+    when no island has a current team or the encounter data is empty.
+    """
+    from .analytics import ISLANDS
+
+    rows = {row["uid"]: dict(row) for row in db.execute(
+        "SELECT * FROM individual WHERE archived=0 AND species!='UNKNOWN' ORDER BY box_index")}
+    teams: Dict[str, Dict[str, List[str]]] = {}
+    for plan in team_plans.get("plans", []):
+        mode = str(plan.get("mode"))
+        members = [m.get("uid") for m in plan.get("members", [])]
+        if (mode in CAPTURE_TEAM_MODES and plan.get("island") in ISLANDS
+                and members and all(uid in rows for uid in members)):
+            teams.setdefault(plan["island"], {})[mode] = members
+    teams = {island: by_mode for island, by_mode in teams.items() if "current" in by_mode}
+    names = sorted({name for groups in (encounters.get("fields") or {}).values()
+                    for listed in groups.values() for name in listed})
+    if not teams or not names:
+        return None
+    used = sorted({uid for by_mode in teams.values() for team in by_mode.values() for uid in team})
+    return {"mode": "capture-gain",
+            "islands": {name: list(berries) for name, berries in ISLANDS.items() if name in teams},
+            "teams": teams, "encounters": names,
+            "typicalNature": CAPTURE_BUILD["nature"], "typicalSubskills": CAPTURE_BUILD["subskills"],
+            "iterations": CAPTURE_ITERATIONS, "screenIterations": CAPTURE_SCREEN_ITERATIONS,
+            "instances": [{"uid": uid, "instance": individual_to_engine(rows[uid])} for uid in used]}
+
+
+def summarize_capture(response: Mapping[str, Any]) -> Dict[str, Any]:
+    """Turn a `capture-gain` response into one entry per final-evolution species.
+
+    Each entry lists, per island, the simulated team gain per day of a
+    typical catch against the current team (``gain_now``) and against the
+    box's trained team at the same level (``gain``), the ideal build's gain
+    against the trained team (``gain_ideal``), the member it replaces, and
+    the role labels (see ``member_roles``): ``roles`` are roles it fills that
+    the trained team without the replaced member lacks.
+    """
+    from .analytics import ISLANDS
+
+    species: Dict[str, Dict[str, Any]] = {}
+    for line in response.get("lines", []):
+        for final in line.get("finals", []):
+            entry = species.setdefault(final["species"], {
+                "species": final["species"], "base": line["base"], "specialty": final.get("specialty"),
+                "target": final.get("target"), "line": line.get("members") or [line["base"]],
+                "encountered": [], "options": {}})
+            for name in line.get("encountered", []):
+                if name not in entry["encountered"]:
+                    entry["encountered"].append(name)
+    islands = []
+    for island in response.get("islands", []):
+        name = island["island"]
+        favorites = ISLANDS.get(name, ())
+        profiles = island.get("team_profiles") or {}
+        islands.append({"island": name, "baselines": island.get("baselines", {}),
+                        "teams": island.get("teams", {}),
+                        "gaps": {mode: team_gaps(by_uid.values(), favorites)
+                                 for mode, by_uid in profiles.items()}})
+        for result in island.get("results", []):
+            entry = species.get(result["species"])
+            if entry is None:
+                continue
+            option = entry["options"].setdefault(name, {"island": name, "target": result["target"]})
+            if result["build"] == "typical" and result["baseline"] == "current":
+                option["gain_now"] = result["gain"]
+            elif result["build"] == "typical":
+                trained = profiles.get(result["baseline"]) or {}
+                others = [p for uid, p in trained.items() if uid != result.get("replaced")]
+                provides = member_roles(result.get("profile") or {}, favorites)
+                option.update(gain=result["gain"], replaced=result.get("replaced"),
+                              provides=provides,
+                              roles=[r for r in provides if r in team_gaps(others, favorites)])
+            else:
+                option.update(gain_ideal=result["gain"], replaced_ideal=result.get("replaced"))
+    entries = []
+    for entry in species.values():
+        options = sorted(entry["options"].values(),
+                         key=lambda o: (-(o.get("gain") or 0), -(o.get("gain_ideal") or 0), o["island"]))
+        entries.append({**entry, "options": options})
+    entries.sort(key=lambda e: (-max([o.get("gain") or 0 for o in e["options"]] or [0]), e["species"]))
+    return {"islands": islands, "species": entries, "names": response.get("names", {})}
+
+
+def evaluate_capture(db, command: str = "engine/bin/pokesleep-engine",
+                     team_plans: Path = Path("data/private/team_plans.json"),
+                     encounters: Path = Path("data/seed_encounters.json"),
+                     out: Path = Path("data/private/capture_plans.json"),
+                     on_progress: Optional[Callable[[str], None]] = None) -> Optional[Dict[str, Any]]:
+    """Compute and store capture gains; reuse the stored result when inputs match.
+
+    The request depends only on the stored teams' members and the encounter
+    list, so adding or removing individuals outside every team keeps the
+    stored result. Returns None without team plans or encounter data.
+    """
+    try:
+        plans = json.loads(team_plans.read_text(encoding="utf-8"))
+        encounter_data = json.loads(encounters.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    payload = capture_payload(db, plans, encounter_data)
+    if payload is None:
+        return None
+    inputs = team_inputs(payload)
+    try:
+        previous = json.loads(out.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        previous = None
+    if (previous and previous.get("engineVersion") == plans.get("engineVersion")
+            and previous.get("inputs") == inputs):
+        if on_progress:
+            on_progress("capture-gain: 前回の捕獲候補を使います（入力の変更なし）")
+        return previous
+    response = run_engine(payload, command, on_progress)
+    document = {"engineVersion": response.get("engineVersion", plans.get("engineVersion")),
+                "inputs": inputs, "build": CAPTURE_BUILD,
+                "iterations": CAPTURE_ITERATIONS, **summarize_capture(response)}
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return document
+
+
 def species_scores(command: str = "engine/bin/pokesleep-engine",
                    on_progress: Optional[Callable[[str], None]] = None) -> Dict[str, Dict[str, Any]]:
     """Score each final-evolution species' own ideal individual on the same

@@ -9,8 +9,10 @@ from urllib.parse import urlsplit
 
 from .analytics import ISLANDS, analyze
 from .core import (archive_individuals, build_team_plans, connect, decide, load_archived,
-                   load_dashboard, plans_for_box, resolve_uids, training_for_box, attach_training_costs, unarchive_individuals)
-from .engine import (SUBSKILL_UPGRADES, evaluate, evaluate_main_seed_upgrades, evaluate_training,
+                   load_dashboard, plans_for_box, resolve_uids, training_for_box, attach_training_costs, capture_for_box,
+                   unarchive_individuals)
+from .engine import (SUBSKILL_UPGRADES, evaluate, evaluate_capture, evaluate_main_seed_upgrades,
+                     evaluate_training,
                      evaluate_seed_upgrades, individual_to_engine, run_engine)
 from .render import render_site
 
@@ -48,6 +50,7 @@ DEFAULT_PATHS = {
     "encounters": Path("data/seed_encounters.json"),
     "teams": Path("data/private/team_plans.json"),
     "training": Path("data/private/training_plans.json"),
+    "capture": Path("data/private/capture_plans.json"),
     "tier_compare": Path("data/species_tier_compare.json"),
     "seed_plans": Path("data/private/seed_plans.json"),
     "main_seed_plans": Path("data/private/main_seed_plans.json"),
@@ -81,7 +84,9 @@ def rerender_site(db_path: Path, site: Path, paths: Mapping[str, Path] = DEFAULT
     main_seed_plans = plans_for_box(_read_json(Path(paths["main_seed_plans"]), "plans", []), active)
     insights = analyze(dashboard, _read_json(Path(paths["settings"]), default={}),
                        _read_json(Path(paths["benchmarks"]), "benchmarks", []),
-                       team_plans=teams, encounters=_read_json(Path(paths["encounters"]), default={}))
+                       team_plans=teams, encounters=_read_json(Path(paths["encounters"]), default={}),
+                       capture_plans=capture_for_box(_read_json(Path(paths["capture"]), default={})
+                                                     if paths.get("capture") else {}, active))
     render_site(dashboard, site, teams, insights,
                 _read_json(Path(paths["tier_compare"]), "rows", []),
                 seed_plans, main_seed_plans, archived=archived,
@@ -237,6 +242,9 @@ def make_handler(db_path: Path, site: Path, host: str = "127.0.0.1",
                         if paths.get("training"):
                             evaluate_training(request_db, engine, Path(paths["teams"]),
                                               Path(paths["training"]))
+                        if paths.get("capture"):
+                            evaluate_capture(request_db, engine, Path(paths["teams"]),
+                                             Path(paths["encounters"]), Path(paths["capture"]))
                         decisions = decide(request_db)
                         seed_plans = evaluate_seed_upgrades(request_db, engine)
                         main_seed_plans = evaluate_main_seed_upgrades(request_db, engine)
