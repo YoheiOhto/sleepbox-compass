@@ -27,6 +27,7 @@ class PrivatePaths:
     review: Path = Path("frames/review.html")
     vlm_cache: Path = Path("data/private/vlm_cache")
     team_plans: Path = Path("data/private/team_plans.json")
+    training_plans: Path = Path("data/private/training_plans.json")
     benchmarks: Path = Path("data/private/species_benchmarks.json")
     seed_plans: Path = Path("data/private/seed_plans.json")
     main_seed_plans: Path = Path("data/private/main_seed_plans.json")

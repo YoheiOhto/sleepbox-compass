@@ -9,8 +9,8 @@ from urllib.parse import urlsplit
 
 from .analytics import ISLANDS, analyze
 from .core import (archive_individuals, build_team_plans, connect, decide, load_archived,
-                   load_dashboard, plans_for_box, resolve_uids, unarchive_individuals)
-from .engine import (SUBSKILL_UPGRADES, evaluate, evaluate_main_seed_upgrades,
+                   load_dashboard, plans_for_box, resolve_uids, training_for_box, unarchive_individuals)
+from .engine import (SUBSKILL_UPGRADES, evaluate, evaluate_main_seed_upgrades, evaluate_training,
                      evaluate_seed_upgrades, individual_to_engine, run_engine)
 from .render import render_site
 
@@ -47,6 +47,7 @@ DEFAULT_PATHS = {
     "benchmarks": Path("data/private/species_benchmarks.json"),
     "encounters": Path("data/seed_encounters.json"),
     "teams": Path("data/private/team_plans.json"),
+    "training": Path("data/private/training_plans.json"),
     "tier_compare": Path("data/species_tier_compare.json"),
     "seed_plans": Path("data/private/seed_plans.json"),
     "main_seed_plans": Path("data/private/main_seed_plans.json"),
@@ -83,7 +84,9 @@ def rerender_site(db_path: Path, site: Path, paths: Mapping[str, Path] = DEFAULT
                        team_plans=teams, encounters=_read_json(Path(paths["encounters"]), default={}))
     render_site(dashboard, site, teams, insights,
                 _read_json(Path(paths["tier_compare"]), "rows", []),
-                seed_plans, main_seed_plans, archived=archived)
+                seed_plans, main_seed_plans, archived=archived,
+                training=training_for_box(_read_json(Path(paths["training"]), default={})
+                                          if paths.get("training") else {}, active))
 
 
 LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "::1"}
@@ -230,6 +233,9 @@ def make_handler(db_path: Path, site: Path, host: str = "127.0.0.1",
                     request_db = connect(db_path)
                     try:
                         count = evaluate(request_db, engine, Path(paths["teams"]))
+                        if paths.get("training"):
+                            evaluate_training(request_db, engine, Path(paths["teams"]),
+                                              Path(paths["training"]))
                         decisions = decide(request_db)
                         seed_plans = evaluate_seed_upgrades(request_db, engine)
                         main_seed_plans = evaluate_main_seed_upgrades(request_db, engine)

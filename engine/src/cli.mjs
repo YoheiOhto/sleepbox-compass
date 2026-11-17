@@ -230,6 +230,66 @@ const teamEvaluate = () => {
     }).filter(Boolean));
   return {engineVersion: ENGINE_VERSION, plans};
 };
+// Skill name without the species-variant prefix ("Variant (Base)" -> "Base").
+const baseSkillName = pokemon => pokemon.skill.name.replace(/^.*\((.+)\)$/, '$1');
+// What a member brings to a team, used by the caller to label role gaps.
+const memberProfile = (raw, level, evolve) => {
+  const basePokemon = byName(COMPLETE_POKEDEX, raw.species);
+  const pokemon = evolve ? finalEvolution(basePokemon) : basePokemon;
+  return {species: pokemon.name, berry: pokemon.berry.name, specialty: pokemon.specialty,
+    main_skill: baseSkillName(pokemon), subskills: [...activeSubskills(raw, level)]};
+};
+// Training gain: how much an island's current best team gains when one
+// individual is raised to a target level (and evolved) and swapped in.
+// A full team search per candidate is too slow, so the current team is
+// kept fixed and only one-member swaps are tried: every slot is screened
+// with `screenIterations`, then the best swap is re-simulated with
+// `iterations` against a baseline simulated with the same iterations. The
+// engine's pre-generated random sequence restarts for every simulation, so
+// the baseline and the trial share random numbers and their difference is
+// stable. A candidate already in the team only replaces itself.
+const trainingGain = () => {
+  const byUid = Object.fromEntries(input.instances.map(x => [x.uid, x.instance]));
+  const iterations = input.iterations ?? 300, screenIterations = input.screenIterations ?? 60;
+  const islandEntries = Object.entries(input.islands).filter(([name]) => input.teams?.[name]?.length);
+  const total = islandEntries.reduce((sum, [name]) => sum + Object.values(input.candidates?.[name] || {})
+    .reduce((n, uids) => n + uids.length, 0), 0);
+  let done = 0;
+  const islands = islandEntries.map(([name, berries]) => {
+    const team = input.teams[name];
+    const base = team.map(uid => toTeamMember(uid, byUid[uid], byUid[uid].level, false));
+    const baseline = teamResult(base, name, berries, iterations);
+    const results = Object.entries(input.candidates?.[name] || {}).flatMap(([target, uids]) =>
+      uids.map(uid => {
+        const raw = byUid[uid], level = Number(target);
+        const trained = toTeamMember(uid, raw, level, true);
+        const own = team.indexOf(uid);
+        const slots = own >= 0 ? [own] : [...team.keys(), ...(team.length < 5 ? [team.length] : [])];
+        let best = null;
+        for (const slot of slots) {
+          const trial = [...base];
+          trial[slot] = trained;
+          const screen = slots.length > 1 ? teamResult(trial, name, berries, screenIterations).total : 0;
+          if (!best || screen > best.screen) best = {slot, screen, trial};
+        }
+        const final = teamResult(best.trial, name, berries, iterations);
+        const row = final.members.find(m => m.uid === uid) || {};
+        done += 1;
+        process.stderr.write(`PROGRESS training-gain ${done} ${total}\n`);
+        return {uid, target: level, gain: Math.round(final.total - baseline.total),
+          total: Math.round(final.total), replaced: team[best.slot] ?? null,
+          member: {berry: Math.round(row.berry || 0), direct_skill: Math.round(row.direct_skill || 0),
+            team_energy_support: Math.round(row.team_energy_support || 0),
+            team_help_support: Math.round(row.team_help_support || 0)},
+          profile: memberProfile(raw, level, true)};
+      }));
+    return {island: name, baseline: Math.round(baseline.total), team,
+      team_profiles: Object.fromEntries(team.map(uid =>
+        [uid, memberProfile(byUid[uid], byUid[uid].level, false)])),
+      results};
+  });
+  return {engineVersion: ENGINE_VERSION, iterations, screen_iterations: screenIterations, islands};
+};
 const customTeam = () => {
   if (!input.island?.name || !Array.isArray(input.island.berries)) throw new Error('custom-team requires island');
   if (!Array.isArray(input.instances) || input.instances.length !== 5) throw new Error('custom-team requires exactly 5 instances');
@@ -298,6 +358,7 @@ process.stdout.write(JSON.stringify(input.mode === 'verify' ? verify()
   : input.mode === 'benchmark' ? benchmark()
   : input.mode === 'team-evaluate' ? teamEvaluate()
   : input.mode === 'custom-team' ? customTeam()
+  : input.mode === 'training-gain' ? trainingGain()
   : input.mode === 'metadata' ? metadata()
   : input.mode === 'score-references' ? scoreReferences()
   : evaluate()));

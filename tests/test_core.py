@@ -224,7 +224,7 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(page.count('id="pokemon-dialog"'), 1)
         self.assertIn("育成優先 上位", page)
         self.assertIn("未確認個体も暫定順位として表示", page)
-        self.assertIn("tab==='keep'?(x.absolute_score??0)>85", page)
+        self.assertIn("tab==='keep'?(TRAINING.entries.length?!!TRAINING_BY_UID[x.uid]:(x.absolute_score??0)>85)", page)
         self.assertIn("暫定 ${x.absolute_score??0} / 100", page)
         self.assertIn("育成停止：現状Lv", page)
         self.assertIn("data-pokemon-uid", page)
