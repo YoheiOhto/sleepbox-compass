@@ -90,10 +90,12 @@ class LevelRepairTests(unittest.TestCase):
         self.assertEqual(row["repair_note"], "Lv 16→14（SPで補正）")
         self.assertEqual((item["level"], item["sp_check"], item["repair_note"]),
                          (14, "match", "Lv 16→14（SPで補正）"))
-        self.assertEqual((stats["level_repaired"], stats["still_mismatch"]), (1, 0))
-        # One batched engine call for the shifts, excluding the read level.
-        self.assertEqual(sorted(self.calls[1]), sorted(
-            ["capture-a|-2", "capture-a|-1", "capture-a|1", "capture-a|2"]))
+        self.assertEqual((stats["sp_repaired"], stats["still_mismatch"]), (1, 0))
+        # One batched engine call for all single-change candidates (round 1
+        # fits, so no round 2): 4 level shifts, 24 natures, 12 subskills for
+        # the one unlocked slot, skill level 2; then the re-check.
+        self.assertEqual(len(self.calls), 3)
+        self.assertEqual(len(self.calls[1]), 41)
 
     def test_ambiguous_or_no_shift_is_not_repaired(self):
         ambiguous, none = scanned("a"), scanned("b", nature="Mild")
@@ -102,7 +104,7 @@ class LevelRepairTests(unittest.TestCase):
             row = self.row(uid)
             self.assertEqual((row["level"], row["repaired"], row["verified"]), (16, 0, 0))
             self.assertTrue(row["sp_flag"].startswith("SP不一致"))
-        self.assertEqual((stats["level_repaired"], stats["still_mismatch"]), (0, 2))
+        self.assertEqual((stats["sp_repaired"], stats["still_mismatch"]), (0, 2))
 
     def test_human_confirmed_rows_are_untouched(self):
         import_individuals(self.db, [scanned("a", review_confirmed=True)])
@@ -111,7 +113,7 @@ class LevelRepairTests(unittest.TestCase):
         row = self.row("capture-a")
         self.assertEqual((row["level"], row["repaired"], row["review_confirmed"]), (16, 0, 1))
         self.assertEqual(len(self.calls), 0)  # nothing computable, no level-repair call
-        self.assertEqual(stats["level_repaired"], 0)
+        self.assertEqual(stats["sp_repaired"], 0)
 
     def test_level_56_and_above_is_repaired_and_auto_verified(self):
         item = scanned("a", level=60)
@@ -226,18 +228,22 @@ class RecheckTests(unittest.TestCase):
                 patch("pokesleep_box.sync.decide", side_effect=lambda *a, **kw: calls.append("decide")), \
                 patch("pokesleep_box.sync.render_private",
                       side_effect=lambda db, out, *a, **k: out / "index.html"), \
-                patch("pokesleep_box.repair.reread", side_effect=lambda *a: rereads.append(a)):
+                patch("pokesleep_box.repair.reread", side_effect=lambda *a: rereads.append(a)), \
+                patch("pokesleep_box.vlm.scan", return_value=[]) as agreement_scan:
             summary = run_sync(self.paths.inbox, self.paths, {}, ocr="vision", recheck=True,
                                on_progress=lambda message: None)
+        # The repaired row is a partial match (scan-time read unknown), so the
+        # two-model agreement step reads it once with the fallback model.
+        self.assertEqual(agreement_scan.call_count, 1)
         self.db = connect(self.paths.db)
         row = self.db.execute("SELECT * FROM individual WHERE uid=?", (uid,)).fetchone()
         self.assertEqual((row["level"], row["repaired"]), (14, 1))
         self.assertEqual(calls, ["evaluate", "decide"])
         self.assertEqual(rereads, [])  # fixed by level repair, no re-read needed
         self.assertEqual(summary["rechecked"], 1)
-        self.assertEqual(summary["repair"]["level_repaired"], 1)
+        self.assertEqual(summary["repair"]["sp_repaired"], 1)
         text = cli.format_summary(summary, self.paths.review)
-        self.assertIn("SP不一致の補正: レベル補正 1匹 / 読み直しで解消 0匹（読み直し 0匹） / 不一致のまま 0匹",
+        self.assertIn("SP不一致の補正: SPで補正 1匹 / 読み直しで解消 0匹（読み直し 0匹） / 不一致のまま 0匹",
                       text)
         page = self.paths.review.read_text(encoding="utf-8")
         self.assertIn("Lv 16→14（SPで補正）", page)

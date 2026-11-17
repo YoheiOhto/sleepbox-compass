@@ -135,15 +135,19 @@ def run_sync(source: Path, paths: PrivatePaths, settings: Optional[Dict[str, Any
              on_progress: Progress = stderr_progress) -> Dict[str, Any]:
     """Run scan -> SP check -> repair -> evaluate -> decide -> render and return a summary.
 
-    SP mismatches go through ``repair.repair_mismatches``: level repair, then
-    a re-read of this run's Qwen-read still images with ``fallback_vlm_model``
-    (``None`` disables the re-read). With ``recheck``, every SP-mismatched
-    row already stored goes through the same repair too (see
-    ``repair.flagged_items``), and evaluate -> decide -> render always run.
+    SP mismatches go through ``repair.repair_mismatches``: SP repair (a
+    candidate search), then a re-read of this run's Qwen-read still images
+    with ``fallback_vlm_model`` (``None`` disables the re-read). Partial SP
+    matches of those images then go through ``repair.confirm_partials``
+    (two-model agreement with the same fallback model, loaded at most once).
+    With ``recheck``, every unverified row already stored goes through the
+    same steps too (see ``repair.flagged_items``), and evaluate -> decide ->
+    render always run.
     """
     from .engine import EngineUnavailable, evaluate
     from .ingest import audit, render_review
-    from .repair import flagged_items, repair_mismatches, scanned_images
+    from .repair import (confirm_partials, flagged_items, icon_downgrades, repair_mismatches,
+                         scanned_images)
     from .spcheck import MATCH, MISMATCH, check_items, review_order
 
     settings = settings or {}
@@ -179,15 +183,31 @@ def run_sync(source: Path, paths: PrivatePaths, settings: Optional[Dict[str, Any
         changed = bool(done) or bool(summary.get("reviewed_imported")) or recheck
         engine_ok = True
         images: Dict[str, Path] = {}
-        if (scanned["qwen"] is not None and fallback_vlm_model
-                and fallback_vlm_model != vlm_model):
-            images = scanned_images(items, source)
+        # Every still image found, shown next to its row on the review page.
+        stills = scanned_images(items, source) if items else {}
+        if scanned["qwen"] is not None:
+            for item in items:
+                item.setdefault("read_model", vlm_model)
+            if fallback_vlm_model and fallback_vlm_model != vlm_model:
+                images = dict(stills)
         if recheck:
-            # Stored mismatches not already handled with this run's captures.
+            # Auto-verified rows whose locked ingredient contradicts its icon
+            # are un-verified first, so the recheck below lists them.
+            downgrades = icon_downgrades(db, source, paths.engine, on_progress=on_progress)
+            summary["icon_checked"] = downgrades["checked"]
+            summary["icon_downgraded"] = downgrades["downgraded"]
+            # Stored unverified rows not already handled with this run's captures.
             flagged = flagged_items(db, source, paths.vlm_cache, fallback_vlm_model, paths.frames)
+            for item in flagged["items"]:
+                uid = item["stored_uid"]
+                if uid in downgrades["names"]:
+                    item["ingredient_names"] = downgrades["names"][uid]
+                    item["ingredient_conflicts"] = downgrades["notes"][uid]
+                    item["ocr_missing"] = sorted(set(item.get("ocr_missing") or []) | {"ingredients"})
             seen = {item.get("stored_uid") for item in items}
             items = items + [item for item in flagged["items"] if item["stored_uid"] not in seen]
             images.update({uid: path for uid, path in flagged["images"].items() if uid not in seen})
+            stills.update({uid: path for uid, path in flagged["stills"].items() if uid not in seen})
             summary["rechecked"] = len(flagged["items"])
         if not changed and not force:
             summary["messages"].append(
@@ -200,15 +220,28 @@ def run_sync(source: Path, paths: PrivatePaths, settings: Optional[Dict[str, Any
                     summary["steps"].append("repair")
                     fallback = None
                     if images and fallback_vlm_model:
+                        loaded: List[Any] = []
+
                         def fallback() -> Any:
-                            from .vlm import QwenReader
-                            on_progress(f"読み直し用のモデル: {fallback_vlm_model}")
-                            return QwenReader(fallback_vlm_model, paths.vlm_cache)
+                            # One reader for re-reads and agreement checks; it
+                            # loads the model lazily, on its first uncached read.
+                            if not loaded:
+                                from .vlm import QwenReader
+                                on_progress(f"読み直し用のモデル: {fallback_vlm_model}")
+                                loaded.append(QwenReader(fallback_vlm_model, paths.vlm_cache))
+                            return loaded[0]
                     repair = repair_mismatches(db, items, paths.engine, images, fallback,
                                                paths.frames, on_progress)
                     summary["repair"] = repair
                     if repair.get("note"):
                         summary["messages"].append(repair["note"])
+                    agreement = confirm_partials(db, items, paths.engine, images,
+                                                 None if repair.get("note") else fallback,
+                                                 paths.frames, fallback_vlm_model, on_progress)
+                    if agreement["checked"]:
+                        summary["agreement"] = agreement
+                    if agreement.get("note"):
+                        summary["messages"].append(agreement["note"])
                 except EngineUnavailable as exc:
                     engine_ok = False
                     summary["messages"].append(
@@ -229,7 +262,7 @@ def run_sync(source: Path, paths: PrivatePaths, settings: Optional[Dict[str, Any
             ordered = review_order(items)
             paths.audit.parent.mkdir(parents=True, exist_ok=True)
             audit(ordered, paths.audit)
-            render_review(ordered, paths.review)
+            render_review(ordered, paths.review, images=stills)
             summary["audit"] = str(paths.audit)
             summary["review"] = str(paths.review)
         statuses = [item.get("sp_check") for item in items]
@@ -257,10 +290,16 @@ def format_summary(summary: Dict[str, Any], review: Path) -> str:
     mismatch = summary.get("sp_mismatch", 0)
     other = summary.get("needs_review", 0) - mismatch
     if summary.get("rechecked") is not None:
-        lines.append(f"- 再確認した登録済みのSP不一致: {summary['rechecked']}匹")
+        lines.append(f"- 再確認した登録済みの未検証の個体: {summary['rechecked']}匹")
+    if summary.get("icon_downgraded"):
+        lines.append(f"- 食材アイコンと食い違うため自動確定を取り消した個体: "
+                     f"{summary['icon_downgraded']}匹（確認 {summary.get('icon_checked', 0)}匹）")
     if summary.get("repair"):
         from .repair import count_summary
         lines.append(f"- {count_summary(summary['repair'])}")
+    if summary.get("agreement"):
+        from .repair import agreement_summary
+        lines.append(f"- {agreement_summary(summary['agreement'])}")
     lines.append(f"- SP一致: {summary.get('sp_match', 0)} / SP不一致: {mismatch} / 要確認: {other}")
     if summary.get("review"):
         lines.append(f"- レビュー: {summary['review']}")

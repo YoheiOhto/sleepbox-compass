@@ -38,10 +38,21 @@ SP_BLIND_SUBSKILLS = {"Skill Level Up S", "Skill Level Up M", "Dream Shard Bonus
 MATCH, MISMATCH, PARTIAL, UNCHECKED, HUMAN = "match", "mismatch", "partial", "unchecked", "human"
 
 
+def resolved_fields(item: Mapping[str, Any]) -> set:
+    """Fields resolved outside the OCR read.
+
+    ``human_edited``: changed by a human on the review page.
+    ``model_agreed``: read the same by the fallback VLM (``repair.confirm_partials``).
+    ``sp_resolved``: proven by a unique SP repair (``repair.repair_builds``).
+    """
+    return {field for key in ("human_edited", "model_agreed", "sp_resolved")
+            for field in item.get(key) or []}
+
+
 def unresolved_fields(item: Mapping[str, Any]) -> List[str]:
-    """``ocr_missing`` without the fields a human changed on the review page."""
-    edited = set(item.get("human_edited") or [])
-    return [field for field in item.get("ocr_missing", []) if field not in edited]
+    """``ocr_missing`` without the fields resolved otherwise (see ``resolved_fields``)."""
+    resolved = resolved_fields(item)
+    return [field for field in item.get("ocr_missing", []) if field not in resolved]
 
 
 def _locked_ingredient_slots_clean(row: Mapping[str, Any], item: Mapping[str, Any],
@@ -51,7 +62,8 @@ def _locked_ingredient_slots_clean(row: Mapping[str, Any], item: Mapping[str, An
     With species options, a slot is clean when the read amount (or matched
     icon) resolves it to exactly the stored ingredient, as in
     ``ocr.resolve_ingredient_slots``; a provisional fallback is not clean.
-    Ingredients a human changed on the review page are clean.
+    Ingredients a human changed on the review page (or that two models
+    read the same, see ``resolved_fields``) are clean.
     """
     from .ocr import align_amounts, resolve_ingredient_slots
 
@@ -61,7 +73,7 @@ def _locked_ingredient_slots_clean(row: Mapping[str, Any], item: Mapping[str, An
     slots = len(options) or len(INGREDIENT_UNLOCKS)
     if len(stored) < slots:
         return False
-    if "ingredients" in (item.get("human_edited") or []):
+    if "ingredients" in resolved_fields(item):
         return True
     unlocks = [(options[index].get("level") if options else None) or INGREDIENT_UNLOCKS[index]
                for index in range(slots)]
@@ -113,7 +125,11 @@ def assess(row: Mapping[str, Any], item: Mapping[str, Any],
         remaining.append("ingredients")
     if "main_skill" in missing:
         remaining.append("main_skill")
-    return {"status": PARTIAL if remaining else MATCH, "review_fields": remaining, "flag": None}
+    flag = None
+    if "ingredients" in remaining and item.get("ingredient_conflicts"):
+        # A read amount that fits another option than the matched icon.
+        flag = "食材の読みが食い違い（" + "、".join(item["ingredient_conflicts"]) + "）"
+    return {"status": PARTIAL if remaining else MATCH, "review_fields": remaining, "flag": flag}
 
 
 def check_items(db: sqlite3.Connection, items: Sequence[Dict[str, Any]], command: str,
@@ -180,9 +196,13 @@ def check_items(db: sqlite3.Connection, items: Sequence[Dict[str, Any]], command
 
 
 def review_order(items: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """SP mismatches first, then other unverified items, then confirmed ones."""
-    def rank(item: Mapping[str, Any]) -> int:
+    """SP mismatches first, then partial matches with the fewest unclear
+    fields first, then other unverified items, then confirmed ones."""
+    def rank(item: Mapping[str, Any]) -> tuple:
         if item.get("sp_check") == MISMATCH:
-            return 0
-        return 2 if item.get("verified") else 1
+            return (0, 0)
+        if item.get("verified") or item.get("sp_check") == HUMAN:
+            return (3, 0)
+        fields = item.get("review_fields", item.get("ocr_missing")) or []
+        return (1 if item.get("sp_check") == PARTIAL else 2, len(fields))
     return sorted(items, key=rank)

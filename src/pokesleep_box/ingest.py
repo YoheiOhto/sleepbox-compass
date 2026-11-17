@@ -5,7 +5,7 @@ import json
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any, Callable, Collection, Dict, Iterable, List, Optional
+from typing import Any, Callable, Collection, Dict, Iterable, List, Mapping, Optional
 
 from .localization import normalize_individual
 
@@ -204,14 +204,38 @@ def audit(items: Iterable[Dict[str, Any]], path: Path) -> Dict[str, int]:
             "sp_mismatch": len(mismatched), "auto_verified": len(auto_verified)}
 
 
-def render_review(items: Iterable[Dict[str, Any]], path: Path) -> None:
+def review_image_url(image: Path, page: Path) -> str:
+    """Relative URL of a local capture from the review page, e.g. ../inbox/a.png."""
+    import os
+    from urllib.parse import quote
+
+    relative = os.path.relpath(Path(image).resolve(), Path(page).resolve().parent)
+    return quote(relative.replace(os.sep, "/"))
+
+
+def render_review(items: Iterable[Dict[str, Any]], path: Path,
+                  images: Optional[Mapping[str, Path]] = None) -> None:
     """Create an offline review page; corrected JSON is downloaded, never uploaded.
 
     On save, each row gets ``human_edited``: the fields (keys of the page's
     FIELD_NAMES) whose values differ from the scan, which the SP check then
     treats as resolved (see ``spcheck.unresolved_fields``).
+
+    Rows are ordered by ``spcheck.review_order``. ``images`` maps a stored uid
+    to its local still capture; an existing one is shown as a thumbnail that
+    opens full size, linked by a relative path (never embedded, so the page
+    stays small; the downloaded JSON gets the extra ``capture_image`` key).
+    「まとめて照合済み」 ticks 「照合済み」 on every row with nothing left to
+    check (no SP flag, no unclear field), which still needs 「保存」.
     """
-    data = json.dumps(list(items), ensure_ascii=False).replace("</", "<\\/")
+    from .spcheck import review_order
+
+    rows = review_order(dict(item) for item in items)
+    for row in rows:
+        image = (images or {}).get(row.get("stored_uid") or row.get("uid"))
+        if image is not None and Path(image).is_file():
+            row["capture_image"] = review_image_url(image, path)
+    data = json.dumps(rows, ensure_ascii=False).replace("</", "<\\/")
     from .localization import names
     nature_data = json.dumps(names()["natures"], ensure_ascii=False).replace("</", "<\\/")
     skill_data = json.dumps(names()["mainskills"], ensure_ascii=False).replace("</", "<\\/")
@@ -224,6 +248,8 @@ header,main{{max-width:760px;margin:auto;padding:0 16px}}header{{padding-top:24p
 .card{{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin:14px 0;box-shadow:var(--shadow)}}.card.needs{{border-left:4px solid var(--warn-line)}}
 .card-head{{display:flex;align-items:center;gap:12px}}.box-no{{flex:0 0 auto;padding:4px 9px;border-radius:9px;background:var(--surface-2);color:var(--muted);font-size:12px;font-weight:700}}.card-head h2{{margin:0;font-size:18px;line-height:1.3}}.card-head .meta{{color:var(--muted);font-size:13px}}
 .status{{margin:12px 0 4px;padding:9px 12px;border-radius:12px;font-size:13px;background:var(--brand-soft);color:var(--ink)}}.status.warn{{background:var(--warn-soft);border:1px solid var(--warn-line)}}.status.warn strong{{color:var(--warn)}}.status .spflag{{color:var(--danger)}}
+.body{{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start}}.shot{{display:block;margin-top:12px;width:104px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface-2)}}.shot img{{display:block;width:100%;height:auto}}
+.bulk{{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:10px 0 0}}.bulk[hidden]{{display:none}}.bulk button{{min-height:44px;padding:8px 14px;border:1px solid var(--brand);border-radius:12px;background:var(--brand-soft);color:var(--ink);font-weight:700;cursor:pointer}}.bulk span{{color:var(--muted);font-size:13px}}
 .fields{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 10px;margin-top:12px}}.fields .wide{{grid-column:1/-1}}
 label{{display:grid;gap:5px;align-content:end}}label>span{{font-size:12px;font-weight:700;color:var(--muted)}}
 .flag{{display:inline-block;margin-left:6px;padding:0 7px;border-radius:99px;background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn-line);font-size:11px;font-weight:700}}label.need input,label.need select{{border-color:var(--warn-line);box-shadow:0 0 0 2px var(--warn-soft)}}
@@ -233,14 +259,16 @@ select{{appearance:none;-webkit-appearance:none;padding-right:34px;background:va
 .check{{display:flex;align-items:center;gap:10px;margin-top:12px;min-height:48px;padding:10px 12px;border-radius:12px;background:var(--surface-2);font-weight:600;cursor:pointer}}.check input{{flex:0 0 auto;width:22px;height:22px;margin:0;accent-color:var(--brand)}}
 details{{margin-top:8px}}summary{{cursor:pointer;padding:10px 0;color:var(--brand);font-weight:650;font-size:14px}}textarea{{width:100%;min-height:160px;border:1px solid var(--line-strong);border-radius:12px;padding:10px;background:var(--surface-2);color:var(--ink);font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}}
 .savebar{{position:sticky;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 30%)}}#save{{display:block;width:100%;max-width:728px;margin:auto;min-height:50px;border:0;border-radius:14px;background:var(--brand);color:var(--on-brand);font-weight:700;font-size:16px;box-shadow:0 6px 18px rgba(0,0,0,.18);cursor:pointer}}
-@media(max-width:420px){{.fields{{gap:10px 8px}}label>span{{font-size:11.5px}}}}
+@media(max-width:420px){{.shot{{width:76px}}.fields{{gap:10px 8px}}label>span{{font-size:11.5px}}}}
 </style></head><body>
-<header><h1>取り込みレビュー</h1><p>低信頼・未検証の個体を確認してください。画像や内容は外部送信されません。</p></header><main></main><div class="savebar"><button id="save">修正JSONを保存</button></div>
+<header><h1>取り込みレビュー</h1><p>低信頼・未検証の個体を確認してください。画像や内容は外部送信されません。SP不一致、要確認の項目が少ない個体の順に並べています。画像をタップすると大きく表示します。</p><div class="bulk" hidden><button id="bulk" type="button"></button><span>SPが一致し、要確認の項目がない個体だけにチェックします（保存は別に必要です）</span></div></header><main></main><div class="savebar"><button id="save">修正JSONを保存</button></div>
 <script>const rows={data},ORIG=rows.map(x=>JSON.stringify(x)),NATURES={nature_data},MAINSKILLS={skill_data},FIELD_NAMES={{species:'ポケモン',level:'レベル',nature:'性格',ingredients:'食材',subskills:'サブスキル',main_skill:'メインスキル',skill_level:'スキルLv'}},main=document.querySelector('main');const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}}[c]));
 const todo=x=>x.review_fields??x.ocr_missing??[],need=(x,k)=>todo(x).includes(k)?' need':'',flag=(x,k)=>todo(x).includes(k)?'<b class="flag">要確認</b>':'';
 const ingredientFields=(x,i)=>(x.ingredient_options||[]).map((slot,j)=>`<label class="wide${{need(x,'ingredients')}}"><span>Lv.${{slot.level}} 食材${{flag(x,'ingredients')}}</span><select data-i="${{i}}" data-slot="${{j}}"><option value="">画像を見て選択</option>${{slot.choices.map(c=>`<option value="${{esc(JSON.stringify(c.slice(0,2)))}}" ${{x.ingredients?.[j]?.[0]===c[0]?'selected':''}}>${{esc(c[2])}} ×${{c[1]}}</option>`).join('')}}</select></label>`).join('');
+const ready=x=>!x.review_confirmed&&!x.sp_flag&&x.sp_check!=='mismatch'&&!todo(x).length,shot=x=>x.capture_image?`<a class="shot" href="${{esc(x.capture_image)}}" target="_blank" rel="noopener"><img src="${{esc(x.capture_image)}}" alt="取り込んだ画像" loading="lazy" onerror="this.parentElement.style.display='none'"></a>`:'';
 const natureOptions=x=>Object.entries(NATURES).map(([v,n])=>`<option value="${{v}}" ${{x.nature===v?'selected':''}}>${{esc(n)}}</option>`).join('');
-main.innerHTML=rows.map((x,i)=>`<article class="card${{todo(x).length||x.sp_flag?' needs':''}}"><div class="card-head"><span class="box-no">BOX ${{x.box_index??'-'}}</span><div><h2>${{esc(x.species_ja||x.species)}}</h2><div class="meta">きのみ ${{esc(x.berry_ja||x.berry||'-')}} · メインスキル ${{esc(MAINSKILLS[x.main_skill]||x.main_skill||'-')}}</div></div></div><p class="status${{todo(x).length||x.sp_flag?' warn':''}}">${{x.repair_note?`<strong>${{esc(x.repair_note)}}</strong> · `:''}}${{x.sp_flag?`<strong class="spflag">${{esc(x.sp_flag)}}</strong> · `:''}}${{x.auto_verified?'SP一致で自動確定 · ':''}}${{todo(x).length?`<strong>要確認:</strong> ${{todo(x).map(k=>esc(FIELD_NAMES[k]||k)).join('、')}}`:'主要項目を取得済み'}}${{x.ocr_sources?.length?` · ${{x.ocr_sources.length}}本の動画をSPで統合`:''}}</p><div class="fields"><label class="wide"><span>ニックネーム</span><input data-i="${{i}}" data-k="display_name" value="${{esc(x.display_name||'')}}"></label><label><span>現在レベル</span><input type="number" inputmode="numeric" min="1" max="100" data-i="${{i}}" data-k="level" value="${{x.level??''}}"></label><label><span>画面のSP</span><input type="number" inputmode="numeric" data-i="${{i}}" data-k="sp" value="${{x.sp??''}}"></label><label><span>メインスキルLv</span><input type="number" inputmode="numeric" min="1" max="7" data-i="${{i}}" data-k="skill_level" value="${{x.skill_level??1}}"></label><label class="wide${{need(x,'nature')}}"><span>性格${{flag(x,'nature')}}</span><select data-i="${{i}}" data-k="nature">${{natureOptions(x)}}</select></label>${{ingredientFields(x,i)}}</div><label class="check"><input type="checkbox" data-i="${{i}}" data-k="verified"> 内容を動画と照合済みにする</label><details><summary>抽出JSONを確認・編集</summary><label><span>抽出JSON</span><textarea data-i="${{i}}">${{esc(JSON.stringify(x,null,2))}}</textarea></label></details></article>`).join('');
+main.innerHTML=rows.map((x,i)=>`<article class="card${{todo(x).length||x.sp_flag?' needs':''}}"><div class="card-head"><span class="box-no">BOX ${{x.box_index??'-'}}</span><div><h2>${{esc(x.species_ja||x.species)}}</h2><div class="meta">きのみ ${{esc(x.berry_ja||x.berry||'-')}} · メインスキル ${{esc(MAINSKILLS[x.main_skill]||x.main_skill||'-')}}</div></div></div><p class="status${{todo(x).length||x.sp_flag?' warn':''}}">${{x.repair_note?`<strong>${{esc(x.repair_note)}}</strong> · `:''}}${{x.sp_flag?`<strong class="spflag">${{esc(x.sp_flag)}}</strong> · `:''}}${{x.auto_verified?'SP一致で自動確定 · ':''}}${{todo(x).length?`<strong>要確認:</strong> ${{todo(x).map(k=>esc(FIELD_NAMES[k]||k)).join('、')}}`:'主要項目を取得済み'}}${{x.ocr_sources?.length?` · ${{x.ocr_sources.length}}本の動画をSPで統合`:''}}</p><div class="body"><div class="fields"><label class="wide"><span>ニックネーム</span><input data-i="${{i}}" data-k="display_name" value="${{esc(x.display_name||'')}}"></label><label><span>現在レベル</span><input type="number" inputmode="numeric" min="1" max="100" data-i="${{i}}" data-k="level" value="${{x.level??''}}"></label><label><span>画面のSP</span><input type="number" inputmode="numeric" data-i="${{i}}" data-k="sp" value="${{x.sp??''}}"></label><label><span>メインスキルLv</span><input type="number" inputmode="numeric" min="1" max="7" data-i="${{i}}" data-k="skill_level" value="${{x.skill_level??1}}"></label><label class="wide${{need(x,'nature')}}"><span>性格${{flag(x,'nature')}}</span><select data-i="${{i}}" data-k="nature">${{natureOptions(x)}}</select></label>${{ingredientFields(x,i)}}</div>${{shot(x)}}</div><label class="check"><input type="checkbox" data-i="${{i}}" data-k="verified"> 内容を動画と照合済みにする</label><details><summary>抽出JSONを確認・編集</summary><label><span>抽出JSON</span><textarea data-i="${{i}}">${{esc(JSON.stringify(x,null,2))}}</textarea></label></details></article>`).join('');
+const readyRows=rows.map((x,i)=>ready(x)?i:-1).filter(i=>i>=0),bulk=document.querySelector('#bulk');if(readyRows.length){{bulk.textContent=`まとめて照合済み（${{readyRows.length}}件）`;bulk.parentElement.hidden=false;bulk.onclick=()=>readyRows.forEach(i=>{{const c=document.querySelector(`[data-i="${{i}}"][data-k="review_confirmed"]`);if(c)c.checked=true}})}}
 document.querySelector('#save').onclick=()=>{{document.querySelectorAll('textarea').forEach(t=>rows[+t.dataset.i]=JSON.parse(t.value));document.querySelectorAll('[data-slot]').forEach(s=>{{if(s.value){{const i=+s.dataset.i,j=+s.dataset.slot;rows[i].ingredients??=[];rows[i].ingredients[j]=JSON.parse(s.value)}}}});document.querySelectorAll('[data-k]').forEach(n=>{{const x=rows[+n.dataset.i],k=n.dataset.k;if(k==='verified'||k==='review_confirmed')x[k]=n.checked;else if(k==='level'||k==='sp'||k==='skill_level')x[k]=Number(n.value);else x[k]=n.value}});rows.forEach((x,i)=>{{const o=JSON.parse(ORIG[i]);x.human_edited=[...new Set([...(o.human_edited||[]),...Object.keys(FIELD_NAMES).filter(k=>JSON.stringify(x[k])!==JSON.stringify(o[k]))])]}});const b=new Blob([JSON.stringify({{individuals:rows}},null,2)],{{type:'application/json'}}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='reviewed_individuals.json';a.click();URL.revokeObjectURL(a.href)}};</script></body></html>'''
     page = page.replace('data-k="verified"> 内容を動画と照合済みにする',
                         'data-k="review_confirmed"> ボックス画面と照合済み（以後「!」を表示しない）')

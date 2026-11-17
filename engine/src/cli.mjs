@@ -49,7 +49,10 @@ const verify = () => ({results: input.instances.map(({uid, instance, displayedSp
   const diff = computedSp - displayedSp;
   const strict = instance.level < input.strictBelowLevel;
   const match = strict ? diff === 0 : Math.abs(diff) <= input.tolerance;
-  return {uid, computedSp, diff, match, mode: strict ? 'strict' : (match ? 'tolerant' : 'failed')};
+  // skillMaxLevel: skill levels above it are clamped, so `sync` never
+  // repairs a read into one (see repair.py).
+  return {uid, computedSp, diff, match, mode: strict ? 'strict' : (match ? 'tolerant' : 'failed'),
+    skillMaxLevel: byName(COMPLETE_POKEDEX, instance.species).skill.maxLevel};
 })});
 const evaluate = () => {
   const total = input.instances.length;
