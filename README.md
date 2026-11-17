@@ -196,6 +196,27 @@ Lv1の食材と各枠の食材候補・個数、1回のおてつだいで取れ�
 Qwenの読み取り結果は画像ごとに`data/private/vlm_cache/`へ保存されるので、途中で止めた動画の
 再開や`--rescan`でも、同じフレームを二度推論しません。
 
+### Google ColabのGPUでまとめて読む（任意）
+
+何十枚・何百枚をまとめて取り込むときは、`tools/colab_vlm.ipynb`でColabのGPUに読み取りだけを
+任せられます。**画像はGoogle（ColabとGoogleドライブ）へ送られる**ので、それを許容できる場合だけ
+使ってください。手元の`scan`/`sync`は今までどおり外部へ送信しません。
+
+1. 画像をzipにしてGoogleドライブの`マイドライブ/sleepbox-colab/inbox.zip`に置く。
+2. VS CodeにGoogle公式の「Colab」拡張機能を入れ、ノートブックのカーネルで「Colab」を選んでログインし、
+   GPU（A100またはL4）のランタイムで「すべて実行」する（ブラウザのColabで開いても同じです）。
+3. ドライブの`sleepbox-colab/mlx-community_Qwen3.5-9B-8bit-p3/`にできた結果を手元のキャッシュへ
+   コピーして`sync`する。読み取り済みの画像はキャッシュに当たり、推論なしで終わります。
+
+```sh
+cp "<Googleドライブ>/マイドライブ/sleepbox-colab/mlx-community_Qwen3.5-9B-8bit-p3/"*.json \
+   data/private/vlm_cache/mlx-community_Qwen3.5-9B-8bit-p3/
+pokesleep-box sync
+```
+
+Colabでは同じプロンプトをbf16の重みで実行するため、8bitの手元と出力が少し異なる場合があります。
+アイコン照合・SP検算・評価は手元で行うので、読み違いは今までどおりSP不一致や要確認として出ます。
+
 macOS Visionを使えない環境では`--ocr sidecar --ocr-command /path/to/extractor`で従来の
 ローカル抽出器を利用できます（sidecar方式の動画抽出にはffmpegが必要です）。取り込み後の
 `frames/audit_report.md`、`frames/review.html`、OCR画像、DBはすべてGit管理外です。
@@ -285,6 +306,8 @@ PYTHONPATH=src python3 -m pokesleep_box.cli --db data/box.sqlite render --out si
 - `data/private/` と `data/*.sqlite`
 - `config/*.local.json`
 - 個人データから生成した監査レポート
+
+例外として、`tools/colab_vlm.ipynb`を使う場合だけ、画像をGoogle Colab/Googleドライブへ送ります。
 
 公開前には `git status` と追跡対象の秘密情報検査も行ってください。公開Pagesに実データを
 載せる場合は、コード用公開リポジトリとは別の非公開データ運用を推奨します。
