@@ -8,6 +8,8 @@ from pokesleep_box.core import connect, import_individuals, record_synced_source
 from pokesleep_box.ingest import file_sha256, ingest_path
 from pokesleep_box.vlm import QwenReader, drop_near_duplicates, merge_reads, parse_response, scan
 
+from pokesleep_box.icons import available as icons_available
+
 try:
     from PIL import Image, ImageDraw, ImageFont
 except ImportError:  # Pillow ships with the optional `qwen` extra
@@ -134,6 +136,40 @@ class VLMTests(unittest.TestCase):
         self.assertEqual(align_amounts([1, 2, 5], options), [2, 5])  # berry x1 read first
         self.assertEqual(align_amounts([2, 5, 6], options), [2, 5, 6])  # already aligned
         self.assertEqual(align_amounts([2, 4, 7], options), [2, 4, 7])
+
+    def test_icon_names_resolve_slots_that_amounts_cannot(self):
+        from pokesleep_box.ocr import resolve_ingredient_slots
+        options = METADATA["PIPLUP"]["ingredients"]
+        # Lv60 x4 fits Honey and Egg; the matched icon decides.
+        confident, _ = resolve_ingredient_slots(options, [1, 1, 4], [None, None, "Egg"])
+        self.assertEqual(confident, [["Egg", 1], ["Leek", 1], ["Egg", 4]])
+        # An unread amount is filled from the icon; Lv1 has a single option.
+        confident, _ = resolve_ingredient_slots(options, [None, 1, None], [None, None, "Honey"])
+        self.assertEqual(confident, [["Egg", 1], ["Leek", 1], ["Honey", 4]])
+        # Icon and amount disagree: keep it for review.
+        confident, provisional = resolve_ingredient_slots(options, [1, 1, 4], [None, None, "Leek"])
+        self.assertIsNone(confident[2])
+        self.assertEqual(provisional[2][1], 4)
+
+    @unittest.skipUnless(Image and icons_available(), "ingredient sprites are not installed")
+    def test_icons_are_matched_on_a_rendered_screen(self):
+        from pokesleep_box import icons
+        width, height = 602, 1306
+        screen = Image.new("RGB", (width, height), (255, 255, 255))
+        row = .14
+        for name, fx, alpha in (("egg", icons.SLOT_X[0], 255), ("leek", icons.SLOT_X[1], 110),
+                                ("honey", icons.SLOT_X[2], 110)):  # locked slots look faded
+            with Image.open(icons.ICON_DIR / f"{name}.png") as sprite:
+                sprite = sprite.convert("RGBA").resize((70, 70))
+            faded = sprite.copy()
+            faded.putalpha(sprite.getchannel("A").point(lambda a: a * alpha // 255))
+            screen.paste(faded, (int(fx * width) - 35, int(row * height) - 35), faded)
+        path = self.root / "screen.png"
+        screen.save(path)
+        label_y = row + icons.ROW_OFFSET
+        observations = [{"text": "おてつだい時間", "y": 1 - label_y - .01, "height": .02}]
+        names = icons.match_slots(path, METADATA["PIPLUP"]["ingredients"], observations)
+        self.assertEqual(names, [None, "Leek", "Honey"])  # Lv1 has one option: no match needed
 
     def test_only_new_captures_are_read_on_the_next_scan(self):
         inbox = self.root / "inbox"

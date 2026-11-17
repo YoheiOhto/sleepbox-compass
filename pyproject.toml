@@ -12,7 +12,7 @@ license = {text = "MIT"}
 
 [project.optional-dependencies]
 # Local Qwen VLM OCR (`scan --ocr qwen`). Apple Silicon and Python 3.10+ only.
-qwen = ["mlx-vlm>=0.7; python_version >= '3.10'", "pillow"]
+qwen = ["mlx-vlm>=0.7; python_version >= '3.10'", "pillow", "numpy"]
 
 [project.scripts]
 pokesleep-box = "pokesleep_box.cli:main"
