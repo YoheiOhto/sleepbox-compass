@@ -47,8 +47,8 @@ def main() -> None:
     imp.add_argument("--engine", default=P.engine,
                      help="SP確認に使う計算エンジン（使えないときはSP確認を省略）")
     dec = commands.add_parser("decide")
-    dec.add_argument("--keep-top-n", type=int, help="同種でこの数以上に上回られたら送る候補（既定: 設定または1）")
-    dec.add_argument("--send-below", type=float, help="最高評価がこの点数未満なら送る候補（0で無効、既定: 設定または50）")
+    dec.add_argument("--keep-top-n", type=int, help="同種でこの数以上に点数とエナジーの両方で上回られたら送る候補（既定: 設定または1）")
+    dec.add_argument("--send-below", type=float, help="点数とエナジー点数が両方この点数未満なら送る候補（0で無効、既定: 設定または50）")
     dec.add_argument("--compare", choices=("best", "all"), help="best: 得意な役割で比べる / all: 全ロールで比べる")
     dec.add_argument("--settings", type=Path, default=P.settings)
     render = commands.add_parser("render")

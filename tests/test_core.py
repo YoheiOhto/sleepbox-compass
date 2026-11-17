@@ -18,6 +18,11 @@ from pokesleep_box.engine import individual_to_engine
 ROOT = Path(__file__).parents[1]
 
 
+def energy(e50, e60=None, island="シアンの砂浜"):
+    """Fake engine `energyScores` with solo expected energy at Lv50/Lv60 on one island."""
+    return {island: {"50": {"expected": e50}, "60": {"expected": e60 if e60 is not None else e50}}}
+
+
 class CoreTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -90,6 +95,8 @@ class CoreTests(unittest.TestCase):
                         nature=("Mild", "Calm")[index - 1], sp=500 + index)
             item["scores"] = {str(a): {"berry": berry, "ingredient": 50, "skill": skill}
                               for a in (50, 60, 70, 80)}
+            # The second also has more solo energy, so it beats the first on both.
+            item["energy_scores"] = energy(20000 + 1000 * index)
             items.append(item)
         import_individuals(self.db, items)
         self.assertEqual(decide(self.db, compare="all", low_score_threshold=0)["send"], 0)
@@ -109,6 +116,7 @@ class CoreTests(unittest.TestCase):
                 str(anchor): {role: score for role in ("berry", "ingredient", "skill")}
                 for anchor in (50, 60)
             }
+            item["energy_scores"] = energy(score * 100)
             items.append(item)
         import_individuals(self.db, items)
 
@@ -147,11 +155,12 @@ class CoreTests(unittest.TestCase):
 
     def test_default_sends_low_scores_and_individuals_beaten_on_their_best_role(self):
         from pokesleep_box.core import decide_options
-        # Example scores are far below the 0-100 references, so with the default
-        # threshold every verified, evaluated individual is a send candidate.
-        import_individuals(self.db, [self.items[0]])
+        # Example scores are far below the 0-100 references; with low solo
+        # energy too, the default threshold sends it. Sample B has no
+        # team-support skill or subskill.
+        import_individuals(self.db, [dict(self.items[1], energy_scores=energy(3000))])
         self.assertEqual(decide(self.db), {"keep": 0, "send": 1, "protected": 0})
-        self.assertIn("基準の50点に届きません",
+        self.assertIn("点数とエナジーの両方が基準の50点に届きません",
                       self.db.execute("SELECT reason FROM decision").fetchone()["reason"])
         self.assertEqual(decide_options({"sendBelowScore": 0, "compareRoles": "all",
                                          "keepTopNPerSpecies": 2, "island": "x"}),
@@ -658,3 +667,125 @@ class LevelScoreTests(unittest.TestCase):
     def test_missing_level_is_left_out(self):
         from pokesleep_box.core import level_scores
         self.assertEqual(level_scores({60: {"berry": 1.0, "ingredient": 1.0, "skill": 1.0}}).keys(), {"60"})
+
+
+class SendNeedsScoreAndEnergyTests(unittest.TestCase):
+    """Send only when an individual is worse both in score and in energy."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.db = connect(Path(self.tmp.name) / "box.sqlite")
+        # Sample B: Bulbasaur (scored as Venusaur) without team-support skills.
+        self.base = json.loads((ROOT / "data/example_individuals.json").read_text())["individuals"][1]
+
+    def tearDown(self):
+        self.db.close()
+        self.tmp.cleanup()
+
+    def item(self, index, berry, e50, e60=None, **changes):
+        item = dict(self.base, display_name=f"x-{index}", box_index=index, sp=600 + index,
+                    nature=("Mild", "Calm", "Sassy", "Bold")[index % 4],
+                    energy_scores=energy(e50, e60))
+        item["scores"] = {str(a): {"berry": berry, "ingredient": 10, "skill": 10} for a in (50, 60)}
+        item.update(changes)
+        return item
+
+    def verdicts(self, **options):
+        decide(self.db, **options)
+        return {row["display_name"]: (row["verdict"], row["reason"]) for row in self.db.execute(
+            "SELECT i.display_name,d.verdict,d.reason FROM decision d JOIN individual i USING(uid)")}
+
+    def test_energy_score_uses_the_final_form_reference_and_the_better_level(self):
+        from pokesleep_box.core import anchor_energies, energy_reference, energy_score
+        reference = energy_reference("BULBASAUR")
+        self.assertEqual(reference, energy_reference("VENUSAUR", "VENUSAUR"))
+        own = anchor_energies({"A": {"50": {"expected": 1000}, "60": {"expected": 9000}},
+                               "B": {"50": {"expected": reference["50"] / 2},
+                                     "60": {"expected": 9000}}})
+        # The best island per level: B at Lv50, A and B tie at Lv60.
+        self.assertEqual(own, {50: reference["50"] / 2, 60: 9000})
+        self.assertEqual(energy_score(own, reference), 50.0)
+        self.assertEqual(energy_score({50: 10 ** 6, 60: 0}, reference), 100.0)
+        self.assertIsNone(energy_score({50: 1000}, reference))
+        self.assertIsNone(energy_score(own, energy_reference("NOT_A_SPECIES")))
+
+    def test_low_score_alone_does_not_send(self):
+        # Best-role score is below 50, but energy is about 80/100.
+        import_individuals(self.db, [self.item(1, berry=100, e50=29000, e60=36000)])
+        verdict, reason = self.verdicts()["x-1"]
+        self.assertEqual(verdict, "keep")
+        self.assertIn("点数だけが基準の50点未満です", reason)
+        self.assertIn("エナジー: ", reason)
+
+    def test_low_energy_alone_does_not_send(self):
+        import_individuals(self.db, [self.item(1, berry=3000, e50=3000)])
+        verdict, reason = self.verdicts()["x-1"]
+        self.assertEqual(verdict, "keep")
+        self.assertIn("エナジーだけが基準の50点未満です", reason)
+
+    def test_low_score_and_low_energy_send(self):
+        import_individuals(self.db, [self.item(1, berry=100, e50=3000)])
+        verdict, reason = self.verdicts()["x-1"]
+        self.assertEqual(verdict, "send")
+        self.assertIn("点数とエナジーの両方が基準の50点に届きません", reason)
+
+    def test_team_supporters_are_not_sent_by_the_low_rule(self):
+        import_individuals(self.db, [
+            self.item(1, berry=100, e50=3000, main_skill="Helper Boost"),
+            self.item(2, berry=100, e50=3000,
+                      subskills=[["Helping Bonus", 50], ["Helping Speed S", 75]]),
+            # Unlocked only at Lv75: not a supporter for the Lv50/Lv60 decision.
+            self.item(3, berry=100, e50=3000,
+                      subskills=[["Helping Speed S", 10], ["Energy Recovery Bonus", 75]])])
+        result = self.verdicts(keep_top_n=99)
+        self.assertEqual(result["x-1"][0], "keep")
+        self.assertIn("チーム支援役（おてつだいブースト）", result["x-1"][1])
+        self.assertEqual(result["x-2"][0], "keep")
+        self.assertIn("チーム支援役（おてつだいボーナス）", result["x-2"][1])
+        self.assertEqual(result["x-3"][0], "send")
+
+    def test_team_supporters_can_still_be_sent_by_dominance(self):
+        import_individuals(self.db, [
+            self.item(1, berry=100, e50=3000, main_skill="Energy For Everyone S"),
+            self.item(2, berry=3000, e50=30000)])
+        result = self.verdicts(low_score_threshold=0)
+        self.assertEqual(result["x-1"][0], "send")
+        self.assertIn("点数（得意なきのみ）とエナジーの両方で上回る同種個体", result["x-1"][1])
+        self.assertEqual(result["x-2"][0], "keep")
+
+    def test_dominance_needs_both_score_and_energy(self):
+        import_individuals(self.db, [
+            # x-1 is beaten on score by x-2 and x-3 but has the most energy.
+            self.item(1, berry=1000, e50=30000),
+            self.item(2, berry=2000, e50=20000),
+            # x-3 is beaten on both by x-2 (and on energy by x-1).
+            self.item(3, berry=1500, e50=10000)])
+        result = self.verdicts(low_score_threshold=0)
+        self.assertEqual(result["x-1"][0], "keep")
+        self.assertIn("点数（得意なきのみ）では同種2匹に上回られますが", result["x-1"][1])
+        self.assertEqual(result["x-2"][0], "keep")
+        self.assertIn("エナジーでは同種1匹に上回られますが", result["x-2"][1])
+        self.assertEqual(result["x-3"][0], "send")
+        self.assertIn("点数で1匹・エナジーで2匹", result["x-3"][1])
+        # Two peers are needed on each side with keep_top_n=2.
+        self.assertEqual(self.verdicts(keep_top_n=2, low_score_threshold=0)["x-3"][0], "keep")
+
+    def test_energy_dominance_needs_both_levels(self):
+        import_individuals(self.db, [
+            self.item(1, berry=1000, e50=10000, e60=50000),
+            self.item(2, berry=2000, e50=20000, e60=40000)])
+        self.assertEqual(self.verdicts(low_score_threshold=0)["x-1"][0], "keep")
+
+    def test_missing_energy_is_protected_and_unverified_stays_protected(self):
+        import_individuals(self.db, [self.item(1, berry=100, e50=3000, energy_scores={}),
+                                     self.item(2, berry=100, e50=3000, verified=False)])
+        result = self.verdicts()
+        self.assertEqual(result["x-1"], ("protected", "Lv50/Lv60のエナジー評価が未完了です"))
+        self.assertEqual(result["x-2"][0], "protected")
+
+    def test_dashboard_exposes_the_energy_score(self):
+        import_individuals(self.db, [self.item(1, berry=100, e50=29000, e60=36000)])
+        row = load_dashboard(self.db)[0]
+        self.assertGreater(row["energy_score"], 75)
+        self.assertEqual(row["energy_by_level"], {"50": 29000.0, "60": 36000.0})
+        self.assertIsNone(row["team_support"])
