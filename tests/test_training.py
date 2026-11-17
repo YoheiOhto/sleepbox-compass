@@ -157,3 +157,25 @@ class TrainingRenderTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TrainingCostTests(unittest.TestCase):
+    def test_costs_rank_entries_by_gain_per_shard(self):
+        from pokesleep_box.core import attach_training_costs
+        training = {"entries": [
+            {"uid": "low", "options": [{"island": "A", "target": 60, "gain_per_week": 70000}]},
+            {"uid": "high", "options": [{"island": "A", "target": 60, "gain_per_week": 100000},
+                                        {"island": "B", "target": 50, "gain_per_week": 90000}]},
+            {"uid": "unknown", "options": [{"island": "A", "target": 60, "gain_per_week": 999999}]},
+        ]}
+        items = [{"uid": "low", "species": "PIKACHU", "nature": "Bashful", "level": 55},
+                 {"uid": "high", "species": "PIKACHU", "nature": "Bashful", "level": 10},
+                 {"uid": "unknown", "species": "NOT_A_SPECIES", "nature": "Bashful", "level": 10}]
+        result = attach_training_costs(training, items)
+        # Lv55->60 costs ~251k shards, Lv10->50 ~166k: the larger, cheaper gain wins.
+        self.assertEqual([e["uid"] for e in result["entries"]], ["high", "low", "unknown"])
+        high = result["entries"][0]
+        # Lv10 -> Lv50 is cheaper per gain than Lv10 -> Lv60 here.
+        self.assertEqual(high["best"]["target"], 50)
+        self.assertGreater(high["cost"]["dream_shards"], 0)
+        self.assertIsNone(result["entries"][2]["best"]["gain_per_10k_shards"])

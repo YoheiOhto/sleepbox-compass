@@ -658,6 +658,45 @@ def training_for_box(training: Mapping[str, Any], uids: Iterable[str]) -> Dict[s
     return {"targets": training.get("targets", []), "islands": islands, "entries": entries}
 
 
+def attach_training_costs(training: Mapping[str, Any],
+                          items: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
+    """Add candy/dream-shard costs to training options and rank by gain per cost.
+
+    Each option gets ``cost`` (see ``costs.training_cost``, from the current
+    level to the option's target) and ``gain_per_10k_shards`` (weekly gain per
+    10,000 dream shards). An entry's ``best`` becomes its most cost-efficient
+    option, and entries are ordered by that efficiency; options whose cost is
+    unknown keep ``None`` and sort after the priced ones.
+    """
+    from .costs import training_cost
+
+    by_uid = {item["uid"]: item for item in items}
+    entries = []
+    for entry in training.get("entries", []):
+        item = by_uid.get(entry.get("uid"))
+        options = []
+        for option in entry.get("options", []):
+            cost = None
+            if item and item.get("level") is not None and option.get("target"):
+                cost = training_cost(item["species"], item.get("nature"), int(item["level"]),
+                                     int(option["target"]))
+            shards = (cost or {}).get("dream_shards") or 0
+            efficiency = (round(option.get("gain_per_week", 0) / shards * 10000)
+                          if shards > 0 else None)
+            options.append({**option, "cost": cost, "gain_per_10k_shards": efficiency})
+        if not options:
+            continue
+        options.sort(key=lambda o: (o["gain_per_10k_shards"] is None,
+                                    -(o["gain_per_10k_shards"] or 0), -o.get("gain_per_week", 0)))
+        best = options[0]
+        entries.append({**entry, "options": options, "best": best, "cost": best["cost"],
+                        "roles": best.get("roles", entry.get("roles", [])),
+                        "provides": best.get("provides", entry.get("provides", []))})
+    entries.sort(key=lambda e: (e["best"]["gain_per_10k_shards"] is None,
+                                -(e["best"]["gain_per_10k_shards"] or 0),
+                                -e["best"].get("gain_per_week", 0)))
+    return {**training, "entries": entries}
+
 def build_team_plans(items: Sequence[Mapping[str, Any]], team_size: int = 5) -> List[Dict[str, Any]]:
     """Select the exact best additive team for each island and training anchor.
 
