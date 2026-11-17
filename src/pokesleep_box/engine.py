@@ -121,7 +121,7 @@ def evaluate(db, command: str = "engine/bin/pokesleep-engine",
                                 valuation, now()))
                     count += 1
     db.commit()
-    team_payload = {"mode": "team-evaluate", "anchors": list(ANCHORS),
+    team_payload = {"mode": "team-evaluate", "anchors": list(LEVEL_SCORE_ANCHORS),
                     "islands": {name: list(berries) for name, berries in ISLANDS.items()},
                     "teamSearchIterations": 80, "teamIterations": 500,
                     "instances": [{"uid": r["uid"], "verified": bool(r["verified"]),

@@ -73,7 +73,7 @@ const evaluate = () => {
                       ingredient: rp.miscFactor * rp.ingredientFactor,
                       skill: rp.miscFactor * rp.skillFactor}];
     })), energyScores: input.islands ? Object.fromEntries(Object.entries(input.islands).map(([name,berries]) =>
-      [name,Object.fromEntries([['current',instance.level,false],...input.anchors.map(x=>[String(x),x,true])]
+      [name,Object.fromEntries([['current',instance.level,false],...input.anchors.map(x=>[String(x),Math.max(instance.level,x),true])]
         .map(([mode,level,evolve])=>[mode,simulateInstanceEnergy(instance,level,berries,evolve)]))])) : undefined};
     process.stderr.write(`PROGRESS evaluate ${index + 1} ${total}\n`);
     return row;
@@ -171,7 +171,8 @@ const teamResult = (members, name, berries, iterations) => {
     cooking, recipe_level:recipeLevel, members: rows};
 };
 const optimizeTeam = (instances, name, berries, mode) => {
-  const levelFor = raw => mode === 'current' ? raw.level : Number(mode);
+  // Anchor modes train to the anchor level but never below the current level.
+  const levelFor = raw => mode === 'current' ? raw.level : Math.max(raw.level, Number(mode));
   const evolve=mode!=='current';
   const candidates = instances.map(({uid, instance}) => {const production=simulateInstanceEnergy(instance,levelFor(instance),berries,evolve);return {uid,raw:instance,
     member:toTeamMember(uid,instance,levelFor(instance),evolve),ingredient:production.ingredient||0,
