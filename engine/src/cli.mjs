@@ -248,6 +248,26 @@ const memberProfile = (raw, level, evolve) => {
 // engine's pre-generated random sequence restarts for every simulation, so
 // the baseline and the trial share random numbers and their difference is
 // stable. A candidate already in the team only replaces itself.
+// Best one-member swap of `trained` into the fixed team `base` (uids `team`):
+// screen every slot, then re-simulate the best trial with `iterations`.
+const bestSwap = (base, team, uid, trained, name, berries, baselineTotal, iterations, screenIterations) => {
+  const own = team.indexOf(uid);
+  const slots = own >= 0 ? [own] : [...team.keys(), ...(team.length < 5 ? [team.length] : [])];
+  let best = null;
+  for (const slot of slots) {
+    const trial = [...base];
+    trial[slot] = trained;
+    const screen = slots.length > 1 ? teamResult(trial, name, berries, screenIterations).total : 0;
+    if (!best || screen > best.screen) best = {slot, screen, trial};
+  }
+  const final = teamResult(best.trial, name, berries, iterations);
+  const row = final.members.find(m => m.uid === uid) || {};
+  return {gain: Math.round(final.total - baselineTotal), total: Math.round(final.total),
+    replaced: team[best.slot] ?? null,
+    member: {berry: Math.round(row.berry || 0), direct_skill: Math.round(row.direct_skill || 0),
+      team_energy_support: Math.round(row.team_energy_support || 0),
+      team_help_support: Math.round(row.team_help_support || 0)}};
+};
 const trainingGain = () => {
   const byUid = Object.fromEntries(input.instances.map(x => [x.uid, x.instance]));
   const iterations = input.iterations ?? 300, screenIterations = input.screenIterations ?? 60;
@@ -263,25 +283,11 @@ const trainingGain = () => {
       uids.map(uid => {
         const raw = byUid[uid], level = Number(target);
         const trained = toTeamMember(uid, raw, level, true);
-        const own = team.indexOf(uid);
-        const slots = own >= 0 ? [own] : [...team.keys(), ...(team.length < 5 ? [team.length] : [])];
-        let best = null;
-        for (const slot of slots) {
-          const trial = [...base];
-          trial[slot] = trained;
-          const screen = slots.length > 1 ? teamResult(trial, name, berries, screenIterations).total : 0;
-          if (!best || screen > best.screen) best = {slot, screen, trial};
-        }
-        const final = teamResult(best.trial, name, berries, iterations);
-        const row = final.members.find(m => m.uid === uid) || {};
+        const swap = bestSwap(base, team, uid, trained, name, berries, baseline.total,
+          iterations, screenIterations);
         done += 1;
         process.stderr.write(`PROGRESS training-gain ${done} ${total}\n`);
-        return {uid, target: level, gain: Math.round(final.total - baseline.total),
-          total: Math.round(final.total), replaced: team[best.slot] ?? null,
-          member: {berry: Math.round(row.berry || 0), direct_skill: Math.round(row.direct_skill || 0),
-            team_energy_support: Math.round(row.team_energy_support || 0),
-            team_help_support: Math.round(row.team_help_support || 0)},
-          profile: memberProfile(raw, level, true)};
+        return {uid, target: level, ...swap, profile: memberProfile(raw, level, true)};
       }));
     return {island: name, baseline: Math.round(baseline.total), team,
       team_profiles: Object.fromEntries(team.map(uid =>
@@ -289,6 +295,106 @@ const trainingGain = () => {
       results};
   });
   return {engineVersion: ENGINE_VERSION, iterations, screen_iterations: screenIterations, islands};
+};
+// Resolve an encounter-list display name ("Alolan Vulpix", "Pumpkaboo") to
+// engine species. Size forms resolve to every size; event costumes never match.
+const normName = s => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
+const resolveEncounter = displayName => {
+  const key = normName(displayName);
+  const exact = COMPLETE_POKEDEX.filter(p => normName(p.displayName) === key);
+  if (exact.length) return exact;
+  const regional = displayName.match(/^(Alolan|Paldean|Galarian|Hisuian)\s+(.+)$/);
+  if (regional) {
+    const suffix = {Alolan: 'ALOLAN', Paldean: 'PALDEAN', Galarian: 'GALARIAN', Hisuian: 'HISUIAN'}[regional[1]];
+    return COMPLETE_POKEDEX.filter(p => p.name === `${normName(regional[2]).toUpperCase()}_${suffix}`);
+  }
+  return COMPLETE_POKEDEX.filter(p => p.name.startsWith(`${key.toUpperCase()}_`)
+    && /_(SMALL|MEDIUM|LARGE|JUMBO)$/.test(p.name));
+};
+const finalForms = pokemon => pokemon.evolvesInto?.length
+  ? pokemon.evolvesInto.flatMap(name => finalForms(byName(COMPLETE_POKEDEX, name))) : [pokemon];
+// Every species of an evolution line, from its first form down.
+const lineMembers = pokemon => [pokemon.name,
+  ...(pokemon.evolvesInto || []).flatMap(name => lineMembers(byName(COMPLETE_POKEDEX, name)))];
+// The build a capture is valued with. `typical`: neutral nature, the first
+// ingredient option of every slot and three common subskills. `ideal`: the
+// same ingredients with the role's best nature and subskills (an upper bound).
+const TYPICAL_SUBSKILLS = [['Inventory Up S', 10], ['Helping Speed S', 25], ['Skill Trigger S', 50]];
+const captureRaw = (pokemon, level, build) => ({
+  species: pokemon.name, level,
+  nature: build === 'ideal' ? idealNature(pokemon.specialty) : (input.typicalNature || 'Bashful'),
+  ingredients: [pokemon.ingredient0[0], pokemon.ingredient30[0], pokemon.ingredient60[0]]
+    .map(x => [x.ingredient.name, x.amount]),
+  subskills: build === 'ideal'
+    ? idealSubskills(pokemon.specialty).map((name, i) => [name, [10, 25, 50, 70, 80][i]])
+    : (input.typicalSubskills || TYPICAL_SUBSKILLS),
+  // A fresh catch starts at skill level 1 and gains one level per evolution.
+  mainSkill: pokemon.skill.name,
+  skillLevel: Math.min(pokemon.skill.maxLevel, 1 + (pokemon.previousEvolutions || 0)), ribbon: 0
+});
+// Capture gain: how much an island's team gains when a newly caught Pokémon,
+// trained to its target level (ingredient specialists Lv60, others Lv50) and
+// evolved, is swapped in. It is measured against two teams per island:
+// `current` (the box's best team now, as in training-gain) and the target
+// level's team (the box's best team when its own members are trained to that
+// level too, i.e. what the box can already reach). The ideal build is only
+// compared with the trained team.
+const captureGain = () => {
+  const byUid = Object.fromEntries(input.instances.map(x => [x.uid, x.instance]));
+  const iterations = input.iterations ?? 300, screenIterations = input.screenIterations ?? 60;
+  const lines = new Map();
+  for (const displayName of input.encounters || []) {
+    for (const pokemon of resolveEncounter(displayName)) {
+      const base = firstEvolution(pokemon);
+      const line = lines.get(base.name) || {base: base.name, encountered: [], finals: finalForms(base)};
+      if (!line.encountered.includes(pokemon.name)) line.encountered.push(pokemon.name);
+      lines.set(base.name, line);
+    }
+  }
+  const targetFor = pokemon => (pokemon.specialty === 'ingredient' || pokemon.specialty === 'all') ? 60 : 50;
+  const finals = [...new Map([...lines.values()].flatMap(line => line.finals.map(p => [p.name, p]))).values()];
+  const islandEntries = Object.entries(input.islands).filter(([name]) => input.teams?.[name]?.current?.length);
+  const total = islandEntries.length * finals.length;
+  let done = 0;
+  const islands = islandEntries.map(([name, berries]) => {
+    const teams = input.teams[name];
+    const bases = Object.fromEntries(Object.entries(teams).map(([mode, team]) => {
+      const evolve = mode !== 'current';
+      const members = team.map(uid => toTeamMember(uid, byUid[uid],
+        evolve ? Math.max(byUid[uid].level, Number(mode)) : byUid[uid].level, evolve));
+      return [mode, {team, members, total: teamResult(members, name, berries, iterations).total}];
+    }));
+    const results = finals.flatMap(pokemon => {
+      const target = targetFor(pokemon), uid = `capture:${pokemon.name}`;
+      const rows = [];
+      for (const [build, mode] of [['typical', 'current'], ['typical', String(target)], ['ideal', String(target)]]) {
+        const base = bases[mode];
+        if (!base) continue;
+        const raw = captureRaw(pokemon, target, build);
+        const swap = bestSwap(base.members, base.team, uid, toTeamMember(uid, raw, target, true),
+          name, berries, base.total, iterations, screenIterations);
+        rows.push({species: pokemon.name, build, baseline: mode, target, ...swap,
+          profile: memberProfile(raw, target, true)});
+      }
+      done += 1;
+      process.stderr.write(`PROGRESS capture-gain ${done} ${total}\n`);
+      return rows;
+    });
+    return {island: name, teams,
+      baselines: Object.fromEntries(Object.entries(bases).map(([mode, b]) => [mode, Math.round(b.total)])),
+      team_profiles: Object.fromEntries(Object.entries(teams).map(([mode, team]) => [mode,
+        Object.fromEntries(team.map(uid => [uid, memberProfile(byUid[uid],
+          mode === 'current' ? byUid[uid].level : Math.max(byUid[uid].level, Number(mode)),
+          mode !== 'current')]))])),
+      results};
+  });
+  return {engineVersion: ENGINE_VERSION, iterations, screen_iterations: screenIterations,
+    // Encounter display name -> engine species keys (empty when unknown).
+    names: Object.fromEntries((input.encounters || []).map(n => [n, resolveEncounter(n).map(p => p.name)])),
+    lines: [...lines.values()].map(line => ({base: line.base, encountered: line.encountered,
+      members: lineMembers(byName(COMPLETE_POKEDEX, line.base)),
+      finals: line.finals.map(p => ({species: p.name, specialty: p.specialty, target: targetFor(p)}))})),
+    islands};
 };
 const customTeam = () => {
   if (!input.island?.name || !Array.isArray(input.island.berries)) throw new Error('custom-team requires island');
@@ -359,6 +465,7 @@ process.stdout.write(JSON.stringify(input.mode === 'verify' ? verify()
   : input.mode === 'team-evaluate' ? teamEvaluate()
   : input.mode === 'custom-team' ? customTeam()
   : input.mode === 'training-gain' ? trainingGain()
+  : input.mode === 'capture-gain' ? captureGain()
   : input.mode === 'metadata' ? metadata()
   : input.mode === 'score-references' ? scoreReferences()
   : evaluate()));

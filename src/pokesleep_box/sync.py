@@ -12,9 +12,12 @@ from typing import Any, Callable, Dict, List, Optional
 
 from .core import (build_team_plans, connect, decide, decide_options, import_individuals, load_archived, load_dashboard,
                    merge_exact_duplicates,
-                   plans_for_box, training_for_box, attach_training_costs,
+                   plans_for_box, training_for_box, attach_training_costs, capture_for_box,
                    record_synced_sources, synced_sources)
 from .paths import PrivatePaths
+
+# Public encounter table (research area -> sleep type -> Pokémon).
+ENCOUNTERS = Path("data/seed_encounters.json")
 
 DEFAULT_VLM_MODEL = "mlx-community/Qwen3.5-4B-4bit"
 # Larger model for re-reading still images whose SP does not match.
@@ -131,9 +134,10 @@ def import_reviewed(db: sqlite3.Connection, path: Path, engine: str,
 
 def render_private(db: sqlite3.Connection, out: Path, settings: Dict[str, Any],
                    benchmarks: Path, teams: Path, seed_plans: Path, main_seed_plans: Path,
-                   encounters: Path = Path("data/seed_encounters.json"),
+                   encounters: Path = ENCOUNTERS,
                    tier_compare: Path = Path("data/species_tier_compare.json"),
-                   training: Optional[Path] = None) -> Path:
+                   training: Optional[Path] = None,
+                   capture: Optional[Path] = None) -> Path:
     """Render the site from the DB and the optional private plan files."""
     from .analytics import analyze
     from .render import render_site
@@ -152,7 +156,9 @@ def render_private(db: sqlite3.Connection, out: Path, settings: Dict[str, Any],
                   else build_team_plans(dashboard))
     render_site(dashboard, out, team_plans,
                 analyze(dashboard, settings, read(benchmarks, "benchmarks", []),
-                        team_plans=team_plans, encounters=read(encounters, None, {})),
+                        team_plans=team_plans, encounters=read(encounters, None, {}),
+                        capture_plans=capture_for_box(read(capture, None, {}) if capture else {},
+                                                      active)),
                 read(tier_compare, "rows", []), plans_for_box(read(seed_plans, "plans", []), active),
                 plans_for_box(read(main_seed_plans, "plans", []), active),
                 archived=load_archived(db),
@@ -177,7 +183,7 @@ def run_sync(source: Path, paths: PrivatePaths, settings: Optional[Dict[str, Any
     same steps too (see ``repair.flagged_items``), and evaluate -> decide ->
     render always run.
     """
-    from .engine import EngineUnavailable, evaluate, evaluate_training
+    from .engine import EngineUnavailable, evaluate, evaluate_capture, evaluate_training
     from .ingest import audit, render_review
     from .repair import (confirm_partials, flagged_items, icon_downgrades, repair_mismatches,
                          scanned_images)
@@ -303,6 +309,12 @@ def run_sync(source: Path, paths: PrivatePaths, settings: Optional[Dict[str, Any
                                       on_progress=on_progress)
                 except EngineUnavailable as exc:
                     summary["messages"].append(f"育成効果の計算を省略しました: {exc}")
+                summary["steps"].append("capture")
+                try:
+                    evaluate_capture(db, paths.engine, paths.team_plans, ENCOUNTERS,
+                                     paths.capture_plans, on_progress=on_progress)
+                except EngineUnavailable as exc:
+                    summary["messages"].append(f"捕獲候補の計算を省略しました: {exc}")
             summary["steps"].append("decide")
             decide(db, **decide_options(settings))
         if done or recheck:
@@ -323,8 +335,9 @@ def run_sync(source: Path, paths: PrivatePaths, settings: Optional[Dict[str, Any
         summary["steps"].append("render")
         summary["site"] = str(render_private(db, paths.site, settings, paths.benchmarks,
                                              paths.team_plans, paths.seed_plans,
-                                             paths.main_seed_plans,
-                                             training=paths.training_plans))
+                                             paths.main_seed_plans, ENCOUNTERS,
+                                             training=paths.training_plans,
+                                             capture=paths.capture_plans))
         summary["engine"] = engine_ok
     finally:
         db.close()

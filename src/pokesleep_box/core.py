@@ -659,6 +659,24 @@ def training_for_box(training: Mapping[str, Any], uids: Iterable[str]) -> Dict[s
     return {"targets": training.get("targets", []), "islands": islands, "entries": entries}
 
 
+def capture_for_box(capture: Mapping[str, Any], uids: Iterable[str]) -> Dict[str, Any]:
+    """Keep stored capture gains whose comparison teams are still in the box.
+
+    Options on an island whose stored teams lost a member are dropped, like
+    ``training_for_box``; the next recalculation rebuilds them.
+    """
+    active = set(uids)
+    valid = {island["island"] for island in capture.get("islands", [])
+             if all(uid in active for team in (island.get("teams") or {}).values() for uid in team)}
+    species = []
+    for entry in capture.get("species", []):
+        options = [o for o in entry.get("options", []) if o.get("island") in valid]
+        if options:
+            species.append({**entry, "options": options})
+    return {**capture, "islands": [i for i in capture.get("islands", []) if i["island"] in valid],
+            "species": species}
+
+
 def attach_training_costs(training: Mapping[str, Any],
                           items: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
     """Add candy/dream-shard costs to training options and rank by gain per cost.

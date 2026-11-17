@@ -16,6 +16,7 @@
   "includeCooking": true,
   "keepTopNPerSpecies": 1,
   "sendBelowScore": 50,
+  "captureLevel": 10,
   "compareRoles": "best",
   "deltaSThreshold": 0.15,
   "anchorWeights": {"50": 0.15, "60": 0.30, "70": 0.20, "80": 0.35},

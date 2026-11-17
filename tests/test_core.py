@@ -566,27 +566,6 @@ class CoreTests(unittest.TestCase):
         self.assertEqual({x["species_key"] for x in amber["priority"]},
                          {"ALTARIA", "DRAGONITE"})
 
-    def test_capture_encounter_view_uses_seed_species_and_selected_sleep_pool(self):
-        benchmarks = [
-            {"species": "RAICHU", "species_ja": "ライチュウ", "base_species": "PICHU",
-             "base_species_ja": "ピチュー", "base_species_en": "Pichu", "specialty": "berry",
-             "berry": "GREPA", "island_scores": {
-                 "ゴールド旧発電所": {"60": {"expected": 80000}}}},
-            {"species": "TYPHLOSION", "species_ja": "バクフーン", "base_species": "CYNDAQUIL",
-             "base_species_ja": "ヒノアラシ", "base_species_en": "Cyndaquil", "specialty": "berry",
-             "berry": "LEPPA", "island_scores": {
-                 "トープ洞窟": {"60": {"expected": 90000}}}},
-        ]
-        encounters = {"updated": "2026-08-26", "fields": {"ゴールド旧発電所": {
-            "ぐっすり": ["Pichu"], "すやすや": ["Cyndaquil"]}}}
-
-        result = analyze([], {}, benchmarks, encounters=encounters)
-        view = result["capture"]["encounter_views"][0]
-
-        self.assertEqual(view["sleep_types"][0]["priority"][0]["species"], "ピチュー")
-        self.assertEqual(view["sleep_types"][0]["priority"][0]["evolves_to"], "ライチュウ")
-        self.assertEqual(view["sleep_types"][1]["priority"][0]["species"], "ヒノアラシ")
-
 
 if __name__ == "__main__":
     unittest.main()

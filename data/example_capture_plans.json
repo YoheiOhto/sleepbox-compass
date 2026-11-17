@@ -1,0 +1,300 @@
+{
+  "sample": true,
+  "note": "架空の公開デモ用の捕獲候補。実データでは sync（capture-evaluate）が計算した値に置き換わる。",
+  "build": {
+    "nature": "Bashful",
+    "subskills": [
+      [
+        "Inventory Up S",
+        10
+      ],
+      [
+        "Helping Speed S",
+        25
+      ],
+      [
+        "Skill Trigger S",
+        50
+      ]
+    ]
+  },
+  "islands": [],
+  "species": [
+    {
+      "species": "RAICHU",
+      "base": "PICHU",
+      "specialty": "berry",
+      "target": 50,
+      "line": [
+        "PICHU",
+        "PIKACHU",
+        "RAICHU"
+      ],
+      "encountered": [],
+      "options": [
+        {
+          "island": "ゴールド旧発電所",
+          "target": 50,
+          "gain_now": 9100,
+          "gain": 2400,
+          "gain_ideal": 14800,
+          "replaced": null,
+          "replaced_ideal": null,
+          "roles": [],
+          "provides": [
+            "好物きのみ"
+          ]
+        },
+        {
+          "island": "シアンの砂浜",
+          "target": 50,
+          "gain_now": 3000,
+          "gain": -1200,
+          "gain_ideal": 6100,
+          "replaced": null,
+          "replaced_ideal": null,
+          "roles": [],
+          "provides": []
+        }
+      ]
+    },
+    {
+      "species": "DRAGONITE",
+      "base": "DRATINI",
+      "specialty": "ingredient",
+      "target": 60,
+      "line": [
+        "DRATINI",
+        "DRAGONAIR",
+        "DRAGONITE"
+      ],
+      "encountered": [],
+      "options": [
+        {
+          "island": "ラピスラズリ湖畔",
+          "target": 60,
+          "gain_now": 7300,
+          "gain": 1800,
+          "gain_ideal": 12500,
+          "replaced": null,
+          "replaced_ideal": null,
+          "roles": [
+            "食材"
+          ],
+          "provides": [
+            "食材"
+          ]
+        }
+      ]
+    },
+    {
+      "species": "CLEFABLE",
+      "base": "CLEFFA",
+      "specialty": "skill",
+      "target": 50,
+      "line": [
+        "CLEFFA",
+        "CLEFAIRY",
+        "CLEFABLE"
+      ],
+      "encountered": [],
+      "options": [
+        {
+          "island": "シアンの砂浜",
+          "target": 50,
+          "gain_now": 4200,
+          "gain": -3100,
+          "gain_ideal": 9800,
+          "replaced": null,
+          "replaced_ideal": null,
+          "roles": [],
+          "provides": [
+            "スキル枠"
+          ]
+        },
+        {
+          "island": "トープ洞窟",
+          "target": 50,
+          "gain_now": 2500,
+          "gain": -4100,
+          "gain_ideal": 5200,
+          "replaced": null,
+          "replaced_ideal": null,
+          "roles": [],
+          "provides": [
+            "スキル枠"
+          ]
+        }
+      ]
+    },
+    {
+      "species": "FERALIGATR",
+      "base": "TOTODILE",
+      "specialty": "berry",
+      "target": 50,
+      "line": [
+        "TOTODILE",
+        "CROCONAW",
+        "FERALIGATR"
+      ],
+      "encountered": [],
+      "options": [
+        {
+          "island": "シアンの砂浜",
+          "target": 50,
+          "gain_now": 1500,
+          "gain": -6200,
+          "gain_ideal": 8700,
+          "replaced": null,
+          "replaced_ideal": null,
+          "roles": [],
+          "provides": []
+        }
+      ]
+    },
+    {
+      "species": "SYLVEON",
+      "base": "EEVEE",
+      "specialty": "skill",
+      "target": 50,
+      "line": [
+        "EEVEE",
+        "VAPOREON",
+        "JOLTEON",
+        "FLAREON",
+        "ESPEON",
+        "UMBREON",
+        "LEAFEON",
+        "GLACEON",
+        "SYLVEON"
+      ],
+      "encountered": [],
+      "options": [
+        {
+          "island": "アンバー渓谷",
+          "target": 50,
+          "gain_now": 800,
+          "gain": -2500,
+          "gain_ideal": 4100,
+          "replaced": null,
+          "replaced_ideal": null,
+          "roles": [
+            "元気回復"
+          ],
+          "provides": [
+            "元気回復",
+            "スキル枠"
+          ]
+        }
+      ]
+    },
+    {
+      "species": "UMBREON",
+      "base": "EEVEE",
+      "specialty": "skill",
+      "target": 50,
+      "line": [
+        "EEVEE",
+        "VAPOREON",
+        "JOLTEON",
+        "FLAREON",
+        "ESPEON",
+        "UMBREON",
+        "LEAFEON",
+        "GLACEON",
+        "SYLVEON"
+      ],
+      "encountered": [],
+      "options": [
+        {
+          "island": "トープ洞窟",
+          "target": 50,
+          "gain_now": -900,
+          "gain": -5200,
+          "gain_ideal": -800,
+          "replaced": null,
+          "replaced_ideal": null,
+          "roles": [],
+          "provides": [
+            "スキル枠"
+          ]
+        }
+      ]
+    },
+    {
+      "species": "BUTTERFREE",
+      "base": "CATERPIE",
+      "specialty": "berry",
+      "target": 50,
+      "line": [
+        "CATERPIE",
+        "METAPOD",
+        "BUTTERFREE"
+      ],
+      "encountered": [],
+      "options": [
+        {
+          "island": "アンバー渓谷",
+          "target": 50,
+          "gain_now": -2100,
+          "gain": -7400,
+          "gain_ideal": -1500,
+          "replaced": null,
+          "replaced_ideal": null,
+          "roles": [],
+          "provides": []
+        }
+      ]
+    }
+  ],
+  "names": {
+    "Pichu": [
+      "PICHU"
+    ],
+    "Pikachu": [
+      "PIKACHU"
+    ],
+    "Raichu": [
+      "RAICHU"
+    ],
+    "Dratini": [
+      "DRATINI"
+    ],
+    "Dragonair": [
+      "DRAGONAIR"
+    ],
+    "Dragonite": [
+      "DRAGONITE"
+    ],
+    "Cleffa": [
+      "CLEFFA"
+    ],
+    "Clefairy": [
+      "CLEFAIRY"
+    ],
+    "Clefable": [
+      "CLEFABLE"
+    ],
+    "Totodile": [
+      "TOTODILE"
+    ],
+    "Croconaw": [
+      "CROCONAW"
+    ],
+    "Feraligatr": [
+      "FERALIGATR"
+    ],
+    "Eevee": [
+      "EEVEE"
+    ],
+    "Caterpie": [
+      "CATERPIE"
+    ],
+    "Metapod": [
+      "METAPOD"
+    ],
+    "Butterfree": [
+      "BUTTERFREE"
+    ]
+  }
+}

@@ -11,7 +11,8 @@ from .core import (archive_individuals, build_team_plans, compare_species_tiers,
                    import_individuals, load_archived, load_dashboard, resolve_uids,
                    unarchive_individuals)
 from .analytics import analyze
-from .engine import (EngineUnavailable, evaluate, evaluate_main_seed_upgrades, evaluate_training,
+from .engine import (EngineUnavailable, evaluate, evaluate_capture, evaluate_main_seed_upgrades,
+                     evaluate_training,
                      evaluate_seed_upgrades, run_engine, species_scores, verify)
 from .ingest import audit, render_review
 from .localization import names
@@ -60,6 +61,7 @@ def main() -> None:
     render.add_argument("--seed-plans", type=Path, default=P.seed_plans)
     render.add_argument("--main-seed-plans", type=Path, default=P.main_seed_plans)
     render.add_argument("--training", type=Path, default=P.training_plans)
+    render.add_argument("--capture", type=Path, default=P.capture_plans)
     serve_cmd = commands.add_parser("serve")
     serve_cmd.add_argument("--site", type=Path, default=P.site)
     serve_cmd.add_argument("--host", default="127.0.0.1")
@@ -71,6 +73,7 @@ def main() -> None:
     demo.add_argument("--benchmarks", type=Path, default=Path("data/example_species_benchmarks.json"))
     demo.add_argument("--encounters", type=Path, default=Path("data/seed_encounters.json"))
     demo.add_argument("--tier-compare", type=Path, default=Path("data/species_tier_compare.json"))
+    demo.add_argument("--capture", type=Path, default=Path("data/example_capture_plans.json"))
     for command_name in ("ingest", "scan"):
         scan = commands.add_parser(command_name)
         scan.add_argument("path", type=Path, nargs="?", default=P.inbox)
@@ -98,6 +101,12 @@ def main() -> None:
     training_ev.add_argument("--engine", default=P.engine)
     training_ev.add_argument("--teams", type=Path, default=P.team_plans)
     training_ev.add_argument("--out", type=Path, default=P.training_plans)
+    capture_ev = commands.add_parser("capture-evaluate",
+                                     help="捕まえて育てたときのチームの伸び（出現するポケモンごと）を計算する")
+    capture_ev.add_argument("--engine", default=P.engine)
+    capture_ev.add_argument("--teams", type=Path, default=P.team_plans)
+    capture_ev.add_argument("--encounters", type=Path, default=Path("data/seed_encounters.json"))
+    capture_ev.add_argument("--out", type=Path, default=P.capture_plans)
     seed_ev = commands.add_parser("seed-evaluate")
     seed_ev.add_argument("--engine", default=P.engine)
     seed_ev.add_argument("--out", type=Path, default=P.seed_plans)
@@ -200,7 +209,8 @@ def main() -> None:
     elif args.command == "render":
         print(render_private(db, args.out, load_settings(args.settings), args.benchmarks,
                              args.teams, args.seed_plans, args.main_seed_plans,
-                             args.encounters, args.tier_compare, args.training))
+                             args.encounters, args.tier_compare, args.training,
+                             args.capture))
     elif args.command == "serve":
         from .server import serve
         serve(args.db, args.site, args.host, args.port, args.engine)
@@ -213,8 +223,10 @@ def main() -> None:
         encounters = json.loads(args.encounters.read_text()) if args.encounters.exists() else {}
         tier_rows = (json.loads(args.tier_compare.read_text()).get("rows", [])
                      if args.tier_compare.exists() else [])
+        capture = json.loads(args.capture.read_text(encoding="utf-8")) if args.capture.exists() else {}
         render_site(dashboard, args.out, build_team_plans(dashboard),
-                    analyze(dashboard, {}, benchmarks, encounters=encounters), tier_rows,
+                    analyze(dashboard, {}, benchmarks, encounters=encounters, capture_plans=capture),
+                    tier_rows,
                     archived=load_archived(db))
         print(args.out / "index.html")
     elif args.command in ("ingest", "scan"):
@@ -261,6 +273,15 @@ def main() -> None:
         if document is None:
             parser.error(f"{args.teams} にチーム編成がありません。先に evaluate を実行してください")
         print(json.dumps({"entries": len(document["entries"]), "out": str(args.out)}, ensure_ascii=False))
+    elif args.command == "capture-evaluate":
+        try:
+            document = evaluate_capture(db, args.engine, args.teams, args.encounters, args.out,
+                                        on_progress=lambda m: print(m, file=sys.stderr, flush=True))
+        except EngineUnavailable as exc:
+            parser.error(str(exc))
+        if document is None:
+            parser.error(f"{args.teams} にチーム編成がないか、{args.encounters} が空です")
+        print(json.dumps({"species": len(document["species"]), "out": str(args.out)}, ensure_ascii=False))
     elif args.command == "benchmark":
         from .analytics import ISLANDS
         try:
