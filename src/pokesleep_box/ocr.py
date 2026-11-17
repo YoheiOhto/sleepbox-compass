@@ -274,6 +274,50 @@ def resolve_ingredient_slots(options: Sequence[Mapping[str, Any]],
     return confident, provisional
 
 
+def ingredient_conflicts(options: Sequence[Mapping[str, Any]],
+                         amounts: Sequence[Optional[int]],
+                         names: Sequence[Optional[str]] = ()) -> List[str]:
+    """Japanese notes for slots whose read amount contradicts the matched icon.
+
+    Such a slot is not confident (see ``resolve_ingredient_slots``), e.g.
+    「Lv60食材: 個数→モーモーミルク×6 / アイコン→リラックスカカオ」.
+    """
+    notes = []
+    for index, slot in enumerate(options):
+        choices = slot["choices"]
+        amount = amounts[index] if index < len(amounts) else None
+        name = names[index] if index < len(names) else None
+        if len(choices) < 2 or not name or amount is None:
+            continue
+        if any(c[0] == name and c[1] == amount for c in choices):
+            continue
+        matches = [c for c in choices if c[1] == amount]
+        implied = (f"{to_japanese('ingredients', matches[0][0])}×{amount}" if len(matches) == 1
+                   else f"×{amount}")
+        notes.append(f"Lv{slot.get('level')}食材: 個数→{implied} / "
+                     f"アイコン→{to_japanese('ingredients', name)}")
+    return notes
+
+
+def species_metadata(engine: str = "engine/bin/pokesleep-engine") -> Dict[str, Any]:
+    """Species data (berry, main skill, ingredient options) from the engine or the source."""
+    try:
+        from .engine import run_engine
+        return run_engine({"mode": "metadata"}, engine).get("pokemon", {})
+    except Exception:
+        return load_source_metadata()
+
+
+def ingredient_options(metadata: Mapping[str, Any]) -> List[Dict[str, Any]]:
+    """Per-slot legal ingredient choices [[name, amount, name_ja], ...] of one species."""
+    options = []
+    for slot in metadata.get("ingredients", []):
+        choices = [[name, amount, to_japanese("ingredients", name)]
+                   for name, amount in slot.get("choices", [])]
+        options.append({"level": slot.get("level"), "choices": choices})
+    return options
+
+
 def enrich_with_species_data(items: List[Dict[str, Any]],
                              engine: str = "engine/bin/pokesleep-engine",
                              pokemon_data: Optional[Mapping[str, Any]] = None,
@@ -283,14 +327,16 @@ def enrich_with_species_data(items: List[Dict[str, Any]],
     """Resolve deterministic berry and constrain icon-only ingredient fields.
 
     ``icon_matcher(item, options)`` may return the ingredient name shown in
-    each slot; it is only consulted when the amounts leave a slot ambiguous.
+    each slot. It is called once per item whenever a slot has more than one
+    legal option, even when the read amounts already fit one option: a
+    misread amount (e.g. 6 for 4) can fit another option exactly, and a
+    locked slot is invisible to the SP. A slot is confident only when the
+    amount and a confident icon match agree; a contradiction leaves it
+    unresolved and is noted in ``ingredient_conflicts``. Without a confident
+    match (or without icon matching) the amounts decide, as before.
     """
     if pokemon_data is None:
-        try:
-            from .engine import run_engine
-            pokemon_data = run_engine({"mode": "metadata"}, engine).get("pokemon", {})
-        except Exception:
-            pokemon_data = load_source_metadata()
+        pokemon_data = species_metadata(engine)
     if not pokemon_data:
         return items
     for item in items:
@@ -314,11 +360,7 @@ def enrich_with_species_data(items: List[Dict[str, Any]],
             item["main_skill"] = to_english("mainskills", base_main_skill(metadata["main_skill"]))
             item.setdefault("field_confidence", {})["main_skill"] = 1.0
             skill_unread = False
-        options = []
-        for slot in metadata.get("ingredients", []):
-            choices = [[name, amount, to_japanese("ingredients", name)]
-                       for name, amount in slot.get("choices", [])]
-            options.append({"level": slot.get("level"), "choices": choices})
+        options = ingredient_options(metadata)
         if options:
             item["ingredient_options"] = options
             # The Lv1 ingredient is normally species-fixed and can be filled safely.
@@ -327,14 +369,18 @@ def enrich_with_species_data(items: List[Dict[str, Any]],
                 item["ingredients"] = [[name, amount]]
             amounts = align_amounts(item.get("ingredient_amounts", []), options)
             hints = list(item.get("ingredient_names", []))
-            inferred, provisional = resolve_ingredient_slots(options, amounts, hints)
-            if icon_matcher and not all(inferred) and not hints:
+            if icon_matcher and not hints and any(len(slot["choices"]) > 1 for slot in options):
                 hints = list(icon_matcher(item, options) or [])
                 if any(hints):
                     item["ingredient_names"] = hints
-                    inferred, provisional = resolve_ingredient_slots(options, amounts, hints)
+            inferred, provisional = resolve_ingredient_slots(options, amounts, hints)
+            conflicts = ingredient_conflicts(options, amounts, hints)
+            if conflicts:
+                item["ingredient_conflicts"] = conflicts
             if all(inferred):
                 ingredients_need_review = False
+            elif conflicts:
+                ingredients_need_review = True
             # Resolve slot by slot: a confident read wins, then what OCR text
             # gave, then an option agreeing with the read amount, and finally
             # the species' first legal option so calculations stay runnable.
